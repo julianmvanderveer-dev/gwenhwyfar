@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      adviseurs: {
+        Row: {
+          actief: boolean
+          email: string | null
+          id: string
+          naam: string
+          nummer: number
+        }
+        Insert: {
+          actief?: boolean
+          email?: string | null
+          id?: string
+          naam: string
+          nummer: number
+        }
+        Update: {
+          actief?: boolean
+          email?: string | null
+          id?: string
+          naam?: string
+          nummer?: number
+        }
+        Relationships: []
+      }
       findings: {
         Row: {
           beoordeling: Database["public"]["Enums"]["beoordeling_type"] | null
@@ -130,39 +154,45 @@ export type Database = {
         Row: {
           aangemaakt_door: string
           adviseur_id: string | null
-          audit_type: Database["public"]["Enums"]["audit_type"]
+          audit_categorie: Database["public"]["Enums"]["audit_categorie"]
+          audit_soort: Database["public"]["Enums"]["audit_soort"]
           datum_aangemaakt: string
           id: string
           prioriteit: boolean
           projectnaam: string
           status: Database["public"]["Enums"]["project_status"]
+          toelatingsaudit: boolean
         }
         Insert: {
           aangemaakt_door: string
           adviseur_id?: string | null
-          audit_type?: Database["public"]["Enums"]["audit_type"]
+          audit_categorie?: Database["public"]["Enums"]["audit_categorie"]
+          audit_soort?: Database["public"]["Enums"]["audit_soort"]
           datum_aangemaakt?: string
           id?: string
           prioriteit?: boolean
           projectnaam: string
           status?: Database["public"]["Enums"]["project_status"]
+          toelatingsaudit?: boolean
         }
         Update: {
           aangemaakt_door?: string
           adviseur_id?: string | null
-          audit_type?: Database["public"]["Enums"]["audit_type"]
+          audit_categorie?: Database["public"]["Enums"]["audit_categorie"]
+          audit_soort?: Database["public"]["Enums"]["audit_soort"]
           datum_aangemaakt?: string
           id?: string
           prioriteit?: boolean
           projectnaam?: string
           status?: Database["public"]["Enums"]["project_status"]
+          toelatingsaudit?: boolean
         }
         Relationships: [
           {
             foreignKeyName: "projects_adviseur_id_fkey"
             columns: ["adviseur_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "adviseurs"
             referencedColumns: ["id"]
           },
         ]
@@ -202,7 +232,8 @@ export type Database = {
     Enums: {
       afwijking_type: "kritiek" | "niet_kritiek"
       app_role: "planner" | "tekenaar" | "ep_adviseur" | "adviseur" | "beheer"
-      audit_type: "intern" | "extern"
+      audit_categorie: "EPW-B" | "EPW-D" | "EPU-B" | "EPU-D" | "MWA-B" | "MWA-U"
+      audit_soort: "dossieraudit" | "projectaudit"
       beoordeling_type: "goed" | "niet_goed" | "interne_alert"
       eigenaar_type: "tekenaar" | "ep_adviseur"
       finding_status: "open" | "reactie_ontvangen" | "gesloten"
@@ -342,7 +373,8 @@ export const Constants = {
     Enums: {
       afwijking_type: ["kritiek", "niet_kritiek"],
       app_role: ["planner", "tekenaar", "ep_adviseur", "adviseur", "beheer"],
-      audit_type: ["intern", "extern"],
+      audit_categorie: ["EPW-B", "EPW-D", "EPU-B", "EPU-D", "MWA-B", "MWA-U"],
+      audit_soort: ["dossieraudit", "projectaudit"],
       beoordeling_type: ["goed", "niet_goed", "interne_alert"],
       eigenaar_type: ["tekenaar", "ep_adviseur"],
       finding_status: ["open", "reactie_ontvangen", "gesloten"],

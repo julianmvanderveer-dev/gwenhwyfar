@@ -81,7 +81,8 @@ export default function Inbox() {
               <tr className="border-b bg-muted">
                 <th className="text-left p-2">Project</th>
                 <th className="text-left p-2">Status</th>
-                <th className="text-left p-2">Type</th>
+                <th className="text-left p-2">Categorie</th>
+                <th className="text-left p-2">Soort</th>
                 <th className="text-left p-2">Prioriteit</th>
               </tr>
             </thead>
@@ -94,7 +95,8 @@ export default function Inbox() {
                     </Link>
                   </td>
                   <td className="p-2">{statusLabel[p.status] || p.status}</td>
-                  <td className="p-2">{p.audit_type}</td>
+                  <td className="p-2">{p.audit_categorie}</td>
+                  <td className="p-2">{p.audit_soort}</td>
                   <td className="p-2">{p.prioriteit ? "Ja" : "Nee"}</td>
                 </tr>
               ))}
