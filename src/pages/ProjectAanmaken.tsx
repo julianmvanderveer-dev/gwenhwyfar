@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
 import type { Enums } from "@/integrations/supabase/types";
+import { EPW_D_CHECKLIST } from "@/data/epwd-checklist";
 
 type Adviseur = { id: string; nummer: number; naam: string; email: string | null; actief: boolean };
 
@@ -37,7 +38,8 @@ export default function ProjectAanmaken() {
     e.preventDefault();
     if (!user) return;
     setLoading(true);
-    const { error } = await supabase.from("projects").insert({
+
+    const { data: project, error } = await supabase.from("projects").insert({
       projectnaam,
       adviseur_id: adviseurId || null,
       audit_categorie: auditCategorie,
@@ -45,13 +47,31 @@ export default function ProjectAanmaken() {
       toelatingsaudit,
       prioriteit,
       aangemaakt_door: user.id,
-    });
-    if (error) {
-      toast({ title: "Fout", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Project aangemaakt" });
-      navigate("/inbox");
+    }).select("id").single();
+
+    if (error || !project) {
+      toast({ title: "Fout", description: error?.message ?? "Onbekende fout", variant: "destructive" });
+      setLoading(false);
+      return;
     }
+
+    // Auto-insert checklist findings for EPW-D
+    if (auditCategorie === "EPW-D") {
+      const findingsToInsert = EPW_D_CHECKLIST.map((item) => ({
+        project_id: project.id,
+        onderdeel: item.onderdeel,
+        controlepunt: `${item.code}. ${item.controlepunt}`,
+        deel: item.deel,
+      }));
+
+      const { error: findingsError } = await supabase.from("findings").insert(findingsToInsert as any);
+      if (findingsError) {
+        toast({ title: "Waarschuwing", description: "Project aangemaakt maar checklist kon niet worden ingevuld: " + findingsError.message, variant: "destructive" });
+      }
+    }
+
+    toast({ title: "Project aangemaakt" });
+    navigate("/inbox");
     setLoading(false);
   };
 
