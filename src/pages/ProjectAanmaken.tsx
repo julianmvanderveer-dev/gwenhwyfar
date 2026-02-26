@@ -60,7 +60,7 @@ export default function ProjectAanmaken() {
       <h1 className="text-xl font-bold mb-4">Nieuw project</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <Label>Projectnaam</Label>
+          <Label>Projectnaam <span className="italic font-normal text-sm text-muted-foreground">Bij oplevering en bestaande bouw postcode_huisnr</span></Label>
           <Input required value={projectnaam} onChange={(e) => setProjectnaam(e.target.value)} />
         </div>
         <div>
