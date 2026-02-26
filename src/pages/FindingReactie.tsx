@@ -40,15 +40,34 @@ export default function FindingReactie() {
   };
 
   const verzendReactie = async () => {
-    if (!bericht.trim() || !user) return;
+    if (!bericht.trim() || !user || !finding) return;
     setLoading(true);
+
     await supabase.from("messages").insert({
       finding_id: id!,
       afzender_id: user.id,
       bericht: bericht.trim(),
     });
     await supabase.from("findings").update({ status: "reactie_ontvangen" as any }).eq("id", id!);
-    toast({ title: "Reactie verzonden" });
+
+    // Check if all open findings for this project are now answered
+    const { data: remaining } = await supabase
+      .from("findings")
+      .select("id")
+      .eq("project_id", finding.project_id)
+      .eq("status", "open")
+      .eq("zichtbaar_voor_adviseur", true)
+      .neq("id", id!);
+
+    if (!remaining || remaining.length === 0) {
+      toast({
+        title: "Alles ingediend!",
+        description: "Alle findings voor dit project zijn beantwoord. De reacties worden beoordeeld.",
+      });
+    } else {
+      toast({ title: "Reactie verzonden", description: `Nog ${remaining.length} finding(s) open.` });
+    }
+
     setBericht("");
     loadMessages();
     loadFinding();
@@ -84,7 +103,7 @@ export default function FindingReactie() {
         </div>
       )}
 
-      {finding.status !== "gesloten" && (
+      {finding.status !== "gesloten" && finding.status !== "reactie_ontvangen" && (
         <div>
           <Textarea
             value={bericht}
@@ -96,6 +115,10 @@ export default function FindingReactie() {
             Reactie verzenden
           </Button>
         </div>
+      )}
+
+      {finding.status === "reactie_ontvangen" && (
+        <p className="text-sm text-muted-foreground">Je reactie is ingediend en wordt beoordeeld.</p>
       )}
 
       <Button variant="ghost" className="mt-4" onClick={() => navigate(-1)}>

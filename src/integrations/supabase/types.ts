@@ -21,6 +21,7 @@ export type Database = {
           id: string
           naam: string
           nummer: number
+          user_id: string | null
         }
         Insert: {
           actief?: boolean
@@ -28,6 +29,7 @@ export type Database = {
           id?: string
           naam: string
           nummer: number
+          user_id?: string | null
         }
         Update: {
           actief?: boolean
@@ -35,6 +37,7 @@ export type Database = {
           id?: string
           naam?: string
           nummer?: number
+          user_id?: string | null
         }
         Relationships: []
       }
