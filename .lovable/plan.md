@@ -1,16 +1,36 @@
 
 
-# Aanpassingen
+# EPW-D Checklist automatisch invullen bij projectaanmaak
 
-## 1. Adviseurs tabel bijwerken
-De huidige 37 adviseurs hebben foutieve namen en nummers (1-37). Deze moeten vervangen worden door de 37 echte adviseurs met hun correcte nummers.
+## Wat er verandert
 
-**Aanpak**: Alle bestaande rijen verwijderen en de correcte adviseurs invoegen via data-operaties. Let op: sommige nummers komen meerdere keren voor (bijv. 154 heeft 4 adviseurs, 37 heeft 3, etc.) — dat is correct per de opgave.
+Bij het aanmaken van een project (in eerste instantie voor EPW-D) worden automatisch alle controlepunten uit de checklist als findings aangemaakt. Elk genummerd onderdeel (1 t/m 5) wordt een apart tabblad. Controlepunten krijgen een `deel`-markering (1 of 2) zodat de juiste rol ze kan beoordelen.
 
-**NB**: Er staan twee entries voor nummer 123 "Anass Ben Haddou" en nummer 123 "Annas Ben Haddou" — dit lijkt een duplicaat/typfout. Beide worden ingevoerd zoals opgegeven.
+## Database
 
-## 2. Projectnaam veld aanpassen
-In `ProjectAanmaken.tsx`: onder het Label "Projectnaam" een cursieve hint toevoegen: *"Bij oplevering en bestaande bouw postcode_huisnr"*
+**Nieuw veld op `findings`**: `deel` (smallint, default 1) — geeft aan of het controlepunt bij deel 1 (tekenaar) of deel 2 (ep_adviseur) hoort.
 
-Eenvoudige `<p>` tag met `italic text-sm text-muted-foreground` onder het label.
+## Checklist data (EPW-D)
+
+De volgende onderdelen en controlepunten worden automatisch aangemaakt:
+
+| Tab | Onderdeel | # items | Deel |
+|-----|-----------|---------|------|
+| 1 | Dossier (d) | 6 (a-f) | alle deel 1 |
+| 2 | Bouwkundige uitgangspunten (b) | 7 (a-g) | a-b deel 1, c-g deel 2 |
+| 3 | Algemene kenmerken (a) | 7 (a-g) | alle deel 2 |
+| 4 | Check geometrie (g) | 14 (a-n) | alle deel 2 |
+| 5 | Check installaties (i) | 9 (a-i) | alle deel 2 |
+
+## Code-aanpassingen
+
+### `ProjectAanmaken.tsx`
+Na succesvol aanmaken van het project: automatisch alle EPW-D controlepunten als findings inserten met het juiste `onderdeel`, `controlepunt` (incl. nummering zoals "1a"), en `deel`.
+
+### `ProjectDetail.tsx`
+- Handmatig toevoegen van findings verwijderen (checklist is vast)
+- Tabbladen tonen per onderdeel (1-5)
+- `canDeel1` beperkt beoordeling tot findings met `deel=1`
+- `canDeel2` beperkt beoordeling tot findings met `deel=2`
+- Visueel onderscheid deel 1/deel 2 items (kleur of label)
 
