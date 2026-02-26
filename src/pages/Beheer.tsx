@@ -8,7 +8,7 @@ import type { Tables, Enums } from "@/integrations/supabase/types";
 type Profile = Tables<"profiles">;
 type UserRole = Tables<"user_roles">;
 
-const ALL_ROLES: Enums<"app_role">[] = ["planner", "tekenaar", "ep_adviseur", "adviseur", "beheer"];
+const ALL_ROLES: Enums<"app_role">[] = ["beheer", "tekenaar", "auditor", "ep_adviseur"];
 
 export default function Beheer() {
   const { hasRole } = useAuth();

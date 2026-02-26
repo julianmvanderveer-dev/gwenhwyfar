@@ -211,7 +211,7 @@ export type Database = {
         }
         Insert: {
           id?: string
-          role: Database["public"]["Enums"]["app_role"]
+          role?: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
@@ -237,11 +237,11 @@ export type Database = {
     }
     Enums: {
       afwijking_type: "kritiek" | "niet_kritiek"
-      app_role: "planner" | "tekenaar" | "ep_adviseur" | "adviseur" | "beheer"
+      app_role: "beheer" | "tekenaar" | "auditor" | "ep_adviseur"
       audit_categorie: "EPW-B" | "EPW-D" | "EPU-B" | "EPU-D" | "MWA-B" | "MWA-U"
       audit_soort: "dossieraudit" | "projectaudit"
       beoordeling_type: "goed" | "niet_goed" | "interne_alert"
-      eigenaar_type: "tekenaar" | "ep_adviseur"
+      eigenaar_type: "tekenaar" | "auditor"
       finding_status: "open" | "reactie_ontvangen" | "gesloten"
       project_status:
         | "geselecteerd"
@@ -378,11 +378,11 @@ export const Constants = {
   public: {
     Enums: {
       afwijking_type: ["kritiek", "niet_kritiek"],
-      app_role: ["planner", "tekenaar", "ep_adviseur", "adviseur", "beheer"],
+      app_role: ["beheer", "tekenaar", "auditor", "ep_adviseur"],
       audit_categorie: ["EPW-B", "EPW-D", "EPU-B", "EPU-D", "MWA-B", "MWA-U"],
       audit_soort: ["dossieraudit", "projectaudit"],
       beoordeling_type: ["goed", "niet_goed", "interne_alert"],
-      eigenaar_type: ["tekenaar", "ep_adviseur"],
+      eigenaar_type: ["tekenaar", "auditor"],
       finding_status: ["open", "reactie_ontvangen", "gesloten"],
       project_status: [
         "geselecteerd",

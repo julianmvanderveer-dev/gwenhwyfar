@@ -41,10 +41,10 @@ export default function ProjectDetail() {
     const update: any = { beoordeling };
     if (beoordeling === "niet_goed") {
       update.type_afwijking = "niet_kritiek";
-      update.eigenaar_beoordeling = hasRole("tekenaar") ? "tekenaar" : "ep_adviseur";
+      update.eigenaar_beoordeling = hasRole("tekenaar") ? "tekenaar" : "auditor";
     } else if (beoordeling === "interne_alert") {
       update.type_afwijking = "kritiek";
-      update.eigenaar_beoordeling = hasRole("tekenaar") ? "tekenaar" : "ep_adviseur";
+      update.eigenaar_beoordeling = hasRole("tekenaar") ? "tekenaar" : "auditor";
     }
     await supabase.from("findings").update(update).eq("id", findingId);
     loadFindings();
@@ -85,7 +85,7 @@ export default function ProjectDetail() {
 
   const onderdelen = [...new Set(findings.map((f) => f.onderdeel))];
   const canDeel1 = hasRole("tekenaar") && (project.status === "geselecteerd" || project.status === "deel1_bezig");
-  const canDeel2 = hasRole("ep_adviseur") && project.status === "wacht_op_deel2";
+  const canDeel2 = hasRole("auditor") && project.status === "wacht_op_deel2";
 
   const canEditFinding = (f: Finding) => {
     if (canDeel1 && f.deel === 1) return true;

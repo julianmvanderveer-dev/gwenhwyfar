@@ -21,28 +21,34 @@ export default function Inbox() {
   }, [user, roles]);
 
   const loadData = async () => {
-    if (hasRole("adviseur")) {
+    // Load ep_adviseur (external advisor) data if applicable
+    if (hasRole("ep_adviseur")) {
       await loadAdviseurData();
-      return;
     }
 
-    // Non-adviseur flow
+    // Load internal role data if applicable
+    if (hasRole("tekenaar") || hasRole("auditor") || hasRole("beheer")) {
+      await loadInternalData();
+    }
+  };
+
+  const loadInternalData = async () => {
     let query = supabase.from("projects").select("*");
 
-    if (hasRole("tekenaar")) {
+    if (hasRole("tekenaar") && !hasRole("beheer")) {
       query = query.in("status", ["geselecteerd", "deel1_bezig"]);
-    } else if (hasRole("ep_adviseur")) {
+    } else if (hasRole("auditor") && !hasRole("beheer")) {
       query = query.in("status", ["wacht_op_deel2", "afgerond"]);
-    } else if (hasRole("planner")) {
+    } else {
       query = query.neq("status", "gesloten");
     }
 
     const { data: projectData } = await query.order("datum_aangemaakt", { ascending: false });
     setProjects(projectData ?? []);
 
-    // For tekenaar/ep_adviseur, load findings needing assessment
-    if (hasRole("tekenaar") || hasRole("ep_adviseur")) {
-      const eigenaar = hasRole("tekenaar") ? "tekenaar" : "ep_adviseur";
+    // For tekenaar/auditor, load findings needing assessment
+    if (hasRole("tekenaar") || hasRole("auditor")) {
+      const eigenaar = hasRole("tekenaar") ? "tekenaar" : "auditor";
       const { data: findingData } = await supabase
         .from("findings")
         .select("*")
@@ -53,7 +59,6 @@ export default function Inbox() {
   };
 
   const loadAdviseurData = async () => {
-    // Find which adviseur record belongs to this user
     const { data: adviseurRecord } = await supabase
       .from("adviseurs")
       .select("id")
@@ -65,7 +70,6 @@ export default function Inbox() {
       return;
     }
 
-    // Load projects with status reactie_open for this adviseur
     const { data: projectData } = await supabase
       .from("projects")
       .select("*")
@@ -78,7 +82,6 @@ export default function Inbox() {
       return;
     }
 
-    // Load open findings for these projects
     const projectIds = projectData.map((p) => p.id);
     const { data: findingData } = await supabase
       .from("findings")
@@ -105,140 +108,138 @@ export default function Inbox() {
     gesloten: "Gesloten",
   };
 
-  // Adviseur view
-  if (hasRole("adviseur")) {
-    return (
-      <div className="max-w-3xl mx-auto p-4">
-        <h1 className="text-xl font-bold mb-4">Inbox — Openstaande audits</h1>
-        <p className="text-sm mb-4 text-muted-foreground">Rollen: {roles.join(", ")}</p>
-
-        {adviseurProjects.length === 0 ? (
-          <p className="text-muted-foreground">Geen openstaande audits.</p>
-        ) : (
-          <Tabs defaultValue={adviseurProjects[0]?.id}>
-            <TabsList className="flex-wrap h-auto">
-              {adviseurProjects.map((p) => (
-                <TabsTrigger key={p.id} value={p.id}>
-                  {p.projectnaam}
-                  {p.findings.length > 0 && (
-                    <Badge variant="destructive" className="ml-2 text-xs">{p.findings.length}</Badge>
-                  )}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-            {adviseurProjects.map((p) => (
-              <TabsContent key={p.id} value={p.id}>
-                {p.findings.length === 0 ? (
-                  <p className="text-muted-foreground text-sm mt-2">Alle findings zijn beantwoord.</p>
-                ) : (
-                  <table className="w-full text-sm border mt-2">
-                    <thead>
-                      <tr className="border-b bg-muted">
-                        <th className="text-left p-2">Controlepunt</th>
-                        <th className="text-left p-2">Beoordeling</th>
-                        <th className="text-left p-2">Type afwijking</th>
-                        <th className="text-left p-2">Deadline</th>
-                        <th className="text-left p-2">Actie</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {p.findings.map((f) => (
-                        <tr key={f.id} className="border-b">
-                          <td className="p-2">{f.controlepunt}</td>
-                          <td className="p-2">{f.beoordeling ?? "—"}</td>
-                          <td className="p-2">{f.type_afwijking ?? "—"}</td>
-                          <td className="p-2">
-                            {f.deadline ? new Date(f.deadline).toLocaleDateString("nl-NL") : "—"}
-                          </td>
-                          <td className="p-2">
-                            <Link to={`/finding/${f.id}/reactie`} className="underline text-primary">
-                              Reageren
-                            </Link>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </TabsContent>
-            ))}
-          </Tabs>
-        )}
-      </div>
-    );
-  }
-
-  // Default view (planner, tekenaar, ep_adviseur, beheer)
   return (
     <div className="max-w-3xl mx-auto p-4">
       <h1 className="text-xl font-bold mb-4">Inbox</h1>
-      <p className="text-sm mb-4 text-muted-foreground">
-        Rollen: {roles.join(", ") || "geen"}
-      </p>
+      <p className="text-sm mb-4 text-muted-foreground">Rollen: {roles.join(", ") || "geen"}</p>
 
-      {projects.length > 0 && (
+      {/* EP-adviseur section: openstaande audits */}
+      {hasRole("ep_adviseur") && (
         <div className="mb-6">
-          <h2 className="font-semibold mb-2">Projecten</h2>
-          <table className="w-full text-sm border">
-            <thead>
-              <tr className="border-b bg-muted">
-                <th className="text-left p-2">Project</th>
-                <th className="text-left p-2">Status</th>
-                <th className="text-left p-2">Categorie</th>
-                <th className="text-left p-2">Soort</th>
-                <th className="text-left p-2">Prioriteit</th>
-              </tr>
-            </thead>
-            <tbody>
-              {projects.map((p) => (
-                <tr key={p.id} className="border-b">
-                  <td className="p-2">
-                    <Link to={`/project/${p.id}`} className="underline text-primary">
-                      {p.projectnaam}
-                    </Link>
-                  </td>
-                  <td className="p-2">{statusLabel[p.status] || p.status}</td>
-                  <td className="p-2">{p.audit_categorie}</td>
-                  <td className="p-2">{p.audit_soort}</td>
-                  <td className="p-2">{p.prioriteit ? "Ja" : "Nee"}</td>
-                </tr>
+          <h2 className="font-semibold mb-2">Openstaande audits (EP-adviseur)</h2>
+          {adviseurProjects.length === 0 ? (
+            <p className="text-muted-foreground text-sm">Geen openstaande audits.</p>
+          ) : (
+            <Tabs defaultValue={adviseurProjects[0]?.id}>
+              <TabsList className="flex-wrap h-auto">
+                {adviseurProjects.map((p) => (
+                  <TabsTrigger key={p.id} value={p.id}>
+                    {p.projectnaam}
+                    {p.findings.length > 0 && (
+                      <Badge variant="destructive" className="ml-2 text-xs">{p.findings.length}</Badge>
+                    )}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              {adviseurProjects.map((p) => (
+                <TabsContent key={p.id} value={p.id}>
+                  {p.findings.length === 0 ? (
+                    <p className="text-muted-foreground text-sm mt-2">Alle findings zijn beantwoord.</p>
+                  ) : (
+                    <table className="w-full text-sm border mt-2">
+                      <thead>
+                        <tr className="border-b bg-muted">
+                          <th className="text-left p-2">Controlepunt</th>
+                          <th className="text-left p-2">Beoordeling</th>
+                          <th className="text-left p-2">Type afwijking</th>
+                          <th className="text-left p-2">Deadline</th>
+                          <th className="text-left p-2">Actie</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {p.findings.map((f) => (
+                          <tr key={f.id} className="border-b">
+                            <td className="p-2">{f.controlepunt}</td>
+                            <td className="p-2">{f.beoordeling ?? "—"}</td>
+                            <td className="p-2">{f.type_afwijking ?? "—"}</td>
+                            <td className="p-2">
+                              {f.deadline ? new Date(f.deadline).toLocaleDateString("nl-NL") : "—"}
+                            </td>
+                            <td className="p-2">
+                              <Link to={`/finding/${f.id}/reactie`} className="underline text-primary">
+                                Reageren
+                              </Link>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </TabsContent>
               ))}
-            </tbody>
-          </table>
+            </Tabs>
+          )}
         </div>
       )}
 
-      {findings.length > 0 && (
-        <div>
-          <h2 className="font-semibold mb-2">Findings te beoordelen</h2>
-          <table className="w-full text-sm border">
-            <thead>
-              <tr className="border-b bg-muted">
-                <th className="text-left p-2">Onderdeel</th>
-                <th className="text-left p-2">Controlepunt</th>
-                <th className="text-left p-2">Status</th>
-                <th className="text-left p-2">Actie</th>
-              </tr>
-            </thead>
-            <tbody>
-              {findings.map((f) => (
-                <tr key={f.id} className="border-b">
-                  <td className="p-2">{f.onderdeel}</td>
-                  <td className="p-2">{f.controlepunt}</td>
-                  <td className="p-2">{f.status}</td>
-                  <td className="p-2">
-                    <Link to={`/finding/${f.id}/beoordeling`} className="underline text-primary">
-                      Beoordelen
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {/* Internal roles: projects and findings */}
+      {(hasRole("tekenaar") || hasRole("auditor") || hasRole("beheer")) && (
+        <>
+          {projects.length > 0 && (
+            <div className="mb-6">
+              <h2 className="font-semibold mb-2">Projecten</h2>
+              <table className="w-full text-sm border">
+                <thead>
+                  <tr className="border-b bg-muted">
+                    <th className="text-left p-2">Project</th>
+                    <th className="text-left p-2">Status</th>
+                    <th className="text-left p-2">Categorie</th>
+                    <th className="text-left p-2">Soort</th>
+                    <th className="text-left p-2">Prioriteit</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {projects.map((p) => (
+                    <tr key={p.id} className="border-b">
+                      <td className="p-2">
+                        <Link to={`/project/${p.id}`} className="underline text-primary">
+                          {p.projectnaam}
+                        </Link>
+                      </td>
+                      <td className="p-2">{statusLabel[p.status] || p.status}</td>
+                      <td className="p-2">{p.audit_categorie}</td>
+                      <td className="p-2">{p.audit_soort}</td>
+                      <td className="p-2">{p.prioriteit ? "Ja" : "Nee"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {findings.length > 0 && (
+            <div className="mb-6">
+              <h2 className="font-semibold mb-2">Findings te beoordelen</h2>
+              <table className="w-full text-sm border">
+                <thead>
+                  <tr className="border-b bg-muted">
+                    <th className="text-left p-2">Onderdeel</th>
+                    <th className="text-left p-2">Controlepunt</th>
+                    <th className="text-left p-2">Status</th>
+                    <th className="text-left p-2">Actie</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {findings.map((f) => (
+                    <tr key={f.id} className="border-b">
+                      <td className="p-2">{f.onderdeel}</td>
+                      <td className="p-2">{f.controlepunt}</td>
+                      <td className="p-2">{f.status}</td>
+                      <td className="p-2">
+                        <Link to={`/finding/${f.id}/beoordeling`} className="underline text-primary">
+                          Beoordelen
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
 
-      {projects.length === 0 && findings.length === 0 && (
+      {projects.length === 0 && findings.length === 0 && adviseurProjects.length === 0 && (
         <p className="text-muted-foreground">Geen openstaande items.</p>
       )}
     </div>

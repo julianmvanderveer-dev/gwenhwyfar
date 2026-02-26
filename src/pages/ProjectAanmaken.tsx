@@ -30,7 +30,7 @@ export default function ProjectAanmaken() {
     });
   }, []);
 
-  if (!hasRole("planner") && !hasRole("beheer")) {
+  if (!hasRole("beheer")) {
     return <div className="p-4">Geen toegang.</div>;
   }
 
