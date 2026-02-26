@@ -9,14 +9,13 @@ import type { Tables, Enums } from "@/integrations/supabase/types";
 import { addMonths, addDays } from "date-fns";
 
 type Project = Tables<"projects">;
-type Finding = Tables<"findings">;
+type Finding = Tables<"findings"> & { deel?: number };
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const { user, hasRole } = useAuth();
   const [project, setProject] = useState<Project | null>(null);
   const [findings, setFindings] = useState<Finding[]>([]);
-  const [newFinding, setNewFinding] = useState({ onderdeel: "", controlepunt: "" });
 
   useEffect(() => {
     if (!id) return;
@@ -35,18 +34,7 @@ export default function ProjectDetail() {
       .select("*")
       .eq("project_id", id!)
       .order("created_at");
-    setFindings(data ?? []);
-  };
-
-  const addFinding = async () => {
-    if (!newFinding.onderdeel || !newFinding.controlepunt) return;
-    await supabase.from("findings").insert({
-      project_id: id!,
-      onderdeel: newFinding.onderdeel,
-      controlepunt: newFinding.controlepunt,
-    });
-    setNewFinding({ onderdeel: "", controlepunt: "" });
-    loadFindings();
+    setFindings((data as Finding[]) ?? []);
   };
 
   const updateBeoordeling = async (findingId: string, beoordeling: Enums<"beoordeling_type">) => {
@@ -74,7 +62,6 @@ export default function ProjectDetail() {
   };
 
   const auditAfronden = async () => {
-    // Set deadlines for findings with afwijkingen
     const now = new Date();
     for (const f of findings) {
       if (f.beoordeling === "niet_goed" || f.beoordeling === "interne_alert") {
@@ -99,7 +86,12 @@ export default function ProjectDetail() {
   const onderdelen = [...new Set(findings.map((f) => f.onderdeel))];
   const canDeel1 = hasRole("tekenaar") && (project.status === "geselecteerd" || project.status === "deel1_bezig");
   const canDeel2 = hasRole("ep_adviseur") && project.status === "wacht_op_deel2";
-  const canAddFindings = hasRole("planner") || hasRole("tekenaar") || hasRole("ep_adviseur") || hasRole("beheer");
+
+  const canEditFinding = (f: Finding) => {
+    if (canDeel1 && f.deel === 1) return true;
+    if (canDeel2 && f.deel === 2) return true;
+    return false;
+  };
 
   const statusLabel: Record<string, string> = {
     geselecteerd: "Geselecteerd",
@@ -117,31 +109,9 @@ export default function ProjectDetail() {
         Status: {statusLabel[project.status]} | Categorie: {project.audit_categorie} | Soort: {project.audit_soort} | {project.toelatingsaudit && "Toelatingsaudit | "}Prioriteit: {project.prioriteit ? "Ja" : "Nee"}
       </p>
 
-      {canAddFindings && (
-        <div className="mb-4 flex gap-2 items-end">
-          <div>
-            <label className="text-sm">Onderdeel</label>
-            <input
-              className="border rounded px-2 py-1 text-sm block"
-              value={newFinding.onderdeel}
-              onChange={(e) => setNewFinding((p) => ({ ...p, onderdeel: e.target.value }))}
-            />
-          </div>
-          <div>
-            <label className="text-sm">Controlepunt</label>
-            <input
-              className="border rounded px-2 py-1 text-sm block"
-              value={newFinding.controlepunt}
-              onChange={(e) => setNewFinding((p) => ({ ...p, controlepunt: e.target.value }))}
-            />
-          </div>
-          <Button size="sm" onClick={addFinding}>Toevoegen</Button>
-        </div>
-      )}
-
       {onderdelen.length > 0 ? (
         <Tabs defaultValue={onderdelen[0]}>
-          <TabsList>
+          <TabsList className="flex-wrap h-auto">
             {onderdelen.map((o) => (
               <TabsTrigger key={o} value={o}>{o}</TabsTrigger>
             ))}
@@ -152,6 +122,7 @@ export default function ProjectDetail() {
                 <thead>
                   <tr className="border-b bg-muted">
                     <th className="text-left p-2">Controlepunt</th>
+                    <th className="text-left p-2 w-20">Deel</th>
                     <th className="text-left p-2">Beoordeling</th>
                     <th className="text-left p-2">Type afwijking</th>
                     <th className="text-left p-2">Deadline</th>
@@ -163,7 +134,12 @@ export default function ProjectDetail() {
                     <tr key={f.id} className="border-b">
                       <td className="p-2">{f.controlepunt}</td>
                       <td className="p-2">
-                        {(canDeel1 || canDeel2) ? (
+                        <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${f.deel === 1 ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}`}>
+                          Deel {f.deel}
+                        </span>
+                      </td>
+                      <td className="p-2">
+                        {canEditFinding(f) ? (
                           <select
                             className="border rounded px-1 py-0.5 text-sm"
                             value={f.beoordeling ?? ""}
@@ -179,7 +155,7 @@ export default function ProjectDetail() {
                         )}
                       </td>
                       <td className="p-2">
-                        {(canDeel1 || canDeel2) && (f.beoordeling === "niet_goed" || f.beoordeling === "interne_alert") ? (
+                        {canEditFinding(f) && (f.beoordeling === "niet_goed" || f.beoordeling === "interne_alert") ? (
                           <select
                             className="border rounded px-1 py-0.5 text-sm"
                             value={f.type_afwijking ?? ""}

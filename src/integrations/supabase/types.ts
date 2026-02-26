@@ -44,6 +44,7 @@ export type Database = {
           controlepunt: string
           created_at: string
           deadline: string | null
+          deel: number
           eigenaar_beoordeling:
             | Database["public"]["Enums"]["eigenaar_type"]
             | null
@@ -59,6 +60,7 @@ export type Database = {
           controlepunt: string
           created_at?: string
           deadline?: string | null
+          deel?: number
           eigenaar_beoordeling?:
             | Database["public"]["Enums"]["eigenaar_type"]
             | null
@@ -74,6 +76,7 @@ export type Database = {
           controlepunt?: string
           created_at?: string
           deadline?: string | null
+          deel?: number
           eigenaar_beoordeling?:
             | Database["public"]["Enums"]["eigenaar_type"]
             | null
