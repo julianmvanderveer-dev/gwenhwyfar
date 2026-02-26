@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Project = Tables<"projects">;
@@ -11,6 +13,7 @@ export default function Inbox() {
   const { user, roles, hasRole } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [findings, setFindings] = useState<(Finding & { project_naam?: string })[]>([]);
+  const [adviseurProjects, setAdviseurProjects] = useState<(Project & { findings: Finding[] })[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -18,32 +21,24 @@ export default function Inbox() {
   }, [user, roles]);
 
   const loadData = async () => {
-    // Load projects based on role
+    if (hasRole("adviseur")) {
+      await loadAdviseurData();
+      return;
+    }
+
+    // Non-adviseur flow
     let query = supabase.from("projects").select("*");
 
     if (hasRole("tekenaar")) {
       query = query.in("status", ["geselecteerd", "deel1_bezig"]);
     } else if (hasRole("ep_adviseur")) {
       query = query.in("status", ["wacht_op_deel2", "afgerond"]);
-    } else if (hasRole("adviseur")) {
-      query = query.eq("adviseur_id", user!.id).in("status", ["reactie_open"]);
     } else if (hasRole("planner")) {
       query = query.neq("status", "gesloten");
     }
-    // beheer sees all (no filter)
 
     const { data: projectData } = await query.order("datum_aangemaakt", { ascending: false });
     setProjects(projectData ?? []);
-
-    // For adviseur, also load open findings
-    if (hasRole("adviseur")) {
-      const { data: findingData } = await supabase
-        .from("findings")
-        .select("*")
-        .eq("status", "open")
-        .eq("zichtbaar_voor_adviseur", true);
-      setFindings(findingData ?? []);
-    }
 
     // For tekenaar/ep_adviseur, load findings needing assessment
     if (hasRole("tekenaar") || hasRole("ep_adviseur")) {
@@ -57,6 +52,50 @@ export default function Inbox() {
     }
   };
 
+  const loadAdviseurData = async () => {
+    // Find which adviseur record belongs to this user
+    const { data: adviseurRecord } = await supabase
+      .from("adviseurs")
+      .select("id")
+      .eq("user_id", user!.id)
+      .single();
+
+    if (!adviseurRecord) {
+      setAdviseurProjects([]);
+      return;
+    }
+
+    // Load projects with status reactie_open for this adviseur
+    const { data: projectData } = await supabase
+      .from("projects")
+      .select("*")
+      .eq("adviseur_id", adviseurRecord.id)
+      .eq("status", "reactie_open")
+      .order("datum_aangemaakt", { ascending: false });
+
+    if (!projectData || projectData.length === 0) {
+      setAdviseurProjects([]);
+      return;
+    }
+
+    // Load open findings for these projects
+    const projectIds = projectData.map((p) => p.id);
+    const { data: findingData } = await supabase
+      .from("findings")
+      .select("*")
+      .in("project_id", projectIds)
+      .eq("status", "open")
+      .eq("zichtbaar_voor_adviseur", true)
+      .order("created_at");
+
+    const grouped = projectData.map((p) => ({
+      ...p,
+      findings: (findingData ?? []).filter((f) => f.project_id === p.id),
+    }));
+
+    setAdviseurProjects(grouped);
+  };
+
   const statusLabel: Record<string, string> = {
     geselecteerd: "Geselecteerd",
     deel1_bezig: "Deel 1 bezig",
@@ -66,6 +105,70 @@ export default function Inbox() {
     gesloten: "Gesloten",
   };
 
+  // Adviseur view
+  if (hasRole("adviseur")) {
+    return (
+      <div className="max-w-3xl mx-auto p-4">
+        <h1 className="text-xl font-bold mb-4">Inbox — Openstaande audits</h1>
+        <p className="text-sm mb-4 text-muted-foreground">Rollen: {roles.join(", ")}</p>
+
+        {adviseurProjects.length === 0 ? (
+          <p className="text-muted-foreground">Geen openstaande audits.</p>
+        ) : (
+          <Tabs defaultValue={adviseurProjects[0]?.id}>
+            <TabsList className="flex-wrap h-auto">
+              {adviseurProjects.map((p) => (
+                <TabsTrigger key={p.id} value={p.id}>
+                  {p.projectnaam}
+                  {p.findings.length > 0 && (
+                    <Badge variant="destructive" className="ml-2 text-xs">{p.findings.length}</Badge>
+                  )}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            {adviseurProjects.map((p) => (
+              <TabsContent key={p.id} value={p.id}>
+                {p.findings.length === 0 ? (
+                  <p className="text-muted-foreground text-sm mt-2">Alle findings zijn beantwoord.</p>
+                ) : (
+                  <table className="w-full text-sm border mt-2">
+                    <thead>
+                      <tr className="border-b bg-muted">
+                        <th className="text-left p-2">Controlepunt</th>
+                        <th className="text-left p-2">Beoordeling</th>
+                        <th className="text-left p-2">Type afwijking</th>
+                        <th className="text-left p-2">Deadline</th>
+                        <th className="text-left p-2">Actie</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {p.findings.map((f) => (
+                        <tr key={f.id} className="border-b">
+                          <td className="p-2">{f.controlepunt}</td>
+                          <td className="p-2">{f.beoordeling ?? "—"}</td>
+                          <td className="p-2">{f.type_afwijking ?? "—"}</td>
+                          <td className="p-2">
+                            {f.deadline ? new Date(f.deadline).toLocaleDateString("nl-NL") : "—"}
+                          </td>
+                          <td className="p-2">
+                            <Link to={`/finding/${f.id}/reactie`} className="underline text-primary">
+                              Reageren
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </TabsContent>
+            ))}
+          </Tabs>
+        )}
+      </div>
+    );
+  }
+
+  // Default view (planner, tekenaar, ep_adviseur, beheer)
   return (
     <div className="max-w-3xl mx-auto p-4">
       <h1 className="text-xl font-bold mb-4">Inbox</h1>
@@ -107,9 +210,7 @@ export default function Inbox() {
 
       {findings.length > 0 && (
         <div>
-          <h2 className="font-semibold mb-2">
-            {hasRole("adviseur") ? "Open findings (mijn projecten)" : "Findings te beoordelen"}
-          </h2>
+          <h2 className="font-semibold mb-2">Findings te beoordelen</h2>
           <table className="w-full text-sm border">
             <thead>
               <tr className="border-b bg-muted">
@@ -126,11 +227,8 @@ export default function Inbox() {
                   <td className="p-2">{f.controlepunt}</td>
                   <td className="p-2">{f.status}</td>
                   <td className="p-2">
-                    <Link
-                      to={hasRole("adviseur") ? `/finding/${f.id}/reactie` : `/finding/${f.id}/beoordeling`}
-                      className="underline text-primary"
-                    >
-                      {hasRole("adviseur") ? "Reageren" : "Beoordelen"}
+                    <Link to={`/finding/${f.id}/beoordeling`} className="underline text-primary">
+                      Beoordelen
                     </Link>
                   </td>
                 </tr>
