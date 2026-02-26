@@ -114,7 +114,7 @@ export default function ProjectDetail() {
     <div className="max-w-4xl mx-auto p-4">
       <h1 className="text-xl font-bold mb-1">{project.projectnaam}</h1>
       <p className="text-sm text-muted-foreground mb-4">
-        Status: {statusLabel[project.status]} | Type: {project.audit_type} | Prioriteit: {project.prioriteit ? "Ja" : "Nee"}
+        Status: {statusLabel[project.status]} | Categorie: {project.audit_categorie} | Soort: {project.audit_soort} | {project.toelatingsaudit && "Toelatingsaudit | "}Prioriteit: {project.prioriteit ? "Ja" : "Nee"}
       </p>
 
       {canAddFindings && (
