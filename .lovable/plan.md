@@ -1,94 +1,62 @@
 
 
-# Intern Auditplatform — Implementatieplan
+# Aanpassingen Project Aanmaken
 
-## Overzicht
-Een minimalistisch intern auditplatform met werkende workflow: rollen, statusovergangen, berichtenuitwisseling en notificaties. Puur functioneel, geen styling of dashboards.
-
----
-
-## Fase 1: Database & Authenticatie
-
-### Supabase Setup
-- **Authenticatie** via Supabase Auth (email/wachtwoord login)
-- **Profieltabel** met naam en actief-status
-- **Rollentabel** (apart van profiel, conform security best practices) met rollen: `planner`, `tekenaar`, `ep_adviseur`, `adviseur`, `beheer`
-
-### Tabellen
-1. **profiles** — id, naam, email, actief
-2. **user_roles** — user_id, role (enum)
-3. **projects** — id, projectnaam, adviseur_id, audit_type (intern/extern), prioriteit, status (enum met 6 waarden), aangemaakt_door, datum_aangemaakt
-4. **findings** — id, project_id, onderdeel, controlepunt, beoordeling (goed/niet_goed/interne_alert), type_afwijking (kritiek/niet_kritiek), deadline, eigenaar_beoordeling (tekenaar/ep_adviseur), status (open/reactie_ontvangen/gesloten), zichtbaar_voor_adviseur
-5. **messages** — id, finding_id, afzender_id, bericht, datum
-
-### RLS-beleid
-- **Planner**: projecten aanmaken, alles inzien
-- **Tekenaar**: deel 1 velden bewerken, findings zien
-- **EP-adviseur**: deel 2 velden bewerken, findings beoordelen
-- **Adviseur**: alleen eigen projecten + reageren op findings
-- **Beheer**: volledige toegang
-- Security definer functies om rol-checks zonder recursie te doen
+## Samenvatting
+Drie wijzigingen aan het projectformulier: audit type vervangen door specifieke categorieën, onderscheid dossier/projectaudit toevoegen, toelatingsaudit-vinkje toevoegen, en een vaste adviseurlijst uit het PDF-bestand gebruiken.
 
 ---
 
-## Fase 2: Schermen
+## Stap 1: Database migratie
 
-### Login
-- Eenvoudig email/wachtwoord loginformulier
-- Na login: doorsturen naar Inbox op basis van rol
+**Nieuw enum `audit_categorie`**: `EPW-B`, `EPW-D`, `EPU-B`, `EPU-D`, `MWA-B`, `MWA-U`
+(vervangt het huidige `audit_type` enum intern/extern)
 
-### Inbox
-- Overzicht van "mijn open werk" per rol:
-  - Planner ziet projecten die actie nodig hebben
-  - Tekenaar ziet projecten in `deel1_bezig`
-  - EP-adviseur ziet projecten in `wacht_op_deel2`
-  - Adviseur ziet findings met status `open` (eigen projecten)
-  - Beheer ziet alles
+**Nieuw enum `audit_soort`**: `dossieraudit`, `projectaudit`
 
-### Projectdetail
-- Tabbladen per onderdeel
-- Per controlepunt: selectie goed / niet goed / interne alert
-- Knop **"Deel 1 afronden"** (alleen zichtbaar voor tekenaar) → status naar `wacht_op_deel2`
-- Knop **"Audit afronden"** (alleen zichtbaar voor EP-adviseur) → deadlines berekenen, status naar `reactie_open`, notificatie versturen
+**Nieuwe kolommen op `projects`**:
+- `audit_categorie` (nieuw enum, vervangt `audit_type`)
+- `audit_soort` (dossieraudit / projectaudit)
+- `toelatingsaudit` (boolean, default false)
 
-### Reactiepagina (per finding)
-- Toont oorspronkelijke afwijking met details
-- Reactieveld voor adviseur
-- Knop **"Reactie verzenden"** → finding.status = `reactie_ontvangen`, notificatie naar eigenaar_beoordeling
+**Kolom verwijderen**: `audit_type` wordt vervangen door `audit_categorie`
 
-### Beoordelingspagina
-- Toont volledige berichtenthread
-- Knop **"Akkoord"** → finding.status = `gesloten`
-- Knop **"Niet akkoord"** → status blijft `open`, adviseur opnieuw genotificeerd
-- Automatische check: als alle findings gesloten → project.status = `gesloten`
+**Nieuwe tabel `adviseurs`**:
+| kolom | type |
+|-------|------|
+| id | uuid (PK) |
+| nummer | integer |
+| naam | text |
+| email | text (nullable, later toe te voegen) |
+| actief | boolean (default true) |
 
----
+- RLS: iedereen met een rol mag lezen, alleen beheer mag bewerken
+- `projects.adviseur_id` wordt een FK naar `adviseurs.id` in plaats van `profiles.id`
 
-## Fase 3: Logica & Notificaties
+**Voorvullen adviseurs** met de 37 namen uit het PDF (met hun nummers).
 
-### Statusovergangen
-- Project: `geselecteerd` → `deel1_bezig` → `wacht_op_deel2` → `afgerond` → `reactie_open` → `gesloten`
-- Finding: `open` → `reactie_ontvangen` → `gesloten`
+## Stap 2: Frontend aanpassen (`ProjectAanmaken.tsx`)
 
-### Deadline-berekening bij audit afronden
-- Kritieke afwijking: deadline = vandaag + 28 dagen
-- Niet-kritieke afwijking: deadline = vandaag + 3 maanden
+- Dropdown `Audit type` → vervangen door dropdown `Audit categorie` met 6 opties
+- Nieuwe dropdown `Audit soort`: dossieraudit / projectaudit
+- Nieuw vinkje `Toelatingsaudit`
+- Adviseur-dropdown: ophalen uit `adviseurs` tabel i.p.v. `profiles`, tonen als "Naam (Nummer)"
 
-### Notificaties
-- Edge function voor het versturen van notificatie-emails:
-  - Bij audit afronden → mail naar adviseur met link
-  - Bij reactie verzenden → mail naar eigenaar_beoordeling
-- In-app notificaties als fallback (toast/inbox indicator)
+## Stap 3: ProjectDetail en Inbox aanpassen
 
-### Auto-sluiting
-- Bij elke finding-statuswijziging: check of alle findings van het project gesloten zijn → zo ja, project.status = `gesloten`
+- Verwijzingen naar `audit_type` vervangen door `audit_categorie`
+- `audit_soort` en `toelatingsaudit` tonen waar relevant
 
 ---
 
-## Fase 4: Beheer
+## Technische details
 
-### Gebruikersbeheer (rol: beheer)
-- Gebruikers toevoegen/deactiveren
-- Rollen toewijzen
-- Overzicht van alle projecten en findings
+De migratie zal:
+1. Nieuw enum `audit_categorie` aanmaken
+2. Nieuw enum `audit_soort` aanmaken
+3. Kolom `audit_type` droppen en vervangen door `audit_categorie` + `audit_soort`
+4. `toelatingsaudit` boolean toevoegen
+5. Tabel `adviseurs` aanmaken met RLS
+6. FK op `projects.adviseur_id` wijzigen van `profiles` naar `adviseurs`
+7. Alle 37 adviseurs uit het PDF inserten
 
