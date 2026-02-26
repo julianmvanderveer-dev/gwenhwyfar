@@ -1,66 +1,42 @@
 
 
-# Adviseur-inbox en reactieflow
+# Rollen hernoemen en samenvoegen
 
-## Probleem
-De `adviseurs` tabel is losgekoppeld van auth-gebruikers. De RLS-policies op `projects` en `findings` vergelijken `adviseur_id = auth.uid()`, maar `adviseur_id` verwijst nu naar `adviseurs.id` (niet naar auth users). Dit moet gerepareerd worden.
+## Huidige rollen → Nieuwe rollen
 
-## Stap 1: Database
+| Huidig (DB enum) | Nieuw | Functie |
+|---|---|---|
+| `planner` | **verwijderd** | samengevoegd met beheer |
+| `beheer` | `beheer` | aanmaken audits, beheer |
+| `tekenaar` | `tekenaar` | controleren deel 1 |
+| `ep_adviseur` | `auditor` | controleren deel 2 |
+| `adviseur` | `ep_adviseur` | bekijkt resultaten, reageert, stuurt terug |
 
-**Data-operatie**: Jean Martinez invoegen in `adviseurs` (nummer: 999, email: julianmvanderveer@gmail.com).
+## Database migratie
 
-**Migratie**: 
-- Kolom `user_id` (uuid, nullable) toevoegen aan `adviseurs` — koppelt een auth-gebruiker aan een adviseurrecord
-- RLS-policies op `projects`, `findings`, en `messages` updaten: vervang `adviseur_id = auth.uid()` door een join via `adviseurs` tabel (`WHERE adviseurs.id = projects.adviseur_id AND adviseurs.user_id = auth.uid()`)
+1. Enum `app_role` aanpassen: `planner` en `adviseur` verwijderen, `auditor` toevoegen
+   - Stap: tijdelijke kolom, data migreren, enum herdefinieren
+   - `ep_adviseur` → `auditor`, `adviseur` → `ep_adviseur`, `planner` → `beheer`
+2. Bestaande `user_roles` rijen updaten naar nieuwe waarden
+3. RLS policies updaten die verwijzen naar oude rolnamen (`planner`, `adviseur`, `ep_adviseur`)
+4. `eigenaar_beoordeling` enum op findings updaten (als die `ep_adviseur` bevat → `auditor`)
 
-## Stap 2: Inbox aanpassen voor adviseurs
+## Code-aanpassingen
 
-In `Inbox.tsx`: wanneer de gebruiker de rol `adviseur` heeft:
-- Opzoeken welke `adviseurs`-record bij de ingelogde user hoort (via `user_id`)
-- Alle projecten laden waar `adviseur_id` = die adviseur, met status `reactie_open`
-- Per project een tabblad tonen met de openstaande findings (`status = 'open'`, `zichtbaar_voor_adviseur = true`)
-- Elke finding toont: controlepunt, beoordeling, type afwijking, deadline
-- Link naar `/finding/:id/reactie` per finding om te reageren
+Alle bestanden die rolnamen gebruiken:
 
-## Stap 3: FindingReactie verbeteren
+- **`useAuth.tsx`**: type `AppRole` wordt automatisch bijgewerkt via types.ts
+- **`Beheer.tsx`**: `ALL_ROLES` array → `["tekenaar", "auditor", "ep_adviseur", "beheer"]`
+- **`AppLayout.tsx`**: `hasRole("planner")` → `hasRole("beheer")`
+- **`ProjectAanmaken.tsx`**: `hasRole("planner")` → verwijderen (alleen `beheer` check)
+- **`ProjectDetail.tsx`**: `hasRole("ep_adviseur")` → `hasRole("auditor")`, `eigenaar_beoordeling` waarde `ep_adviseur` → `auditor`
+- **`Inbox.tsx`**: 
+  - `hasRole("adviseur")` → `hasRole("ep_adviseur")`
+  - `hasRole("ep_adviseur")` (voor deel 2 check) → `hasRole("auditor")`
+  - `planner` branch verwijderen (beheer vangt dat op)
+- **`FindingBeoordeling.tsx`**: eventuele rolchecks updaten
 
-De pagina `/finding/:id/reactie` werkt al grotendeels:
-- Adviseur typt een reactie (tekst) → wordt als message opgeslagen
-- Finding status gaat naar `reactie_ontvangen`
-- Kleine verbetering: na het verzenden van de laatste reactie op alle findings, een "Alles ingediend" melding tonen
+## Samenvatting
 
-## Stap 4: Koppeling auth-user → adviseur
-
-Bij het inloggen/registreren met het e-mailadres van een adviseur: automatisch de `user_id` vullen op het bijbehorende adviseurs-record. Dit kan in `useAuth` of via een database trigger op `profiles` die checkt of het e-mail overeenkomt met een adviseur.
-
----
-
-## Technische details
-
-### RLS-fix voorbeeld (projects select):
-```sql
--- Oude check: adviseur_id = auth.uid()
--- Nieuwe check:
-EXISTS (
-  SELECT 1 FROM adviseurs
-  WHERE adviseurs.id = projects.adviseur_id
-  AND adviseurs.user_id = auth.uid()
-)
-```
-
-### Database trigger voor auto-koppeling:
-```sql
-CREATE FUNCTION link_user_to_adviseur()
-RETURNS trigger AS $$
-BEGIN
-  UPDATE adviseurs SET user_id = NEW.id
-  WHERE email = NEW.email AND user_id IS NULL;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-CREATE TRIGGER on_profile_created
-AFTER INSERT ON profiles
-FOR EACH ROW EXECUTE FUNCTION link_user_to_adviseur();
-```
+4 rollen: **beheer**, **tekenaar**, **auditor**, **ep_adviseur**. Planner verdwijnt. De EP-adviseur is de externe adviseur die resultaten bekijkt en reageert.
 
