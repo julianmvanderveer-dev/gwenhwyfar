@@ -1,1 +1,4 @@
 project_id = "lfguyngkvryaakkjqszc"
+
+[functions.notify-adviseur]
+verify_jwt = false

@@ -77,6 +77,14 @@ export default function ProjectDetail() {
     }
     await supabase.from("projects").update({ status: "reactie_open" as any }).eq("id", id!);
     toast({ title: "Audit afgerond", description: "Deadlines berekend, status naar 'Reactie open'" });
+
+    // Notify EP-adviseur via e-mail
+    supabase.functions.invoke("notify-adviseur", {
+      body: { type: "audit_afgerond", project_id: id },
+    }).then(({ error }) => {
+      if (error) console.error("Notificatie fout:", error);
+    });
+
     loadProject();
     loadFindings();
   };
