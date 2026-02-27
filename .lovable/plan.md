@@ -1,38 +1,27 @@
 
 
-# E-mailnotificaties naar EP-adviseur
+# CSV-export vanuit Beheer-pagina
 
 ## Wat wordt gebouwd
-Een backend-functie die e-mails stuurt naar de EP-adviseur op twee momenten:
-
-1. **Audit afgerond** — wanneer de auditor op "Audit afronden" klikt, krijgt de gekoppelde EP-adviseur een e-mail dat er findings klaarstaan voor reactie.
-2. **Beoordeling "niet akkoord"** — wanneer tekenaar/auditor een reactie afwijst en de finding heropent, krijgt de EP-adviseur een e-mail dat er actie nodig is.
-
-## Vereiste: e-mailservice
-Voor het versturen van notificatie-e-mails (geen auth-e-mails) is een externe e-mailservice nodig. De opties:
-
-- **Resend** — eenvoudig, goedkoop, goed API. Vereist een API-key en een geverifieerd domein (of gratis met `onboarding@resend.dev` voor testen).
+Een "Exporteer" knop op de Beheer-pagina die twee CSV-bestanden genereert:
+1. **Gebruikers.csv** — naam, e-mail, actief, en welke rollen (ja/nee per rol)
+2. **Projecten.csv** — projectnaam, status, categorie, soort, prioriteit, adviseur, datum aangemaakt
 
 ## Implementatiestappen
 
-### 1. Resend API-key toevoegen
-Een secret `RESEND_API_KEY` configureren zodat de backend-functie e-mails kan versturen.
+### 1. CSV-hulpfunctie aanmaken
+Een `src/lib/csv.ts` bestand met een generieke functie die een array van objecten omzet naar CSV-tekst en als bestand download (client-side, geen backend nodig).
 
-### 2. Edge function `notify-adviseur` aanmaken
-- Accepteert `type` ("audit_afgerond" of "niet_akkoord"), `project_id`, en optioneel `finding_id`
-- Zoekt de gekoppelde adviseur op via `projects.adviseur_id → adviseurs.email`
-- Stuurt een e-mail via Resend met relevante informatie (projectnaam, deadline, link naar finding)
+### 2. Beheer-pagina uitbreiden
+- Projectdata ophalen (naast de bestaande gebruikersdata)
+- Twee knoppen toevoegen: "Export gebruikers" en "Export projecten" (of een enkele knop die beide downloadt)
+- Bij klik: CSV genereren uit de geladen data en als `.csv` downloaden
 
-### 3. Frontend: aanroep na "Audit afronden"
-Na het succesvol afronden van de audit in `ProjectDetail.tsx`, de edge function aanroepen met type `audit_afgerond`.
+### 3. Rolcontrole
+Alleen zichtbaar voor gebruikers met de `beheer`-rol (bestaande check is al aanwezig).
 
-### 4. Frontend: aanroep na "Niet akkoord"
-In `FindingBeoordeling.tsx`, na het klikken op "Niet akkoord", de edge function aanroepen met type `niet_akkoord`.
-
-### 5. Testen
-- Log in als auditor, rond een audit af → controleer of de EP-adviseur een e-mail ontvangt
-- Log in als tekenaar/auditor, keur een reactie af → controleer of de EP-adviseur een e-mail ontvangt
-
-## Benodigde actie van jou
-Voordat ik kan beginnen: heb je al een **Resend-account**? Zo niet, kun je er gratis een aanmaken op [resend.com](https://resend.com). Voor testen hoef je geen eigen domein te verifiëren — Resend biedt een test-afzender.
+## Technische details
+- Puur client-side export via `Blob` + `URL.createObjectURL` — geen extra dependencies nodig
+- CSV met puntkomma-separator (`;`) voor goede Excel-compatibiliteit in NL
+- Projectdata wordt opgehaald via `supabase.from("projects").select("*, adviseurs(naam)")` om de adviseurnaam mee te nemen
 
