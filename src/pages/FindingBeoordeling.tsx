@@ -49,6 +49,16 @@ export default function FindingBeoordeling() {
     setLoading(true);
     await supabase.from("findings").update({ status: "open" as any }).eq("id", id!);
     toast({ title: "Niet akkoord", description: "Finding opnieuw geopend voor de adviseur" });
+
+    // Notify EP-adviseur via e-mail
+    if (finding) {
+      supabase.functions.invoke("notify-adviseur", {
+        body: { type: "niet_akkoord", project_id: finding.project_id, finding_id: id },
+      }).then(({ error }) => {
+        if (error) console.error("Notificatie fout:", error);
+      });
+    }
+
     loadFinding();
     setLoading(false);
   };
