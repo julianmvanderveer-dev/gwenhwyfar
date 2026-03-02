@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
+import { Plus, Trash2 } from "lucide-react";
 
 type TemplateRow = {
   id: string;
@@ -22,6 +23,7 @@ export default function ChecklistBeheer() {
   const [changed, setChanged] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState<"EPW-B" | "EPW-D">("EPW-B");
 
   useEffect(() => {
     supabase
@@ -72,44 +74,107 @@ export default function ChecklistBeheer() {
     setSaving(false);
   };
 
+  const getNextSubcode = (baseCode: string, categorie: string) => {
+    const base = baseCode.replace(/[a-z]+$/i, "");
+    const existing = items
+      .filter((i) => i.audit_categorie === categorie && i.code.replace(/[a-z]+$/i, "") === base)
+      .map((i) => {
+        const suffix = i.code.replace(base, "");
+        return suffix || "";
+      });
+    const letters = existing.filter((s) => /^[a-z]$/.test(s)).map((s) => s.charCodeAt(0));
+    const nextChar = letters.length > 0 ? String.fromCharCode(Math.max(...letters) + 1) : "a";
+    return base + nextChar;
+  };
+
+  const addItem = async (categorie: string) => {
+    const filtered = items.filter((i) => i.audit_categorie === categorie);
+    const lastItem = filtered[filtered.length - 1];
+    const newCode = getNextSubcode(lastItem?.code || "1", categorie);
+
+    const newRow: {
+      audit_categorie: "EPW-B" | "EPW-D" | "EPU-B" | "EPU-D" | "MWA-B" | "MWA-U";
+      code: string;
+      onderdeel: string;
+      controlepunt: string;
+      deel: number;
+    } = {
+      audit_categorie: categorie as "EPW-B" | "EPW-D",
+      code: newCode,
+      onderdeel: lastItem?.onderdeel || "",
+      controlepunt: "",
+      deel: lastItem?.deel || 1,
+    };
+
+    const { data, error } = await supabase.from("checklist_templates").insert([newRow]).select().single();
+    if (error) {
+      toast({ title: "Fout", description: "Kon rij niet toevoegen.", variant: "destructive" });
+    } else if (data) {
+      setItems((prev) => [...prev, data as TemplateRow]);
+      toast({ title: "Toegevoegd", description: `Rij ${newCode} aangemaakt.` });
+    }
+  };
+
+  const deleteItem = async (id: string) => {
+    const { error } = await supabase.from("checklist_templates").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Fout", description: "Kon rij niet verwijderen.", variant: "destructive" });
+    } else {
+      setItems((prev) => prev.filter((i) => i.id !== id));
+      setChanged((prev) => { const next = new Set(prev); next.delete(id); return next; });
+      toast({ title: "Verwijderd" });
+    }
+  };
+
   const renderTable = (categorie: string) => {
     const filtered = items.filter((i) => i.audit_categorie === categorie);
     return (
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-16">Code</TableHead>
-            <TableHead>Onderdeel</TableHead>
-            <TableHead>Controlepunt</TableHead>
-            <TableHead className="w-24 text-center">Deel</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filtered.map((item) => (
-            <TableRow key={item.id} className={changed.has(item.id) ? "bg-accent/40" : ""}>
-              <TableCell>
-                <Input className="font-mono h-8" value={item.code} onChange={(e) => updateField(item.id, "code", e.target.value)} />
-              </TableCell>
-              <TableCell>
-                <Input className="text-xs h-8" value={item.onderdeel} onChange={(e) => updateField(item.id, "onderdeel", e.target.value)} />
-              </TableCell>
-              <TableCell>
-                <Input className="text-sm h-8" value={item.controlepunt} onChange={(e) => updateField(item.id, "controlepunt", e.target.value)} />
-              </TableCell>
-              <TableCell className="text-center">
-                <Button
-                  variant={item.deel === 1 ? "default" : "secondary"}
-                  size="sm"
-                  className="w-12"
-                  onClick={() => toggleDeel(item.id)}
-                >
-                  {item.deel}
-                </Button>
-              </TableCell>
+      <>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-16">Code</TableHead>
+              <TableHead>Onderdeel</TableHead>
+              <TableHead>Controlepunt</TableHead>
+              <TableHead className="w-24 text-center">Deel</TableHead>
+              <TableHead className="w-12" />
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {filtered.map((item) => (
+              <TableRow key={item.id} className={changed.has(item.id) ? "bg-accent/40" : ""}>
+                <TableCell>
+                  <Input className="font-mono h-8" value={item.code} onChange={(e) => updateField(item.id, "code", e.target.value)} />
+                </TableCell>
+                <TableCell>
+                  <Input className="text-xs h-8" value={item.onderdeel} onChange={(e) => updateField(item.id, "onderdeel", e.target.value)} />
+                </TableCell>
+                <TableCell>
+                  <Input className="text-sm h-8" value={item.controlepunt} onChange={(e) => updateField(item.id, "controlepunt", e.target.value)} />
+                </TableCell>
+                <TableCell className="text-center">
+                  <Button
+                    variant={item.deel === 1 ? "default" : "secondary"}
+                    size="sm"
+                    className="w-12"
+                    onClick={() => toggleDeel(item.id)}
+                  >
+                    {item.deel}
+                  </Button>
+                </TableCell>
+                <TableCell>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteItem(item.id)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        <Button variant="outline" size="sm" className="mt-2" onClick={() => addItem(categorie)}>
+          <Plus className="h-4 w-4 mr-1" /> Rij toevoegen
+        </Button>
+      </>
     );
   };
 
@@ -123,7 +188,7 @@ export default function ChecklistBeheer() {
           {saving ? "Opslaan..." : `Opslaan (${changed.size})`}
         </Button>
       </div>
-      <Tabs defaultValue="EPW-B">
+      <Tabs defaultValue="EPW-B" onValueChange={(v) => setActiveTab(v as "EPW-B" | "EPW-D")}>
         <TabsList>
           <TabsTrigger value="EPW-B">EPW-B</TabsTrigger>
           <TabsTrigger value="EPW-D">EPW-D</TabsTrigger>
