@@ -7,9 +7,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import type { Tables, Enums } from "@/integrations/supabase/types";
 import { addMonths, addDays } from "date-fns";
+import FindingToelichting from "@/components/FindingToelichting";
 
 type Project = Tables<"projects">;
-type Finding = Tables<"findings"> & { deel?: number };
+type Finding = Tables<"findings"> & { deel?: number; toelichting?: string | null };
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -139,46 +140,59 @@ export default function ProjectDetail() {
                 </thead>
                 <tbody>
                   {findings.filter((f) => f.onderdeel === o).map((f) => (
-                    <tr key={f.id} className="border-b">
-                      <td className="p-2">{f.controlepunt}</td>
-                      <td className="p-2">
-                        <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${f.deel === 1 ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}`}>
-                          Deel {f.deel}
-                        </span>
-                      </td>
-                      <td className="p-2">
-                        {canEditFinding(f) ? (
-                          <select
-                            className="border rounded px-1 py-0.5 text-sm"
-                            value={f.beoordeling ?? ""}
-                            onChange={(e) => updateBeoordeling(f.id, e.target.value as any)}
-                          >
-                            <option value="">—</option>
-                            <option value="goed">Goed</option>
-                            <option value="niet_goed">Niet goed</option>
-                            <option value="interne_alert">Interne alert</option>
-                          </select>
-                        ) : (
-                          f.beoordeling ?? "—"
-                        )}
-                      </td>
-                      <td className="p-2">
-                        {canEditFinding(f) && (f.beoordeling === "niet_goed" || f.beoordeling === "interne_alert") ? (
-                          <select
-                            className="border rounded px-1 py-0.5 text-sm"
-                            value={f.type_afwijking ?? ""}
-                            onChange={(e) => updateAfwijkingType(f.id, e.target.value as any)}
-                          >
-                            <option value="kritiek">Kritiek</option>
-                            <option value="niet_kritiek">Niet kritiek</option>
-                          </select>
-                        ) : (
-                          f.type_afwijking ?? "—"
-                        )}
-                      </td>
-                      <td className="p-2">{f.deadline ? new Date(f.deadline).toLocaleDateString("nl-NL") : "—"}</td>
-                      <td className="p-2">{f.status}</td>
-                    </tr>
+                    <>
+                      <tr key={f.id} className="border-b">
+                        <td className="p-2">{f.controlepunt}</td>
+                        <td className="p-2">
+                          <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${f.deel === 1 ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}`}>
+                            Deel {f.deel}
+                          </span>
+                        </td>
+                        <td className="p-2">
+                          {canEditFinding(f) ? (
+                            <select
+                              className="border rounded px-1 py-0.5 text-sm"
+                              value={f.beoordeling ?? ""}
+                              onChange={(e) => updateBeoordeling(f.id, e.target.value as any)}
+                            >
+                              <option value="">—</option>
+                              <option value="goed">Goed</option>
+                              <option value="niet_goed">Niet goed</option>
+                              <option value="interne_alert">Interne alert</option>
+                            </select>
+                          ) : (
+                            f.beoordeling ?? "—"
+                          )}
+                        </td>
+                        <td className="p-2">
+                          {canEditFinding(f) && (f.beoordeling === "niet_goed" || f.beoordeling === "interne_alert") ? (
+                            <select
+                              className="border rounded px-1 py-0.5 text-sm"
+                              value={f.type_afwijking ?? ""}
+                              onChange={(e) => updateAfwijkingType(f.id, e.target.value as any)}
+                            >
+                              <option value="kritiek">Kritiek</option>
+                              <option value="niet_kritiek">Niet kritiek</option>
+                            </select>
+                          ) : (
+                            f.type_afwijking ?? "—"
+                          )}
+                        </td>
+                        <td className="p-2">{f.deadline ? new Date(f.deadline).toLocaleDateString("nl-NL") : "—"}</td>
+                        <td className="p-2">{f.status}</td>
+                      </tr>
+                      {(canEditFinding(f) || (f as any).toelichting) && (f.beoordeling === "niet_goed" || f.beoordeling === "interne_alert") && (
+                        <tr key={f.id + "-toel"} className="border-b bg-muted/30">
+                          <td colSpan={6} className="px-2 pb-2">
+                            <FindingToelichting
+                              findingId={f.id}
+                              initialValue={(f as any).toelichting}
+                              editable={canEditFinding(f)}
+                            />
+                          </td>
+                        </tr>
+                      )}
+                    </>
                   ))}
                 </tbody>
               </table>

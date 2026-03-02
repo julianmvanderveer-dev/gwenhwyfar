@@ -1,0 +1,1 @@
+ALTER TABLE public.findings ADD COLUMN toelichting text;
