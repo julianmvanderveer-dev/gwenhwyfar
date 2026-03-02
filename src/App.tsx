@@ -11,6 +11,7 @@ import ProjectAanmaken from "./pages/ProjectAanmaken";
 import FindingReactie from "./pages/FindingReactie";
 import FindingBeoordeling from "./pages/FindingBeoordeling";
 import Beheer from "./pages/Beheer";
+import ChecklistBeheer from "./pages/ChecklistBeheer";
 import AppLayout from "./components/AppLayout";
 import NotFound from "./pages/NotFound";
 
@@ -47,6 +48,7 @@ const App = () => (
               <Route path="/finding/:id/reactie" element={<FindingReactie />} />
               <Route path="/finding/:id/beoordeling" element={<FindingBeoordeling />} />
               <Route path="/beheer" element={<Beheer />} />
+              <Route path="/checklist-beheer" element={<ChecklistBeheer />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
