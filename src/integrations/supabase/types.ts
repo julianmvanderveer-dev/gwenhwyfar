@@ -55,6 +55,7 @@ export type Database = {
           onderdeel: string
           project_id: string
           status: Database["public"]["Enums"]["finding_status"]
+          toelichting: string | null
           type_afwijking: Database["public"]["Enums"]["afwijking_type"] | null
           zichtbaar_voor_adviseur: boolean
         }
@@ -71,6 +72,7 @@ export type Database = {
           onderdeel: string
           project_id: string
           status?: Database["public"]["Enums"]["finding_status"]
+          toelichting?: string | null
           type_afwijking?: Database["public"]["Enums"]["afwijking_type"] | null
           zichtbaar_voor_adviseur?: boolean
         }
@@ -87,6 +89,7 @@ export type Database = {
           onderdeel?: string
           project_id?: string
           status?: Database["public"]["Enums"]["finding_status"]
+          toelichting?: string | null
           type_afwijking?: Database["public"]["Enums"]["afwijking_type"] | null
           zichtbaar_voor_adviseur?: boolean
         }
