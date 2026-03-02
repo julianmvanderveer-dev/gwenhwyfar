@@ -1,13 +1,31 @@
 
 
-# Fix: Code-kolom te smal voor subcodes
+# Alles goedkeuren + Eindtabblad EP2
 
-## Probleem
-De subcodes (1a, 1b, 5k etc.) staan correct in de database, maar de Code-kolom (`w-16` = 4rem) is te smal om de volledige code weer te geven. Hierdoor zie je alleen "1", "2", "3" zonder de letters.
+## 1. "Alles goedkeuren" knop per tabblad
+In `ProjectDetail.tsx` een knop toevoegen bovenaan elk onderdeel-tab die alle findings in dat tabblad in één keer op "goed" zet (alleen als de gebruiker bewerkingsrechten heeft).
 
-## Oplossing in `src/pages/ChecklistBeheer.tsx`
+- Batch-update via `supabase.from("findings").update({ beoordeling: "goed" }).in("id", [...])`
+- Alleen zichtbaar als canDeel1 of canDeel2
 
-De kolombreedte van Code vergroten van `w-16` naar `w-24` (of breder), zodat codes als "1a", "4m", "5k" volledig zichtbaar zijn. Eventueel ook de `font-mono` input iets breder maken.
+## 2. Eindtabblad (tab 6) voor EP2-beoordeling
+Een extra tab "EP2 Beoordeling" toevoegen aan de tablijst met:
+- Invoerveld: **Startwaarde EP2** (kWh/m²)
+- Invoerveld: **Eindwaarde EP2** (kWh/m²)
+- Berekend: **Afwijking absoluut** (eindwaarde − startwaarde)
+- Berekend: **Afwijking %** ((afwijking / startwaarde) × 100)
+- Selectievakje: **GOED / NK / KT**
 
-Eén regel aanpassen in de `renderTable` functie en één in de `TableHead`.
+Alleen bewerkbaar door auditor (canDeel2).
+
+## 3. Database-wijziging
+Nieuwe kolommen op `projects` tabel:
+- `ep2_startwaarde` (numeric, nullable)
+- `ep2_eindwaarde` (numeric, nullable)
+- `ep2_beoordeling` (text, nullable) — waarden: "goed", "niet_kritiek", "kritiek"
+
+## Technische details
+- Migratie: `ALTER TABLE projects ADD COLUMN ep2_startwaarde numeric, ADD COLUMN ep2_eindwaarde numeric, ADD COLUMN ep2_beoordeling text`
+- Afwijking absoluut en % worden client-side berekend (niet opgeslagen)
+- Alle wijzigingen in `src/pages/ProjectDetail.tsx`, plus één migratie
 
