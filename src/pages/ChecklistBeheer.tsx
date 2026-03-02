@@ -133,7 +133,7 @@ export default function ChecklistBeheer() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-16">Code</TableHead>
+              <TableHead className="w-24">Code</TableHead>
               <TableHead>Onderdeel</TableHead>
               <TableHead>Controlepunt</TableHead>
               <TableHead className="w-24 text-center">Deel</TableHead>
