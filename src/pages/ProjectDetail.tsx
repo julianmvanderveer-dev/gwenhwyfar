@@ -8,6 +8,7 @@ import { toast } from "@/hooks/use-toast";
 import type { Tables, Enums } from "@/integrations/supabase/types";
 import { addMonths, addDays } from "date-fns";
 import FindingToelichting from "@/components/FindingToelichting";
+import { Input } from "@/components/ui/input";
 
 type Project = Tables<"projects">;
 type Finding = Tables<"findings"> & { deel?: number; toelichting?: string | null };
@@ -17,12 +18,23 @@ export default function ProjectDetail() {
   const { user, hasRole } = useAuth();
   const [project, setProject] = useState<Project | null>(null);
   const [findings, setFindings] = useState<Finding[]>([]);
+  const [ep2Start, setEp2Start] = useState<string>("");
+  const [ep2Eind, setEp2Eind] = useState<string>("");
+  const [ep2Beoordeling, setEp2Beoordeling] = useState<string>("");
 
   useEffect(() => {
     if (!id) return;
     loadProject();
     loadFindings();
   }, [id]);
+
+  useEffect(() => {
+    if (project) {
+      setEp2Start((project as any).ep2_startwaarde?.toString() ?? "");
+      setEp2Eind((project as any).ep2_eindwaarde?.toString() ?? "");
+      setEp2Beoordeling((project as any).ep2_beoordeling ?? "");
+    }
+  }, [project]);
 
   const loadProject = async () => {
     const { data } = await supabase.from("projects").select("*").eq("id", id!).single();
@@ -56,6 +68,16 @@ export default function ProjectDetail() {
     loadFindings();
   };
 
+  const allesGoedkeuren = async (onderdeel: string) => {
+    const ids = findings
+      .filter((f) => f.onderdeel === onderdeel && canEditFinding(f) && f.beoordeling !== "goed")
+      .map((f) => f.id);
+    if (ids.length === 0) return;
+    await supabase.from("findings").update({ beoordeling: "goed" as any }).in("id", ids);
+    toast({ title: "Alles goedgekeurd", description: `${ids.length} finding(s) op goed gezet.` });
+    loadFindings();
+  };
+
   const deel1Afronden = async () => {
     await supabase.from("projects").update({ status: "wacht_op_deel2" as any }).eq("id", id!);
     toast({ title: "Deel 1 afgerond", description: "Status gewijzigd naar 'Wacht op deel 2'" });
@@ -79,7 +101,6 @@ export default function ProjectDetail() {
     await supabase.from("projects").update({ status: "reactie_open" as any }).eq("id", id!);
     toast({ title: "Audit afgerond", description: "Deadlines berekend, status naar 'Reactie open'" });
 
-    // Notify EP-adviseur via e-mail
     supabase.functions.invoke("notify-adviseur", {
       body: { type: "audit_afgerond", project_id: id },
     }).then(({ error }) => {
@@ -88,6 +109,17 @@ export default function ProjectDetail() {
 
     loadProject();
     loadFindings();
+  };
+
+  const saveEp2 = async () => {
+    const update: any = {
+      ep2_startwaarde: ep2Start ? parseFloat(ep2Start) : null,
+      ep2_eindwaarde: ep2Eind ? parseFloat(ep2Eind) : null,
+      ep2_beoordeling: ep2Beoordeling || null,
+    };
+    await supabase.from("projects").update(update).eq("id", id!);
+    toast({ title: "EP2 opgeslagen" });
+    loadProject();
   };
 
   if (!project) return <div className="p-4">Laden...</div>;
@@ -102,6 +134,8 @@ export default function ProjectDetail() {
     return false;
   };
 
+  const canEditAny = canDeel1 || canDeel2;
+
   const statusLabel: Record<string, string> = {
     geselecteerd: "Geselecteerd",
     deel1_bezig: "Deel 1 bezig",
@@ -110,6 +144,12 @@ export default function ProjectDetail() {
     reactie_open: "Reactie open",
     gesloten: "Gesloten",
   };
+
+  // EP2 berekeningen
+  const startVal = parseFloat(ep2Start);
+  const eindVal = parseFloat(ep2Eind);
+  const afwijkingAbs = !isNaN(startVal) && !isNaN(eindVal) ? eindVal - startVal : null;
+  const afwijkingPct = afwijkingAbs !== null && startVal !== 0 ? (afwijkingAbs / startVal) * 100 : null;
 
   return (
     <div className="max-w-4xl mx-auto p-4">
@@ -124,9 +164,22 @@ export default function ProjectDetail() {
             {onderdelen.map((o) => (
               <TabsTrigger key={o} value={o}>{o}</TabsTrigger>
             ))}
+            <TabsTrigger value="__ep2__">EP2 Beoordeling</TabsTrigger>
           </TabsList>
+
           {onderdelen.map((o) => (
             <TabsContent key={o} value={o}>
+              {canEditAny && (
+                <div className="mb-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => allesGoedkeuren(o)}
+                  >
+                    Alles goedkeuren
+                  </Button>
+                </div>
+              )}
               <table className="w-full text-sm border">
                 <thead>
                   <tr className="border-b bg-muted">
@@ -198,6 +251,71 @@ export default function ProjectDetail() {
               </table>
             </TabsContent>
           ))}
+
+          {/* EP2 Eindtabblad */}
+          <TabsContent value="__ep2__">
+            <div className="border rounded p-4 space-y-4 max-w-md">
+              <h2 className="text-lg font-semibold">EP2 Beoordeling</h2>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Startwaarde EP2 (kWh/m²)</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={ep2Start}
+                  onChange={(e) => setEp2Start(e.target.value)}
+                  disabled={!canDeel2}
+                  placeholder="bijv. 125.50"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Eindwaarde EP2 (kWh/m²)</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={ep2Eind}
+                  onChange={(e) => setEp2Eind(e.target.value)}
+                  disabled={!canDeel2}
+                  placeholder="bijv. 130.00"
+                />
+              </div>
+
+              {afwijkingAbs !== null && (
+                <div className="grid grid-cols-2 gap-4 p-3 bg-muted rounded text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Afwijking absoluut:</span>
+                    <p className="font-medium">{afwijkingAbs.toFixed(2)} kWh/m²</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Afwijking %:</span>
+                    <p className="font-medium">{afwijkingPct !== null ? afwijkingPct.toFixed(1) + "%" : "—"}</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Beoordeling</label>
+                <select
+                  className="w-full border rounded px-2 py-1.5 text-sm"
+                  value={ep2Beoordeling}
+                  onChange={(e) => setEp2Beoordeling(e.target.value)}
+                  disabled={!canDeel2}
+                >
+                  <option value="">— Selecteer —</option>
+                  <option value="goed">GOED</option>
+                  <option value="niet_kritiek">NK (Niet kritiek)</option>
+                  <option value="kritiek">KT (Kritiek)</option>
+                </select>
+              </div>
+
+              {canDeel2 && (
+                <Button onClick={saveEp2} size="sm">
+                  EP2 opslaan
+                </Button>
+              )}
+            </div>
+          </TabsContent>
         </Tabs>
       ) : (
         <p className="text-muted-foreground">Geen findings.</p>
