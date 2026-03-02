@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
@@ -37,13 +38,18 @@ export default function ChecklistBeheer() {
     return <div className="p-4">Geen toegang.</div>;
   }
 
-  const toggleDeel = (id: string) => {
+  const updateField = (id: string, field: keyof TemplateRow, value: string | number) => {
     setItems((prev) =>
       prev.map((item) =>
-        item.id === id ? { ...item, deel: item.deel === 1 ? 2 : 1 } : item
+        item.id === id ? { ...item, [field]: value } : item
       )
     );
     setChanged((prev) => new Set(prev).add(id));
+  };
+
+  const toggleDeel = (id: string) => {
+    const item = items.find((i) => i.id === id);
+    if (item) updateField(id, "deel", item.deel === 1 ? 2 : 1);
   };
 
   const handleSave = async () => {
@@ -52,7 +58,7 @@ export default function ChecklistBeheer() {
 
     const updates = items.filter((i) => changed.has(i.id));
     const promises = updates.map((u) =>
-      supabase.from("checklist_templates").update({ deel: u.deel }).eq("id", u.id)
+      supabase.from("checklist_templates").update({ deel: u.deel, code: u.code, onderdeel: u.onderdeel, controlepunt: u.controlepunt }).eq("id", u.id)
     );
     const results = await Promise.all(promises);
     const errors = results.filter((r) => r.error);
@@ -81,9 +87,15 @@ export default function ChecklistBeheer() {
         <TableBody>
           {filtered.map((item) => (
             <TableRow key={item.id} className={changed.has(item.id) ? "bg-accent/40" : ""}>
-              <TableCell className="font-mono">{item.code}</TableCell>
-              <TableCell className="text-xs">{item.onderdeel}</TableCell>
-              <TableCell className="text-sm">{item.controlepunt}</TableCell>
+              <TableCell>
+                <Input className="font-mono h-8" value={item.code} onChange={(e) => updateField(item.id, "code", e.target.value)} />
+              </TableCell>
+              <TableCell>
+                <Input className="text-xs h-8" value={item.onderdeel} onChange={(e) => updateField(item.id, "onderdeel", e.target.value)} />
+              </TableCell>
+              <TableCell>
+                <Input className="text-sm h-8" value={item.controlepunt} onChange={(e) => updateField(item.id, "controlepunt", e.target.value)} />
+              </TableCell>
               <TableCell className="text-center">
                 <Button
                   variant={item.deel === 1 ? "default" : "secondary"}
