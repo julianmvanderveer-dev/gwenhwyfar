@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -140,8 +140,8 @@ export default function ProjectDetail() {
                 </thead>
                 <tbody>
                   {findings.filter((f) => f.onderdeel === o).map((f) => (
-                    <>
-                      <tr key={f.id} className="border-b">
+                    <React.Fragment key={f.id}>
+                      <tr className="border-b">
                         <td className="p-2">{f.controlepunt}</td>
                         <td className="p-2">
                           <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${f.deel === 1 ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}`}>
@@ -181,7 +181,7 @@ export default function ProjectDetail() {
                         <td className="p-2">{f.deadline ? new Date(f.deadline).toLocaleDateString("nl-NL") : "—"}</td>
                         <td className="p-2">{f.status}</td>
                       </tr>
-                      {(canEditFinding(f) || (f as any).toelichting) && (f.beoordeling === "niet_goed" || f.beoordeling === "interne_alert") && (
+                      {(canEditFinding(f) || (f as any).toelichting) && (
                         <tr key={f.id + "-toel"} className="border-b bg-muted/30">
                           <td colSpan={6} className="px-2 pb-2">
                             <FindingToelichting
@@ -192,7 +192,7 @@ export default function ProjectDetail() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>
