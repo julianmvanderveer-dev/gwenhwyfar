@@ -1,26 +1,19 @@
 
 
-# Subcode (nieuwe rij) toevoegen aan Checklist Beheer
+# Fix: nieuwe subcodes sorteren na toevoegen
 
-## Wat
-Een "+" knop toevoegen per onderdeel-groep (of onderaan de tabel) waarmee een nieuw checklist-item wordt aangemaakt. De code wordt automatisch bepaald: het volgende vrije subletter (a, b, c...) achter het hoofdnummer van dat onderdeel.
+## Probleem
+Nieuwe rijen worden met `setItems((prev) => [...prev, data])` achteraan de array geplaatst. De tabel sorteert niet opnieuw, waardoor de nieuwe subcode onderaan de gefilterde lijst verschijnt in plaats van op de juiste positie (bijv. na 5i).
 
-## Aanpassingen in `src/pages/ChecklistBeheer.tsx`
+## Oplossing in `src/pages/ChecklistBeheer.tsx`
 
-1. **"+ Rij toevoegen" knop** per categorie-tab, onderaan de tabel of per onderdeel-groep.
-2. **`addItem` functie**: 
-   - Vraagt het hoofdnummer van het onderdeel (of detecteert het uit de laatste rij).
-   - Berekent de volgende vrije letter (bijv. als "5i" bestaat → "5j").
-   - Voegt een nieuw item toe aan lokale state met een tijdelijk UUID.
-   - Insert direct naar de database (`checklist_templates`).
-3. **Optioneel: verwijderknop** per rij zodat ongewenste items ook weer weg kunnen.
+Na het toevoegen van een nieuw item, de volledige items-array sorteren op code:
 
-## Technische details
+```typescript
+setItems((prev) => [...prev, data as TemplateRow].sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true })));
+```
 
-- Nieuwe items worden via `supabase.from("checklist_templates").insert(...)` opgeslagen (niet via de batch-save, maar direct bij toevoegen).
-- De `audit_categorie` wordt overgenomen van het actieve tabblad.
-- Het `onderdeel` wordt overgenomen van het laatste item in dezelfde groep.
-- Een verwijderknop per rij maakt het beheer compleet (delete via `supabase.from("checklist_templates").delete().eq("id", id)`).
+Dezelfde sortering ook toepassen na het initieel laden van de data in de `useEffect`.
 
-Alleen `ChecklistBeheer.tsx` wordt aangepast, geen database- of routewijzigingen nodig.
+Dit is een eenregelige wijziging op twee plekken in hetzelfde bestand.
 
