@@ -181,7 +181,7 @@ export default function ProjectDetail() {
                         <td className="p-2">{f.deadline ? new Date(f.deadline).toLocaleDateString("nl-NL") : "—"}</td>
                         <td className="p-2">{f.status}</td>
                       </tr>
-                      {(canEditFinding(f) || (f as any).toelichting) && (
+                      {((canEditFinding(f) && (f.beoordeling === "niet_goed" || f.beoordeling === "interne_alert")) || (f as any).toelichting) && (
                         <tr key={f.id + "-toel"} className="border-b bg-muted/30">
                           <td colSpan={6} className="px-2 pb-2">
                             <FindingToelichting
