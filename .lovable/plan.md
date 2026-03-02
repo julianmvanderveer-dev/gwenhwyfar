@@ -1,31 +1,26 @@
 
 
-# Toelichtingsveld + spraakgestuurd invoeren per finding
+# Toelichtingsveld altijd tonen (niet alleen bij afwijkingen)
 
-## Wat wordt gebouwd
-Een tekstveld ("toelichting") bij elk controlepunt in de projectdetailpagina, waar tekenaar/auditor kan beschrijven WAT de afwijking is. Daarnaast een microfoonknop voor spraak-naar-tekst via de ingebouwde browser Web Speech API (geen externe API of kosten nodig).
+## Probleem
+Het toelichtingsveld + spraakknop wordt momenteel alleen getoond wanneer de beoordeling "niet_goed" of "interne_alert" is (regel 184 in `ProjectDetail.tsx`). Bij findings zonder beoordeling of met beoordeling "goed" is het veld onzichtbaar. Dit geldt voor beide checklists.
 
-## Wijzigingen
+## Oplossing
+De conditie op regel 184 aanpassen zodat het toelichtingsveld altijd zichtbaar is wanneer de gebruiker de finding mag bewerken, of wanneer er al een toelichting is ingevuld — ongeacht de beoordeling.
 
-### 1. Database: kolom `toelichting` toevoegen aan `findings`
-- `ALTER TABLE findings ADD COLUMN toelichting text;` -- nullable, standaard leeg
-- Geen RLS-wijzigingen nodig (bestaande update-policy dekt dit al)
+### Wijziging in `src/pages/ProjectDetail.tsx`
+**Huidige conditie (regel 184):**
+```
+(canEditFinding(f) || (f as any).toelichting) && (f.beoordeling === "niet_goed" || f.beoordeling === "interne_alert")
+```
 
-### 2. ProjectDetail.tsx aanpassen
-- Textarea toevoegen per finding-rij (zichtbaar wanneer beoordeling "niet_goed" of "interne_alert" is, of altijd indien gewenst)
-- Opslaan via `supabase.from("findings").update({ toelichting })` met debounce of onBlur
-- Microfoonknop (Mic icon) naast de textarea die de browser `SpeechRecognition` API start
-  - Spraakresultaat wordt toegevoegd aan de bestaande tekst
-  - Taal ingesteld op `nl-NL`
-  - Visuele feedback: icoon wordt rood/pulserend tijdens opname
+**Nieuwe conditie:**
+```
+canEditFinding(f) || (f as any).toelichting
+```
 
-### 3. Spraakherkenning
-- Gebruikt `window.SpeechRecognition` of `window.webkitSpeechRecognition` (ingebouwd in Chrome/Edge, gratis)
-- Geen edge function of API-key nodig
-- Fallback: knop verbergen als de browser het niet ondersteunt
+Dit toont het tekstvak + microfoon bij elke finding die bewerkbaar is, of waar al een toelichting staat.
 
-## Technische details
-- Web Speech API is puur client-side, geen kosten, geen setup
-- De toelichting wordt opgeslagen als vrije tekst in de database
-- Textarea is alleen bewerkbaar voor tekenaar (deel 1) of auditor (deel 2), conform bestaande `canEditFinding` logica
+### Bonus-fix: React key-waarschuwing
+De `<>` fragment rond de twee `<tr>` elementen in de `.map()` mist een key. Wijzigen naar `<React.Fragment key={f.id}>` om de console-warning op te lossen.
 
