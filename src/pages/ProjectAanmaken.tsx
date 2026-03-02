@@ -56,9 +56,18 @@ export default function ProjectAanmaken() {
       return;
     }
 
-    // Auto-insert checklist findings for EPW-D or EPW-B
-    const checklist = auditCategorie === "EPW-D" ? EPW_D_CHECKLIST : auditCategorie === "EPW-B" ? EPW_B_CHECKLIST : null;
-    if (checklist) {
+    // Auto-insert checklist findings from DB templates (fallback to hardcoded)
+    if (auditCategorie === "EPW-D" || auditCategorie === "EPW-B") {
+      const { data: templates } = await supabase
+        .from("checklist_templates")
+        .select("code, onderdeel, controlepunt, deel")
+        .eq("audit_categorie", auditCategorie)
+        .order("code");
+
+      const checklist = templates && templates.length > 0
+        ? templates
+        : auditCategorie === "EPW-D" ? EPW_D_CHECKLIST : EPW_B_CHECKLIST;
+
       const findingsToInsert = checklist.map((item) => ({
         project_id: project.id,
         onderdeel: item.onderdeel,

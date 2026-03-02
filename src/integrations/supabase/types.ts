@@ -41,6 +41,33 @@ export type Database = {
         }
         Relationships: []
       }
+      checklist_templates: {
+        Row: {
+          audit_categorie: Database["public"]["Enums"]["audit_categorie"]
+          code: string
+          controlepunt: string
+          deel: number
+          id: string
+          onderdeel: string
+        }
+        Insert: {
+          audit_categorie: Database["public"]["Enums"]["audit_categorie"]
+          code: string
+          controlepunt: string
+          deel?: number
+          id?: string
+          onderdeel: string
+        }
+        Update: {
+          audit_categorie?: Database["public"]["Enums"]["audit_categorie"]
+          code?: string
+          controlepunt?: string
+          deel?: number
+          id?: string
+          onderdeel?: string
+        }
+        Relationships: []
+      }
       findings: {
         Row: {
           beoordeling: Database["public"]["Enums"]["beoordeling_type"] | null
