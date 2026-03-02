@@ -31,7 +31,7 @@ export default function ChecklistBeheer() {
       .select("*")
       .order("code")
       .then(({ data }) => {
-        setItems((data as TemplateRow[]) ?? []);
+        setItems(((data as TemplateRow[]) ?? []).sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true })));
         setLoading(false);
       });
   }, []);
@@ -110,7 +110,7 @@ export default function ChecklistBeheer() {
     if (error) {
       toast({ title: "Fout", description: "Kon rij niet toevoegen.", variant: "destructive" });
     } else if (data) {
-      setItems((prev) => [...prev, data as TemplateRow]);
+      setItems((prev) => [...prev, data as TemplateRow].sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true })));
       toast({ title: "Toegevoegd", description: `Rij ${newCode} aangemaakt.` });
     }
   };
