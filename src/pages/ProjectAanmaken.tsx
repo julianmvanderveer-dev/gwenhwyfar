@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
 import type { Enums } from "@/integrations/supabase/types";
 import { EPW_D_CHECKLIST } from "@/data/epwd-checklist";
+import { EPW_B_CHECKLIST } from "@/data/epwb-checklist";
 
 type Adviseur = { id: string; nummer: number; naam: string; email: string | null; actief: boolean };
 
@@ -55,9 +56,10 @@ export default function ProjectAanmaken() {
       return;
     }
 
-    // Auto-insert checklist findings for EPW-D
-    if (auditCategorie === "EPW-D") {
-      const findingsToInsert = EPW_D_CHECKLIST.map((item) => ({
+    // Auto-insert checklist findings for EPW-D or EPW-B
+    const checklist = auditCategorie === "EPW-D" ? EPW_D_CHECKLIST : auditCategorie === "EPW-B" ? EPW_B_CHECKLIST : null;
+    if (checklist) {
+      const findingsToInsert = checklist.map((item) => ({
         project_id: project.id,
         onderdeel: item.onderdeel,
         controlepunt: `${item.code}. ${item.controlepunt}`,
