@@ -11,7 +11,9 @@ export default function AppLayout() {
     navigate("/login");
   };
 
-  const bgClass = hasRole("ep_adviseur")
+  const bgClass = hasRole("beheer")
+    ? ""
+    : hasRole("ep_adviseur")
     ? "bg-yellow-50"
     : hasRole("auditor")
     ? "bg-blue-50"
