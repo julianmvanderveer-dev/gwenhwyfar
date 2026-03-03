@@ -1,19 +1,26 @@
 
 
-# EP-adviseurs sectie toevoegen aan Beheer
+# Rollenoverzicht toevoegen aan Beheer + roldata instellen
 
 ## Wat
-Een derde sectie toevoegen aan `src/pages/Beheer.tsx` die alle EP-adviseurs toont met hun naam, nummer, e-mailadres en actief-status. De data komt uit de bestaande `adviseurs` tabel.
+1. **Data**: De genoemde rolkoppelingen instellen in de database via de user_roles tabel (julian+betty → beheer, stefan+hilbert → tekenaar, frank+wilco → auditor).
+2. **UI**: Een apart "Rollenoverzicht" sectie toevoegen aan `src/pages/Beheer.tsx`, gegroepeerd per rol (net als de EP-adviseurs tabel), met de mogelijkheid om gebruikers toe te voegen/verwijderen per rol.
 
 ## Aanpak
 
-### Bestand: `src/pages/Beheer.tsx`
-- State toevoegen: `adviseurs` array ophalen uit de `adviseurs` tabel (`select("*").order("naam")`)
-- Laden in `useEffect` naast de bestaande `loadUsers` en `loadProjects`
-- Nieuwe sectie onderaan de pagina met een tabel:
-  - Kolommen: **Nummer**, **Naam**, **E-mail**, **Actief**
-  - Actief als klikbare toggle (net als bij gebruikers)
-- Export-knop toevoegen voor EP-adviseurs CSV
+### 1. Roldata invoegen
+- E-mailadressen opzoeken in de `profiles` tabel om de user_id's te vinden.
+- Bijbehorende rollen invoegen in `user_roles` (als ze nog niet bestaan).
 
-Geen database-wijzigingen nodig — de `adviseurs` tabel bestaat al met de juiste kolommen (nummer, naam, email, actief).
+### 2. Rollenoverzicht sectie in Beheer.tsx
+- Nieuwe sectie onder de EP-adviseurs tabel.
+- Per rol (Beheer, Tekenaar, Auditor, EP-adviseur) een blok met:
+  - Lijst van gebruikers met die rol (naam + e-mail).
+  - Verwijderknop per gebruiker.
+  - Toevoegknop: dropdown/select met beschikbare gebruikers (uit profiles) om een rol toe te kennen.
+- Hergebruikt bestaande `profiles` en `user_roles` data die al geladen wordt.
+
+### Bestanden
+- `src/pages/Beheer.tsx` — nieuwe "Rollenoverzicht" sectie toevoegen
+- Database — roldata invoegen via insert tool
 
