@@ -4,10 +4,60 @@ import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Project = Tables<"projects">;
 type Finding = Tables<"findings">;
+
+const beoordelingBadge = (val: string | null) => {
+  if (!val) return null;
+  const map: Record<string, string> = {
+    goed: "bg-green-100 text-green-700",
+    niet_goed: "bg-red-100 text-red-700",
+    interne_alert: "bg-orange-100 text-orange-700",
+  };
+  const label: Record<string, string> = {
+    goed: "GOED",
+    niet_goed: "NK",
+    interne_alert: "IA",
+  };
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${map[val] ?? ""}`}>
+      {label[val] ?? val}
+    </span>
+  );
+};
+
+const afwijkingBadge = (val: string | null) => {
+  if (!val) return "—";
+  const map: Record<string, string> = {
+    kritiek: "bg-red-100 text-red-700",
+    niet_kritiek: "bg-orange-100 text-orange-700",
+  };
+  const label: Record<string, string> = {
+    kritiek: "KT",
+    niet_kritiek: "NK",
+  };
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${map[val] ?? ""}`}>
+      {label[val] ?? val}
+    </span>
+  );
+};
 
 export default function Inbox() {
   const { user, roles, hasRole } = useAuth();
@@ -21,15 +71,8 @@ export default function Inbox() {
   }, [user, roles]);
 
   const loadData = async () => {
-    // Load ep_adviseur (external advisor) data if applicable
-    if (hasRole("ep_adviseur")) {
-      await loadAdviseurData();
-    }
-
-    // Load internal role data if applicable
-    if (hasRole("tekenaar") || hasRole("auditor") || hasRole("beheer")) {
-      await loadInternalData();
-    }
+    if (hasRole("ep_adviseur")) await loadAdviseurData();
+    if (hasRole("tekenaar") || hasRole("auditor") || hasRole("beheer")) await loadInternalData();
   };
 
   const loadInternalData = async () => {
@@ -46,7 +89,6 @@ export default function Inbox() {
     const { data: projectData } = await query.order("datum_aangemaakt", { ascending: false });
     setProjects(projectData ?? []);
 
-    // For tekenaar/auditor, load findings needing assessment
     if (hasRole("tekenaar") || hasRole("auditor")) {
       const eigenaar = hasRole("tekenaar") ? "tekenaar" : "auditor";
       const { data: findingData } = await supabase
@@ -99,6 +141,16 @@ export default function Inbox() {
     setAdviseurProjects(grouped);
   };
 
+  const deleteProject = async (id: string) => {
+    const { error } = await supabase.from("projects").delete().eq("id", id);
+    if (error) {
+      toast.error("Verwijderen mislukt: " + error.message);
+    } else {
+      toast.success("Project verwijderd");
+      loadData();
+    }
+  };
+
   const statusLabel: Record<string, string> = {
     geselecteerd: "Geselecteerd",
     deel1_bezig: "Deel 1 bezig",
@@ -113,7 +165,7 @@ export default function Inbox() {
       <h1 className="text-xl font-bold mb-4">Inbox</h1>
       <p className="text-sm mb-4 text-muted-foreground">Rollen: {roles.join(", ") || "geen"}</p>
 
-      {/* EP-adviseur section: openstaande audits */}
+      {/* EP-adviseur section */}
       {hasRole("ep_adviseur") && (
         <div className="mb-6">
           <h2 className="font-semibold mb-2">Openstaande audits (EP-adviseur)</h2>
@@ -150,8 +202,8 @@ export default function Inbox() {
                         {p.findings.map((f) => (
                           <tr key={f.id} className="border-b">
                             <td className="p-2">{f.controlepunt}</td>
-                            <td className="p-2">{f.beoordeling ?? "—"}</td>
-                            <td className="p-2">{f.type_afwijking ?? "—"}</td>
+                            <td className="p-2">{beoordelingBadge(f.beoordeling) ?? "—"}</td>
+                            <td className="p-2">{afwijkingBadge(f.type_afwijking)}</td>
                             <td className="p-2">
                               {f.deadline ? new Date(f.deadline).toLocaleDateString("nl-NL") : "—"}
                             </td>
@@ -186,6 +238,7 @@ export default function Inbox() {
                     <th className="text-left p-2">Categorie</th>
                     <th className="text-left p-2">Soort</th>
                     <th className="text-left p-2">Prioriteit</th>
+                    {hasRole("beheer") && <th className="text-left p-2">Actie</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -200,6 +253,34 @@ export default function Inbox() {
                       <td className="p-2">{p.audit_categorie}</td>
                       <td className="p-2">{p.audit_soort}</td>
                       <td className="p-2">{p.prioriteit ? "Ja" : "Nee"}</td>
+                      {hasRole("beheer") && (
+                        <td className="p-2">
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Project verwijderen?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Weet je zeker dat je "{p.projectnaam}" wilt verwijderen? Alle bijbehorende findings en berichten worden ook verwijderd. Dit kan niet ongedaan worden gemaakt.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteProject(p.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Verwijderen
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
