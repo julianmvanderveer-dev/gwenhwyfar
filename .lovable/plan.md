@@ -1,42 +1,27 @@
 
 
-# Beheer-pagina herstructureren met tabs
+# Fix: Inbox toont geen projecten/findings voor tekenaar, auditor en EP-adviseur
 
-## Wat
-De Beheer-pagina opsplitsen in tabs. Het projectenoverzicht verplaatsen naar een eigen tab "Projecten", waar ook de Inbox-functionaliteit (projectenlijst met links, delete-functie) en de "Nieuw project"-functie worden samengevoegd. De overige secties (Gebruikers, EP-adviseurs, Rollen) blijven in hun eigen tabs.
+## Probleem
+De Inbox-pagina filtert projecten te strikt op status, waardoor projecten niet zichtbaar zijn voor de verschillende rollen:
 
-## Structuur
+- **Auditor**: ziet alleen projecten met status `wacht_op_deel2` of `afgerond` — maar als een project status `reactie_open` heeft (na het versturen naar de adviseur), verdwijnt het uit beeld.
+- **Tekenaar**: ziet alleen `geselecteerd` of `deel1_bezig` — mist projecten in latere fases.
+- **EP-adviseur**: filtert op `status = reactie_open` EN findings met `status = open` EN `zichtbaar_voor_adviseur = true` — als één van deze condities niet klopt, ziet de adviseur niets.
 
-```text
-Beheer
-├── Tab: Projecten
-│   ├── "Nieuw project" knop (opent inline formulier of navigeert naar /project/nieuw)
-│   ├── Projectentabel (uit huidige Beheer + Inbox gecombineerd)
-│   │   ├── Link naar projectdetail
-│   │   ├── Status, Categorie, Soort, Adviseur, Prioriteit, Datum
-│   │   ├── Verwijderknop met bevestigingsdialoog
-│   │   └── Export CSV knop
-│   └── Findings te beoordelen (indien auditor/tekenaar)
-├── Tab: Gebruikers
-│   └── Huidige gebruikerstabel + actief toggle + rolcheckboxes
-├── Tab: EP-adviseurs
-│   └── Huidige adviseurstabel met CRUD
-├── Tab: Rollen
-│   └── Huidige rollenoverzicht per rol
-```
+Het resultaat is dat alle drie de rollen "Geen openstaande items" zien.
 
-## Aanpak
+## Oplossing
 
-### Bestand: `src/pages/Beheer.tsx`
-- `Tabs` component importeren en de pagina-inhoud verdelen over 4 tabs
-- **Tab "Projecten"**: projectentabel verplaatsen + "Nieuw project" knop toevoegen (link naar `/project/nieuw`) + verwijderknop met AlertDialog (uit Inbox overgenomen) + export CSV
-- **Tab "Gebruikers"**: bestaande gebruikerstabel
-- **Tab "EP-adviseurs"**: bestaande adviseur CRUD-tabel
-- **Tab "Rollen"**: bestaande rollenoverzicht
+### Bestand: `src/pages/Inbox.tsx`
 
-### Bestand: `src/components/AppLayout.tsx`
-- Nav-links "Inbox" en "Nieuw project" behouden voor niet-beheer rollen
-- Voor beheer-rol kan "Nieuw project" link optioneel verwijderd worden uit de navbar (aangezien het nu in de Projecten-tab zit)
+**Statusfilters verruimen:**
+- **Tekenaar** (zonder beheer): alle projecten behalve `gesloten` tonen (in plaats van alleen `geselecteerd`/`deel1_bezig`)
+- **Auditor** (zonder beheer): alle projecten behalve `gesloten` tonen (in plaats van alleen `wacht_op_deel2`/`afgerond`)  
+- **EP-adviseur**: projecten niet beperken tot alleen `reactie_open` — ook `afgerond` tonen zodat adviseurs hun complete projecten kunnen inzien. Findings-filter versoepelen: niet alleen `status = open`, maar alle niet-gesloten findings tonen.
 
-Geen database-wijzigingen nodig.
+**Concreet:**
+1. `loadInternalData`: voor tekenaar en auditor (zonder beheer) dezelfde filter als beheer gebruiken: `neq("status", "gesloten")`
+2. `loadAdviseurData`: projecten niet filteren op `reactie_open` maar op `neq("status", "gesloten")`. Findings laden zonder `status = open` filter, zodat alle zichtbare findings getoond worden.
+3. De findings-query voor "te beoordelen" (tekenaar/auditor) behouden zoals deze is — die is specifiek voor `reactie_ontvangen`.
 
