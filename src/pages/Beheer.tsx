@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { downloadCsv } from "@/lib/csv";
 import type { Tables, Enums } from "@/integrations/supabase/types";
-import { Download } from "lucide-react";
+import { Download, Plus, Pencil, Check, X, Trash2 } from "lucide-react";
 import { statusBadge } from "@/lib/badges";
 
 type Profile = Tables<"profiles">;
@@ -20,6 +21,10 @@ export default function Beheer() {
   const [profiles, setProfiles] = useState<(Profile & { roles: Enums<"app_role">[] })[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [adviseurs, setAdviseurs] = useState<Adviseur[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ nummer: 0, naam: "", email: "" });
+  const [adding, setAdding] = useState(false);
+  const [addForm, setAddForm] = useState({ nummer: 0, naam: "", email: "" });
 
   useEffect(() => {
     loadUsers();
@@ -54,6 +59,47 @@ export default function Beheer() {
   const toggleAdviseurActief = async (id: string, currentActief: boolean) => {
     await supabase.from("adviseurs").update({ actief: !currentActief }).eq("id", id);
     loadAdviseurs();
+  };
+
+  const startEdit = (a: Adviseur) => {
+    setEditingId(a.id);
+    setEditForm({ nummer: a.nummer, naam: a.naam, email: a.email ?? "" });
+  };
+
+  const saveEdit = async () => {
+    if (!editingId || !editForm.naam.trim()) return;
+    await supabase.from("adviseurs").update({
+      nummer: editForm.nummer,
+      naam: editForm.naam.trim(),
+      email: editForm.email.trim() || null,
+    }).eq("id", editingId);
+    setEditingId(null);
+    loadAdviseurs();
+    toast({ title: "Adviseur bijgewerkt" });
+  };
+
+  const addAdviseur = async () => {
+    if (!addForm.naam.trim() || !addForm.nummer) return;
+    const { error } = await supabase.from("adviseurs").insert({
+      nummer: addForm.nummer,
+      naam: addForm.naam.trim(),
+      email: addForm.email.trim() || null,
+    });
+    if (error) {
+      toast({ title: "Fout bij toevoegen", description: error.message, variant: "destructive" });
+      return;
+    }
+    setAdding(false);
+    setAddForm({ nummer: 0, naam: "", email: "" });
+    loadAdviseurs();
+    toast({ title: "Adviseur toegevoegd" });
+  };
+
+  const deleteAdviseur = async (id: string, naam: string) => {
+    if (!confirm(`Weet je zeker dat je "${naam}" wilt verwijderen?`)) return;
+    await supabase.from("adviseurs").delete().eq("id", id);
+    loadAdviseurs();
+    toast({ title: "Adviseur verwijderd" });
   };
 
   const exportAdviseurs = () => {
@@ -199,7 +245,12 @@ export default function Beheer() {
         </tbody>
       </table>
 
-      <h2 className="text-lg font-bold mt-8 mb-4">EP-adviseurs</h2>
+      <div className="flex items-center justify-between mt-8 mb-4">
+        <h2 className="text-lg font-bold">EP-adviseurs</h2>
+        <Button variant="outline" size="sm" onClick={() => setAdding(true)} disabled={adding}>
+          <Plus className="h-4 w-4 mr-1" /> Adviseur toevoegen
+        </Button>
+      </div>
       <table className="w-full text-sm border">
         <thead>
           <tr className="border-b bg-muted">
@@ -207,19 +258,67 @@ export default function Beheer() {
             <th className="text-left p-2">Naam</th>
             <th className="text-left p-2">E-mail</th>
             <th className="text-left p-2">Actief</th>
+            <th className="text-left p-2 w-24"></th>
           </tr>
         </thead>
         <tbody>
+          {adding && (
+            <tr className="border-b bg-muted/30">
+              <td className="p-2">
+                <Input type="number" value={addForm.nummer || ""} onChange={(e) => setAddForm({ ...addForm, nummer: Number(e.target.value) })} placeholder="Nr" className="h-8 w-20" />
+              </td>
+              <td className="p-2">
+                <Input value={addForm.naam} onChange={(e) => setAddForm({ ...addForm, naam: e.target.value })} placeholder="Naam" className="h-8" />
+              </td>
+              <td className="p-2">
+                <Input value={addForm.email} onChange={(e) => setAddForm({ ...addForm, email: e.target.value })} placeholder="E-mail" className="h-8" />
+              </td>
+              <td className="p-2">—</td>
+              <td className="p-2 flex gap-1">
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={addAdviseur}><Check className="h-4 w-4" /></Button>
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setAdding(false); setAddForm({ nummer: 0, naam: "", email: "" }); }}><X className="h-4 w-4" /></Button>
+              </td>
+            </tr>
+          )}
           {adviseurs.map((a) => (
             <tr key={a.id} className="border-b">
-              <td className="p-2">{a.nummer}</td>
-              <td className="p-2 font-medium">{a.naam}</td>
-              <td className="p-2">{a.email ?? "—"}</td>
-              <td className="p-2">
-                <button onClick={() => toggleAdviseurActief(a.id, a.actief)} className="underline">
-                  {a.actief ? "Ja" : "Nee"}
-                </button>
-              </td>
+              {editingId === a.id ? (
+                <>
+                  <td className="p-2">
+                    <Input type="number" value={editForm.nummer || ""} onChange={(e) => setEditForm({ ...editForm, nummer: Number(e.target.value) })} className="h-8 w-20" />
+                  </td>
+                  <td className="p-2">
+                    <Input value={editForm.naam} onChange={(e) => setEditForm({ ...editForm, naam: e.target.value })} className="h-8" />
+                  </td>
+                  <td className="p-2">
+                    <Input value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} className="h-8" />
+                  </td>
+                  <td className="p-2">
+                    <button onClick={() => toggleAdviseurActief(a.id, a.actief)} className="underline">
+                      {a.actief ? "Ja" : "Nee"}
+                    </button>
+                  </td>
+                  <td className="p-2 flex gap-1">
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={saveEdit}><Check className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditingId(null)}><X className="h-4 w-4" /></Button>
+                  </td>
+                </>
+              ) : (
+                <>
+                  <td className="p-2">{a.nummer}</td>
+                  <td className="p-2 font-medium">{a.naam}</td>
+                  <td className="p-2">{a.email ?? "—"}</td>
+                  <td className="p-2">
+                    <button onClick={() => toggleAdviseurActief(a.id, a.actief)} className="underline">
+                      {a.actief ? "Ja" : "Nee"}
+                    </button>
+                  </td>
+                  <td className="p-2 flex gap-1">
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEdit(a)}><Pencil className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteAdviseur(a.id, a.naam)}><Trash2 className="h-4 w-4" /></Button>
+                  </td>
+                </>
+              )}
             </tr>
           ))}
         </tbody>
