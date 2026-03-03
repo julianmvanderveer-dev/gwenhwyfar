@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { downloadCsv } from "@/lib/csv";
 import type { Tables, Enums } from "@/integrations/supabase/types";
-import { Download, Plus, Pencil, Check, X, Trash2 } from "lucide-react";
+import { Download, Plus, Pencil, Check, X, Trash2, UserPlus } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { statusBadge } from "@/lib/badges";
 
 type Profile = Tables<"profiles">;
@@ -15,6 +16,12 @@ type Project = Tables<"projects"> & { adviseurs: { naam: string } | null };
 type Adviseur = Tables<"adviseurs">;
 
 const ALL_ROLES: Enums<"app_role">[] = ["beheer", "tekenaar", "auditor", "ep_adviseur"];
+const ROLE_LABELS: Record<Enums<"app_role">, string> = {
+  beheer: "Beheer",
+  tekenaar: "Tekenaar",
+  auditor: "Auditor",
+  ep_adviseur: "EP-adviseur",
+};
 
 export default function Beheer() {
   const { hasRole, user } = useAuth();
@@ -323,6 +330,66 @@ export default function Beheer() {
           ))}
         </tbody>
       </table>
+
+      <h2 className="text-lg font-bold mt-8 mb-4">Rollenoverzicht</h2>
+      {ALL_ROLES.map((role) => {
+        const usersWithRole = profiles.filter((p) => p.roles.includes(role));
+        const usersWithoutRole = profiles.filter((p) => !p.roles.includes(role) && p.actief);
+        return (
+          <div key={role} className="mb-6">
+            <h3 className="font-semibold text-sm mb-2">{ROLE_LABELS[role]}</h3>
+            <table className="w-full text-sm border mb-2">
+              <thead>
+                <tr className="border-b bg-muted">
+                  <th className="text-left p-2">Naam</th>
+                  <th className="text-left p-2">E-mail</th>
+                  <th className="text-left p-2 w-16"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {usersWithRole.length === 0 && (
+                  <tr><td colSpan={3} className="p-2 text-muted-foreground italic">Geen gebruikers met deze rol</td></tr>
+                )}
+                {usersWithRole.map((p) => {
+                  const isSelfBeheer = role === "beheer" && p.id === user?.id;
+                  return (
+                    <tr key={p.id} className="border-b">
+                      <td className="p-2">{p.naam}</td>
+                      <td className="p-2">{p.email}</td>
+                      <td className="p-2">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-destructive"
+                          disabled={isSelfBeheer}
+                          title={isSelfBeheer ? "Je kunt je eigen beheer-rol niet verwijderen" : "Rol verwijderen"}
+                          onClick={() => toggleRole(p.id, role, true)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {usersWithoutRole.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Select onValueChange={(userId) => toggleRole(userId, role, false)}>
+                  <SelectTrigger className="w-64 h-8 text-sm">
+                    <SelectValue placeholder="Gebruiker toevoegen…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {usersWithoutRole.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.naam} ({p.email})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
