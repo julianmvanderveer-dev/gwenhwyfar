@@ -10,7 +10,7 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [naam, setNaam] = useState("");
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -18,7 +18,16 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
 
-    if (isSignUp) {
+    if (mode === "forgot") {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) {
+        toast({ title: "Fout", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Succes", description: "Controleer je e-mail voor de herstellink." });
+      }
+    } else if (mode === "signup") {
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -43,11 +52,13 @@ export default function Login() {
     setLoading(false);
   };
 
+  const title = mode === "signup" ? "Registreren" : mode === "forgot" ? "Wachtwoord vergeten" : "Inloggen";
+
   return (
     <div className="max-w-sm mx-auto mt-20 p-4">
-      <h1 className="text-xl font-bold mb-4">{isSignUp ? "Registreren" : "Inloggen"}</h1>
+      <h1 className="text-xl font-bold mb-4">{title}</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
-        {isSignUp && (
+        {mode === "signup" && (
           <div>
             <Label htmlFor="naam">Naam</Label>
             <Input id="naam" value={naam} onChange={(e) => setNaam(e.target.value)} />
@@ -57,17 +68,30 @@ export default function Login() {
           <Label htmlFor="email">E-mail</Label>
           <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
         </div>
-        <div>
-          <Label htmlFor="password">Wachtwoord</Label>
-          <Input id="password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
-        </div>
+        {mode !== "forgot" && (
+          <div>
+            <Label htmlFor="password">Wachtwoord</Label>
+            <Input id="password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
+          </div>
+        )}
         <Button type="submit" disabled={loading} className="w-full">
-          {loading ? "Laden..." : isSignUp ? "Registreren" : "Inloggen"}
+          {loading ? "Laden..." : mode === "signup" ? "Registreren" : mode === "forgot" ? "Verstuur herstelmail" : "Inloggen"}
         </Button>
       </form>
-      <button className="mt-4 text-sm underline" onClick={() => setIsSignUp(!isSignUp)}>
-        {isSignUp ? "Al een account? Inloggen" : "Geen account? Registreren"}
-      </button>
+      <div className="mt-4 space-y-1">
+        {mode === "login" && (
+          <>
+            <button className="text-sm underline block" onClick={() => setMode("forgot")}>Wachtwoord vergeten?</button>
+            <button className="text-sm underline block" onClick={() => setMode("signup")}>Geen account? Registreren</button>
+          </>
+        )}
+        {mode === "signup" && (
+          <button className="text-sm underline" onClick={() => setMode("login")}>Al een account? Inloggen</button>
+        )}
+        {mode === "forgot" && (
+          <button className="text-sm underline" onClick={() => setMode("login")}>Terug naar inloggen</button>
+        )}
+      </div>
     </div>
   );
 }
