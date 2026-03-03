@@ -1,28 +1,24 @@
 
 
-# Tabbladen logisch ordenen + navigatieknoppen
+# Spraak-naar-tekst toevoegen voor EP-adviseur en Auditor
 
 ## Probleem
-- In de database staat "Dossier" zonder "1." prefix, terwijl de andere onderdelen wel nummering hebben. Hierdoor komt "Dossier" niet op de juiste plek.
-- EP2 Beoordeling moet als tabblad 6 worden weergegeven.
-- Er zijn geen navigatieknoppen om tussen tabbladen te navigeren.
+De spraak-naar-tekst (microfoon) knop is alleen beschikbaar in `ProjectDetail.tsx` via het `FindingToelichting` component. De pagina's `FindingReactie.tsx` (EP-adviseur) en `FindingBeoordeling.tsx` (Auditor) gebruiken een gewone Textarea zonder spraakondersteuning.
 
-## Aanpak
+## Oplossing
 
-### 1. Database fix: "Dossier" hernoemen naar "1. Dossier"
-- SQL-migratie om alle findings met `onderdeel = 'Dossier'` te updaten naar `onderdeel = '1. Dossier'`.
-- Ook in de `checklist_templates` tabel als daar dezelfde waarde staat.
+### 1. FindingReactie.tsx — EP-adviseur reactie
+De Textarea op regel 108-113 uitbreiden met een microfoonknop naast het tekstveld. De `useSpeechRecognition` hook hergebruiken om spraak toe te voegen aan het `bericht` veld.
 
-### 2. EP2 als "6. EP2 Beoordeling"
-- De TabsTrigger voor EP2 hernoemen naar "6. EP2 Beoordeling".
+### 2. FindingBeoordeling.tsx — Auditor beoordeling
+Hier is momenteel geen tekstveld voor een toelichting bij akkoord/niet-akkoord. Er kan een optioneel opmerkingenveldje worden toegevoegd met spraakondersteuning, óf als dat niet gewenst is, alleen de bestaande pagina's aanpassen.
 
-### 3. Navigatieknoppen toevoegen (`src/pages/ProjectDetail.tsx`)
-- Controlled Tabs met `activeTab` state.
-- Alle tabbladen in een array: `[...onderdelen, "__ep2__"]`.
-- Onder elke tab-content "Vorige" en "Volgende" knoppen tonen die naar het vorige/volgende tabblad navigeren.
-- Eerste tab toont alleen "Volgende", laatste tab alleen "Vorige".
+### Aanpak
+- In beide pagina's de `useSpeechRecognition` hook importeren
+- Een microfoonknop naast de Textarea plaatsen (zelfde stijl als in `FindingToelichting`)
+- Spraakresultaat toevoegen aan de huidige tekstinhoud
 
 ### Bestanden
-- `src/pages/ProjectDetail.tsx` — controlled tabs, navigatieknoppen, EP2 label
-- Database migratie — fix "Dossier" → "1. Dossier"
+- `src/pages/FindingReactie.tsx` — microfoonknop naast reactie-textarea
+- `src/pages/FindingBeoordeling.tsx` — optioneel opmerkingenveld met spraak toevoegen (als gewenst)
 
