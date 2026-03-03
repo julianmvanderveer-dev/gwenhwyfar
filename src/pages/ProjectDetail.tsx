@@ -21,6 +21,7 @@ export default function ProjectDetail() {
   const [ep2Start, setEp2Start] = useState<string>("");
   const [ep2Eind, setEp2Eind] = useState<string>("");
   const [ep2Beoordeling, setEp2Beoordeling] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<string>("");
 
   useEffect(() => {
     if (!id) return;
@@ -129,6 +130,7 @@ export default function ProjectDetail() {
   if (!project) return <div className="p-4">Laden...</div>;
 
   const onderdelen = [...new Set(findings.map((f) => f.onderdeel))];
+  const allTabs = [...onderdelen, "__ep2__"];
   const canDeel1 = hasRole("tekenaar") && (project.status === "geselecteerd" || project.status === "deel1_bezig");
   const canDeel2 = hasRole("auditor") && project.status === "wacht_op_deel2";
 
@@ -140,6 +142,11 @@ export default function ProjectDetail() {
 
   const canEditAny = canDeel1 || canDeel2;
 
+  const currentIndex = allTabs.indexOf(activeTab);
+  const goTo = (dir: -1 | 1) => {
+    const next = allTabs[currentIndex + dir];
+    if (next) setActiveTab(next);
+  };
   const statusLabel: Record<string, string> = {
     geselecteerd: "Geselecteerd",
     deel1_bezig: "Deel 1 bezig",
@@ -163,12 +170,12 @@ export default function ProjectDetail() {
       </p>
 
       {onderdelen.length > 0 ? (
-        <Tabs defaultValue={onderdelen[0]}>
+        <Tabs value={activeTab || onderdelen[0]} onValueChange={setActiveTab}>
           <TabsList className="flex-wrap h-auto">
             {onderdelen.map((o) => (
               <TabsTrigger key={o} value={o}>{o}</TabsTrigger>
             ))}
-            <TabsTrigger value="__ep2__">EP2 Beoordeling</TabsTrigger>
+            <TabsTrigger value="__ep2__">6. EP2 Beoordeling</TabsTrigger>
           </TabsList>
 
           {onderdelen.map((o) => (
@@ -253,6 +260,15 @@ export default function ProjectDetail() {
                   ))}
                 </tbody>
               </table>
+              <div className="flex justify-between mt-4">
+                {allTabs.indexOf(o) > 0 && (
+                  <Button variant="outline" size="sm" onClick={() => goTo(-1)}>← Vorige</Button>
+                )}
+                <div className="flex-1" />
+                {allTabs.indexOf(o) < allTabs.length - 1 && (
+                  <Button variant="outline" size="sm" onClick={() => goTo(1)}>Volgende →</Button>
+                )}
+              </div>
             </TabsContent>
           ))}
 
@@ -318,6 +334,12 @@ export default function ProjectDetail() {
                   EP2 opslaan
                 </Button>
               )}
+            </div>
+            <div className="flex justify-between mt-4">
+              {currentIndex > 0 && (
+                <Button variant="outline" size="sm" onClick={() => goTo(-1)}>← Vorige</Button>
+              )}
+              <div className="flex-1" />
             </div>
           </TabsContent>
         </Tabs>
