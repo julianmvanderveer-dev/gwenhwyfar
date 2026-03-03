@@ -15,7 +15,7 @@ type Project = Tables<"projects"> & { adviseurs: { naam: string } | null };
 const ALL_ROLES: Enums<"app_role">[] = ["beheer", "tekenaar", "auditor", "ep_adviseur"];
 
 export default function Beheer() {
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
   const [profiles, setProfiles] = useState<(Profile & { roles: Enums<"app_role">[] })[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
 
@@ -126,11 +126,14 @@ export default function Beheer() {
               </td>
               {ALL_ROLES.map((role) => {
                 const has = p.roles.includes(role);
+                const isSelfBeheer = role === "beheer" && p.id === user?.id;
                 return (
                   <td key={role} className="p-2">
                     <input
                       type="checkbox"
                       checked={has}
+                      disabled={isSelfBeheer}
+                      title={isSelfBeheer ? "Je kunt je eigen beheer-rol niet verwijderen" : undefined}
                       onChange={() => toggleRole(p.id, role, has)}
                     />
                   </td>
