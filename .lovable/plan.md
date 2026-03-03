@@ -1,24 +1,19 @@
 
 
-# Spraak-naar-tekst toevoegen voor EP-adviseur en Auditor
+# EP-adviseurs sectie toevoegen aan Beheer
 
-## Probleem
-De spraak-naar-tekst (microfoon) knop is alleen beschikbaar in `ProjectDetail.tsx` via het `FindingToelichting` component. De pagina's `FindingReactie.tsx` (EP-adviseur) en `FindingBeoordeling.tsx` (Auditor) gebruiken een gewone Textarea zonder spraakondersteuning.
+## Wat
+Een derde sectie toevoegen aan `src/pages/Beheer.tsx` die alle EP-adviseurs toont met hun naam, nummer, e-mailadres en actief-status. De data komt uit de bestaande `adviseurs` tabel.
 
-## Oplossing
+## Aanpak
 
-### 1. FindingReactie.tsx — EP-adviseur reactie
-De Textarea op regel 108-113 uitbreiden met een microfoonknop naast het tekstveld. De `useSpeechRecognition` hook hergebruiken om spraak toe te voegen aan het `bericht` veld.
+### Bestand: `src/pages/Beheer.tsx`
+- State toevoegen: `adviseurs` array ophalen uit de `adviseurs` tabel (`select("*").order("naam")`)
+- Laden in `useEffect` naast de bestaande `loadUsers` en `loadProjects`
+- Nieuwe sectie onderaan de pagina met een tabel:
+  - Kolommen: **Nummer**, **Naam**, **E-mail**, **Actief**
+  - Actief als klikbare toggle (net als bij gebruikers)
+- Export-knop toevoegen voor EP-adviseurs CSV
 
-### 2. FindingBeoordeling.tsx — Auditor beoordeling
-Hier is momenteel geen tekstveld voor een toelichting bij akkoord/niet-akkoord. Er kan een optioneel opmerkingenveldje worden toegevoegd met spraakondersteuning, óf als dat niet gewenst is, alleen de bestaande pagina's aanpassen.
-
-### Aanpak
-- In beide pagina's de `useSpeechRecognition` hook importeren
-- Een microfoonknop naast de Textarea plaatsen (zelfde stijl als in `FindingToelichting`)
-- Spraakresultaat toevoegen aan de huidige tekstinhoud
-
-### Bestanden
-- `src/pages/FindingReactie.tsx` — microfoonknop naast reactie-textarea
-- `src/pages/FindingBeoordeling.tsx` — optioneel opmerkingenveld met spraak toevoegen (als gewenst)
+Geen database-wijzigingen nodig — de `adviseurs` tabel bestaat al met de juiste kolommen (nummer, naam, email, actief).
 
