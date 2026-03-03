@@ -1,0 +1,62 @@
+import React from "react";
+
+export const beoordelingBadge = (val: string | null) => {
+  if (!val) return null;
+  const map: Record<string, string> = {
+    goed: "bg-green-100 text-green-700",
+    niet_goed: "bg-red-100 text-red-700",
+    interne_alert: "bg-orange-100 text-orange-700",
+  };
+  const label: Record<string, string> = {
+    goed: "GOED",
+    niet_goed: "NK",
+    interne_alert: "IA",
+  };
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${map[val] ?? ""}`}>
+      {label[val] ?? val}
+    </span>
+  );
+};
+
+export const afwijkingBadge = (val: string | null) => {
+  if (!val) return "—";
+  const map: Record<string, string> = {
+    kritiek: "bg-red-100 text-red-700",
+    niet_kritiek: "bg-orange-100 text-orange-700",
+  };
+  const label: Record<string, string> = {
+    kritiek: "KT",
+    niet_kritiek: "NK",
+  };
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${map[val] ?? ""}`}>
+      {label[val] ?? val}
+    </span>
+  );
+};
+
+export const statusBadge = (val: string | null) => {
+  if (!val) return null;
+  const map: Record<string, string> = {
+    geselecteerd: "bg-gray-100 text-gray-700",
+    deel1_bezig: "bg-blue-100 text-blue-700",
+    wacht_op_deel2: "bg-yellow-100 text-yellow-700",
+    reactie_open: "bg-orange-100 text-orange-700",
+    afgerond: "bg-green-100 text-green-700",
+    gesloten: "bg-green-200 text-green-800",
+  };
+  const label: Record<string, string> = {
+    geselecteerd: "Geselecteerd",
+    deel1_bezig: "Deel 1 bezig",
+    wacht_op_deel2: "Wacht op deel 2",
+    reactie_open: "Reactie open",
+    afgerond: "Afgerond",
+    gesloten: "Gesloten",
+  };
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${map[val] ?? "bg-gray-100 text-gray-700"}`}>
+      {label[val] ?? val}
+    </span>
+  );
+};
