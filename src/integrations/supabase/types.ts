@@ -196,9 +196,11 @@ export type Database = {
           ep2_beoordeling: string | null
           ep2_eindwaarde: number | null
           ep2_startwaarde: number | null
+          gearchiveerd_op: string | null
           id: string
           prioriteit: boolean
           projectnaam: string
+          reactie_deadline: string | null
           status: Database["public"]["Enums"]["project_status"]
           toelatingsaudit: boolean
         }
@@ -211,9 +213,11 @@ export type Database = {
           ep2_beoordeling?: string | null
           ep2_eindwaarde?: number | null
           ep2_startwaarde?: number | null
+          gearchiveerd_op?: string | null
           id?: string
           prioriteit?: boolean
           projectnaam: string
+          reactie_deadline?: string | null
           status?: Database["public"]["Enums"]["project_status"]
           toelatingsaudit?: boolean
         }
@@ -226,9 +230,11 @@ export type Database = {
           ep2_beoordeling?: string | null
           ep2_eindwaarde?: number | null
           ep2_startwaarde?: number | null
+          gearchiveerd_op?: string | null
           id?: string
           prioriteit?: boolean
           projectnaam?: string
+          reactie_deadline?: string | null
           status?: Database["public"]["Enums"]["project_status"]
           toelatingsaudit?: boolean
         }
@@ -289,6 +295,10 @@ export type Database = {
         | "afgerond"
         | "reactie_open"
         | "gesloten"
+        | "nog_niet_begonnen"
+        | "deel1_afgerond"
+        | "deel2_bezig"
+        | "wacht_op_reactie"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -430,6 +440,10 @@ export const Constants = {
         "afgerond",
         "reactie_open",
         "gesloten",
+        "nog_niet_begonnen",
+        "deel1_afgerond",
+        "deel2_bezig",
+        "wacht_op_reactie",
       ],
     },
   },
