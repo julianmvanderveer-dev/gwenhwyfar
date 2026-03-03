@@ -11,6 +11,7 @@ import { statusBadge } from "@/lib/badges";
 type Profile = Tables<"profiles">;
 type UserRole = Tables<"user_roles">;
 type Project = Tables<"projects"> & { adviseurs: { naam: string } | null };
+type Adviseur = Tables<"adviseurs">;
 
 const ALL_ROLES: Enums<"app_role">[] = ["beheer", "tekenaar", "auditor", "ep_adviseur"];
 
@@ -18,10 +19,12 @@ export default function Beheer() {
   const { hasRole, user } = useAuth();
   const [profiles, setProfiles] = useState<(Profile & { roles: Enums<"app_role">[] })[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [adviseurs, setAdviseurs] = useState<Adviseur[]>([]);
 
   useEffect(() => {
     loadUsers();
     loadProjects();
+    loadAdviseurs();
   }, []);
 
   const loadUsers = async () => {
@@ -41,6 +44,27 @@ export default function Beheer() {
       .select("*, adviseurs(naam)")
       .order("datum_aangemaakt", { ascending: false });
     setProjects((data as Project[]) ?? []);
+  };
+
+  const loadAdviseurs = async () => {
+    const { data } = await supabase.from("adviseurs").select("*").order("naam");
+    setAdviseurs(data ?? []);
+  };
+
+  const toggleAdviseurActief = async (id: string, currentActief: boolean) => {
+    await supabase.from("adviseurs").update({ actief: !currentActief }).eq("id", id);
+    loadAdviseurs();
+  };
+
+  const exportAdviseurs = () => {
+    const rows = adviseurs.map((a) => ({
+      Nummer: String(a.nummer),
+      Naam: a.naam,
+      "E-mail": a.email ?? "",
+      Actief: a.actief ? "Ja" : "Nee",
+    }));
+    downloadCsv(rows, "EP-adviseurs.csv");
+    toast({ title: "EP-adviseurs geëxporteerd" });
   };
 
   const exportGebruikers = () => {
@@ -97,6 +121,9 @@ export default function Beheer() {
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={exportGebruikers}>
             <Download className="h-4 w-4 mr-1" /> Export gebruikers
+          </Button>
+          <Button variant="outline" size="sm" onClick={exportAdviseurs}>
+            <Download className="h-4 w-4 mr-1" /> Export adviseurs
           </Button>
           <Button variant="outline" size="sm" onClick={exportProjecten}>
             <Download className="h-4 w-4 mr-1" /> Export projecten
@@ -167,6 +194,32 @@ export default function Beheer() {
               <td className="p-2">{p.adviseurs?.naam ?? "—"}</td>
               <td className="p-2">{p.prioriteit ? "Ja" : "Nee"}</td>
               <td className="p-2">{new Date(p.datum_aangemaakt).toLocaleDateString("nl-NL")}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <h2 className="text-lg font-bold mt-8 mb-4">EP-adviseurs</h2>
+      <table className="w-full text-sm border">
+        <thead>
+          <tr className="border-b bg-muted">
+            <th className="text-left p-2">Nummer</th>
+            <th className="text-left p-2">Naam</th>
+            <th className="text-left p-2">E-mail</th>
+            <th className="text-left p-2">Actief</th>
+          </tr>
+        </thead>
+        <tbody>
+          {adviseurs.map((a) => (
+            <tr key={a.id} className="border-b">
+              <td className="p-2">{a.nummer}</td>
+              <td className="p-2 font-medium">{a.naam}</td>
+              <td className="p-2">{a.email ?? "—"}</td>
+              <td className="p-2">
+                <button onClick={() => toggleAdviseurActief(a.id, a.actief)} className="underline">
+                  {a.actief ? "Ja" : "Nee"}
+                </button>
+              </td>
             </tr>
           ))}
         </tbody>
