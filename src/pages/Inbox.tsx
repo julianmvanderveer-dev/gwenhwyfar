@@ -44,13 +44,7 @@ export default function Inbox() {
   const loadInternalData = async () => {
     let query = supabase.from("projects").select("*");
 
-    if (hasRole("tekenaar") && !hasRole("beheer")) {
-      query = query.in("status", ["geselecteerd", "deel1_bezig"]);
-    } else if (hasRole("auditor") && !hasRole("beheer")) {
-      query = query.in("status", ["wacht_op_deel2", "afgerond"]);
-    } else {
-      query = query.neq("status", "gesloten");
-    }
+    query = query.neq("status", "gesloten");
 
     const { data: projectData } = await query.order("datum_aangemaakt", { ascending: false });
     setProjects(projectData ?? []);
@@ -82,7 +76,7 @@ export default function Inbox() {
       .from("projects")
       .select("*")
       .eq("adviseur_id", adviseurRecord.id)
-      .eq("status", "reactie_open")
+      .neq("status", "gesloten")
       .order("datum_aangemaakt", { ascending: false });
 
     if (!projectData || projectData.length === 0) {
@@ -95,7 +89,7 @@ export default function Inbox() {
       .from("findings")
       .select("*")
       .in("project_id", projectIds)
-      .eq("status", "open")
+      .neq("status", "gesloten")
       .eq("zichtbaar_voor_adviseur", true)
       .order("created_at");
 
