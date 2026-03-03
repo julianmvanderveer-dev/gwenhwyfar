@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
+import { Mic, MicOff } from "lucide-react";
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Finding = Tables<"findings">;
@@ -18,6 +20,11 @@ export default function FindingReactie() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [bericht, setBericht] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const handleSpeech = useCallback((transcript: string) => {
+    setBericht((prev) => (prev ? prev + " " + transcript : transcript));
+  }, []);
+  const { listening, toggle, supported } = useSpeechRecognition(handleSpeech);
 
   useEffect(() => {
     if (!id) return;
@@ -105,12 +112,25 @@ export default function FindingReactie() {
 
       {finding.status !== "gesloten" && finding.status !== "reactie_ontvangen" && (
         <div>
-          <Textarea
-            value={bericht}
-            onChange={(e) => setBericht(e.target.value)}
-            placeholder="Typ je reactie..."
-            className="mb-2"
-          />
+          <div className="flex items-start gap-1 mb-2">
+            <Textarea
+              value={bericht}
+              onChange={(e) => setBericht(e.target.value)}
+              placeholder="Typ je reactie..."
+            />
+            {supported && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className={`shrink-0 ${listening ? "text-red-500 animate-pulse" : ""}`}
+                onClick={toggle}
+                title={listening ? "Stop opname" : "Spraak invoer"}
+              >
+                {listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </Button>
+            )}
+          </div>
           <Button onClick={verzendReactie} disabled={loading || !bericht.trim()}>
             Reactie verzenden
           </Button>
