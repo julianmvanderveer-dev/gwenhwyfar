@@ -5,31 +5,25 @@ import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { Trash2, Download, Plus } from "lucide-react";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { toast as uiToast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
+import { beoordelingBadge, afwijkingBadge, statusBadge } from "@/lib/badges";
+import { downloadCsv } from "@/lib/csv";
 
-import { beoordelingBadge, afwijkingBadge } from "@/lib/badges";
-
-type Project = Tables<"projects">;
+type Project = Tables<"projects"> & { adviseurs: { naam: string } | null };
 type Finding = Tables<"findings">;
 
 export default function Inbox() {
   const { user, roles, hasRole } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [findings, setFindings] = useState<(Finding & { project_naam?: string })[]>([]);
-  const [adviseurProjects, setAdviseurProjects] = useState<(Project & { findings: Finding[] })[]>([]);
+  const [adviseurProjects, setAdviseurProjects] = useState<(Tables<"projects"> & { findings: Finding[] })[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -42,12 +36,12 @@ export default function Inbox() {
   };
 
   const loadInternalData = async () => {
-    let query = supabase.from("projects").select("*");
-
-    query = query.neq("status", "gesloten");
-
-    const { data: projectData } = await query.order("datum_aangemaakt", { ascending: false });
-    setProjects(projectData ?? []);
+    const { data: projectData } = await supabase
+      .from("projects")
+      .select("*, adviseurs(naam)")
+      .neq("status", "gesloten")
+      .order("datum_aangemaakt", { ascending: false });
+    setProjects((projectData as Project[]) ?? []);
 
     if (hasRole("tekenaar") || hasRole("auditor")) {
       const eigenaar = hasRole("tekenaar") ? "tekenaar" : "auditor";
@@ -111,18 +105,19 @@ export default function Inbox() {
     }
   };
 
-  const statusLabel: Record<string, string> = {
-    geselecteerd: "Geselecteerd",
-    deel1_bezig: "Deel 1 bezig",
-    wacht_op_deel2: "Wacht op deel 2",
-    afgerond: "Afgerond",
-    reactie_open: "Reactie open",
-    gesloten: "Gesloten",
+  const exportProjecten = () => {
+    const rows = projects.map((p) => ({
+      Projectnaam: p.projectnaam, Status: p.status, Categorie: p.audit_categorie,
+      Soort: p.audit_soort, Prioriteit: p.prioriteit ? "Ja" : "Nee",
+      Adviseur: p.adviseurs?.naam ?? "", "Datum aangemaakt": new Date(p.datum_aangemaakt).toLocaleDateString("nl-NL"),
+    }));
+    downloadCsv(rows, "Projecten.csv");
+    uiToast({ title: "Projecten geëxporteerd" });
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-4">
-      <h1 className="text-xl font-bold mb-4">Inbox</h1>
+    <div className="max-w-4xl mx-auto p-4">
+      <h1 className="text-xl font-bold mb-4">Projecten</h1>
       <p className="text-sm mb-4 text-muted-foreground">Rollen: {roles.join(", ") || "geen"}</p>
 
       {/* EP-adviseur section */}
@@ -189,7 +184,21 @@ export default function Inbox() {
         <>
           {projects.length > 0 && (
             <div className="mb-6">
-              <h2 className="font-semibold mb-2">Projecten</h2>
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="font-semibold">Projecten</h2>
+                <div className="flex gap-2">
+                  {hasRole("beheer") && (
+                    <Link to="/project/nieuw">
+                      <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Nieuw project</Button>
+                    </Link>
+                  )}
+                  {hasRole("beheer") && (
+                    <Button variant="outline" size="sm" onClick={exportProjecten}>
+                      <Download className="h-4 w-4 mr-1" /> Export CSV
+                    </Button>
+                  )}
+                </div>
+              </div>
               <table className="w-full text-sm border">
                 <thead>
                   <tr className="border-b bg-muted">
@@ -197,22 +206,26 @@ export default function Inbox() {
                     <th className="text-left p-2">Status</th>
                     <th className="text-left p-2">Categorie</th>
                     <th className="text-left p-2">Soort</th>
+                    <th className="text-left p-2">Adviseur</th>
                     <th className="text-left p-2">Prioriteit</th>
-                    {hasRole("beheer") && <th className="text-left p-2">Actie</th>}
+                    <th className="text-left p-2">Datum</th>
+                    {hasRole("beheer") && <th className="text-left p-2 w-16"></th>}
                   </tr>
                 </thead>
                 <tbody>
                   {projects.map((p) => (
                     <tr key={p.id} className="border-b">
-                      <td className="p-2">
+                      <td className="p-2 font-medium">
                         <Link to={`/project/${p.id}`} className="underline text-primary">
                           {p.projectnaam}
                         </Link>
                       </td>
-                      <td className="p-2">{statusLabel[p.status] || p.status}</td>
+                      <td className="p-2">{statusBadge(p.status)}</td>
                       <td className="p-2">{p.audit_categorie}</td>
                       <td className="p-2">{p.audit_soort}</td>
+                      <td className="p-2">{p.adviseurs?.naam ?? "—"}</td>
                       <td className="p-2">{p.prioriteit ? "Ja" : "Nee"}</td>
+                      <td className="p-2">{new Date(p.datum_aangemaakt).toLocaleDateString("nl-NL")}</td>
                       {hasRole("beheer") && (
                         <td className="p-2">
                           <AlertDialog>
@@ -225,7 +238,7 @@ export default function Inbox() {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Project verwijderen?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Weet je zeker dat je "{p.projectnaam}" wilt verwijderen? Alle bijbehorende findings en berichten worden ook verwijderd. Dit kan niet ongedaan worden gemaakt.
+                                  Weet je zeker dat je "{p.projectnaam}" wilt verwijderen? Alle bijbehorende findings en berichten worden ook verwijderd.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>

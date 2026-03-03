@@ -24,7 +24,7 @@ export default function AppLayout() {
   return (
     <div className={`min-h-screen ${bgClass}`}>
       <nav className="border-b p-2 flex gap-4 items-center text-sm">
-        <Link to="/inbox" className="font-semibold">Inbox</Link>
+        <Link to="/inbox" className="font-semibold">Projecten</Link>
         {hasRole("beheer") && (
           <Link to="/beheer">Beheer</Link>
         )}
