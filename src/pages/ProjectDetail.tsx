@@ -25,7 +25,7 @@ export default function ProjectDetail() {
 
   useEffect(() => {
     if (!id) return;
-    loadProject();
+    loadProject().then(() => autoSetStatus());
     loadFindings();
   }, [id]);
 
@@ -40,6 +40,19 @@ export default function ProjectDetail() {
   const loadProject = async () => {
     const { data } = await supabase.from("projects").select("*").eq("id", id!).single();
     setProject(data);
+    return data;
+  };
+
+  const autoSetStatus = async () => {
+    const { data: p } = await supabase.from("projects").select("status").eq("id", id!).single();
+    if (!p) return;
+    if (hasRole("tekenaar") && p.status === "nog_niet_begonnen") {
+      await supabase.from("projects").update({ status: "deel1_bezig" as any }).eq("id", id!);
+      loadProject();
+    } else if (hasRole("auditor") && p.status === "deel1_afgerond") {
+      await supabase.from("projects").update({ status: "deel2_bezig" as any }).eq("id", id!);
+      loadProject();
+    }
   };
 
   const loadFindings = async () => {
@@ -84,8 +97,8 @@ export default function ProjectDetail() {
   };
 
   const deel1Afronden = async () => {
-    await supabase.from("projects").update({ status: "wacht_op_deel2" as any }).eq("id", id!);
-    toast({ title: "Deel 1 afgerond", description: "Status gewijzigd naar 'Wacht op deel 2'" });
+    await supabase.from("projects").update({ status: "deel1_afgerond" as any }).eq("id", id!);
+    toast({ title: "Deel 1 afgerond", description: "Status gewijzigd naar 'Deel 1 afgerond'" });
     loadProject();
   };
 
@@ -103,8 +116,25 @@ export default function ProjectDetail() {
         }).eq("id", f.id);
       }
     }
-    await supabase.from("projects").update({ status: "reactie_open" as any }).eq("id", id!);
-    toast({ title: "Audit afgerond", description: "Deadlines berekend, status naar 'Reactie open'" });
+    // Check if there are any KT or NK findings
+    const hasKtOrNk = findings.some(f => f.beoordeling === "niet_goed" || f.beoordeling === "interne_alert");
+    const hasKt = findings.some(f => f.type_afwijking === "kritiek");
+
+    if (hasKtOrNk) {
+      const now2 = new Date();
+      const reactieDeadline = hasKt ? addDays(now2, 28).toISOString() : addMonths(now2, 3).toISOString();
+      await supabase.from("projects").update({
+        status: "wacht_op_reactie" as any,
+        reactie_deadline: reactieDeadline,
+      }).eq("id", id!);
+      toast({ title: "Audit afgerond", description: "Status naar 'Wacht op reactie', deadline berekend" });
+    } else {
+      await supabase.from("projects").update({
+        status: "afgerond" as any,
+        gearchiveerd_op: new Date().toISOString(),
+      }).eq("id", id!);
+      toast({ title: "Audit afgerond", description: "Geen afwijkingen, status naar 'Afgerond'" });
+    }
 
     supabase.functions.invoke("notify-adviseur", {
       body: { type: "audit_afgerond", project_id: id },
@@ -131,8 +161,8 @@ export default function ProjectDetail() {
 
   const onderdelen = [...new Set(findings.map((f) => f.onderdeel))];
   const allTabs = [...onderdelen, "__ep2__"];
-  const canDeel1 = hasRole("tekenaar") && (project.status === "geselecteerd" || project.status === "deel1_bezig");
-  const canDeel2 = hasRole("auditor") && project.status === "wacht_op_deel2";
+  const canDeel1 = hasRole("tekenaar") && (project.status === "nog_niet_begonnen" || project.status === "deel1_bezig");
+  const canDeel2 = hasRole("auditor") && (project.status === "deel1_afgerond" || project.status === "deel2_bezig");
 
   const canEditFinding = (f: Finding) => {
     if (canDeel1 && f.deel === 1) return true;
@@ -148,11 +178,12 @@ export default function ProjectDetail() {
     if (next) setActiveTab(next);
   };
   const statusLabel: Record<string, string> = {
-    geselecteerd: "Geselecteerd",
+    nog_niet_begonnen: "Nog niet begonnen",
     deel1_bezig: "Deel 1 bezig",
-    wacht_op_deel2: "Wacht op deel 2",
+    deel1_afgerond: "Deel 1 afgerond",
+    deel2_bezig: "Deel 2 bezig",
     afgerond: "Afgerond",
-    reactie_open: "Reactie open",
+    wacht_op_reactie: "Wacht op reactie",
     gesloten: "Gesloten",
   };
 
