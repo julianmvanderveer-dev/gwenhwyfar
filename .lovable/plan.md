@@ -1,23 +1,22 @@
 
 
-# Wachtwoord-reset functionaliteit toevoegen
-
-## Probleem
-Er is geen "Wachtwoord vergeten" optie op het inlogscherm, en geen pagina om een nieuw wachtwoord in te stellen.
+# Achtergrondkleur per rol in ontwikkelfase
 
 ## Aanpak
 
-### 1. Login-pagina uitbreiden (`src/pages/Login.tsx`)
-- Derde modus toevoegen: "wachtwoord vergeten"
-- Toont alleen een e-mailveld + knop die `supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + '/reset-password' })` aanroept
-- Link "Wachtwoord vergeten?" onder het inlogformulier
+In `src/components/AppLayout.tsx` de achtergrondkleur van de wrapper `<div>` dynamisch instellen op basis van de hoogste prioriteitsrol van de ingelogde gebruiker:
 
-### 2. Nieuwe pagina `/reset-password` (`src/pages/ResetPassword.tsx`)
-- Controleert of er een `type=recovery` token in de URL hash zit
-- Toont formulier met nieuw wachtwoord + bevestiging
-- Roept `supabase.auth.updateUser({ password })` aan
-- Na succes: doorsturen naar `/inbox`
+| Rol | Achtergrondkleur |
+|-----|-----------------|
+| ep_adviseur | `bg-yellow-50` (lichtgeel) |
+| auditor | `bg-blue-50` (lichtblauw) |
+| tekenaar | `bg-green-50` (lichtgroen) |
+| beheer | standaard (wit) |
 
-### 3. Route toevoegen (`src/App.tsx`)
-- Publieke route `/reset-password` toevoegen (niet achter `ProtectedRoute`)
+Prioriteit: als iemand meerdere rollen heeft, wordt de eerste match gebruikt in volgorde: ep_adviseur → auditor → tekenaar → beheer.
+
+De `min-h-screen` class wordt ook toegevoegd zodat de kleur het hele scherm vult.
+
+### Bestand
+- `src/components/AppLayout.tsx` — achtergrondkleur-logica toevoegen op de root `<div>`
 
