@@ -47,7 +47,11 @@ export default function ProjectDetail() {
       .select("*")
       .eq("project_id", id!)
       .order("created_at");
-    setFindings((data as Finding[]) ?? []);
+    const sorted = ((data as Finding[]) ?? []).sort((a, b) =>
+      a.onderdeel.localeCompare(b.onderdeel, undefined, { numeric: true }) ||
+      a.controlepunt.localeCompare(b.controlepunt, undefined, { numeric: true })
+    );
+    setFindings(sorted);
   };
 
   const updateBeoordeling = async (findingId: string, beoordeling: Enums<"beoordeling_type">) => {
