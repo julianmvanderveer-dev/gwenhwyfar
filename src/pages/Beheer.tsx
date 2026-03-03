@@ -6,6 +6,7 @@ import { toast } from "@/hooks/use-toast";
 import { downloadCsv } from "@/lib/csv";
 import type { Tables, Enums } from "@/integrations/supabase/types";
 import { Download } from "lucide-react";
+import { statusBadge } from "@/lib/badges";
 
 type Profile = Tables<"profiles">;
 type UserRole = Tables<"user_roles">;
@@ -135,6 +136,34 @@ export default function Beheer() {
                   </td>
                 );
               })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <h2 className="text-lg font-bold mt-8 mb-4">Projectenoverzicht</h2>
+      <table className="w-full text-sm border">
+        <thead>
+          <tr className="border-b bg-muted">
+            <th className="text-left p-2">Project</th>
+            <th className="text-left p-2">Status</th>
+            <th className="text-left p-2">Categorie</th>
+            <th className="text-left p-2">Soort</th>
+            <th className="text-left p-2">Adviseur</th>
+            <th className="text-left p-2">Prioriteit</th>
+            <th className="text-left p-2">Datum</th>
+          </tr>
+        </thead>
+        <tbody>
+          {projects.map((p) => (
+            <tr key={p.id} className="border-b">
+              <td className="p-2 font-medium">{p.projectnaam}</td>
+              <td className="p-2">{statusBadge(p.status)}</td>
+              <td className="p-2">{p.audit_categorie}</td>
+              <td className="p-2">{p.audit_soort}</td>
+              <td className="p-2">{p.adviseurs?.naam ?? "—"}</td>
+              <td className="p-2">{p.prioriteit ? "Ja" : "Nee"}</td>
+              <td className="p-2">{new Date(p.datum_aangemaakt).toLocaleDateString("nl-NL")}</td>
             </tr>
           ))}
         </tbody>

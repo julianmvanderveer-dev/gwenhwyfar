@@ -20,44 +20,10 @@ import {
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 
+import { beoordelingBadge, afwijkingBadge } from "@/lib/badges";
+
 type Project = Tables<"projects">;
 type Finding = Tables<"findings">;
-
-const beoordelingBadge = (val: string | null) => {
-  if (!val) return null;
-  const map: Record<string, string> = {
-    goed: "bg-green-100 text-green-700",
-    niet_goed: "bg-red-100 text-red-700",
-    interne_alert: "bg-orange-100 text-orange-700",
-  };
-  const label: Record<string, string> = {
-    goed: "GOED",
-    niet_goed: "NK",
-    interne_alert: "IA",
-  };
-  return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${map[val] ?? ""}`}>
-      {label[val] ?? val}
-    </span>
-  );
-};
-
-const afwijkingBadge = (val: string | null) => {
-  if (!val) return "—";
-  const map: Record<string, string> = {
-    kritiek: "bg-red-100 text-red-700",
-    niet_kritiek: "bg-orange-100 text-orange-700",
-  };
-  const label: Record<string, string> = {
-    kritiek: "KT",
-    niet_kritiek: "NK",
-  };
-  return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${map[val] ?? ""}`}>
-      {label[val] ?? val}
-    </span>
-  );
-};
 
 export default function Inbox() {
   const { user, roles, hasRole } = useAuth();
