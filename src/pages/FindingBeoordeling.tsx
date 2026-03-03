@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
+import { Mic, MicOff } from "lucide-react";
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Finding = Tables<"findings">;
@@ -16,6 +19,12 @@ export default function FindingBeoordeling() {
   const [finding, setFinding] = useState<Finding | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
+  const [opmerking, setOpmerking] = useState("");
+
+  const handleSpeech = useCallback((transcript: string) => {
+    setOpmerking((prev) => (prev ? prev + " " + transcript : transcript));
+  }, []);
+  const { listening, toggle, supported } = useSpeechRecognition(handleSpeech);
 
   useEffect(() => {
     if (!id) return;
@@ -95,9 +104,35 @@ export default function FindingBeoordeling() {
       </div>
 
       {finding.status === "reactie_ontvangen" && (
-        <div className="flex gap-2">
-          <Button onClick={akkoord} disabled={loading}>Akkoord</Button>
-          <Button variant="outline" onClick={nietAkkoord} disabled={loading}>Niet akkoord</Button>
+        <div className="space-y-3">
+          <div>
+            <label className="text-sm font-medium mb-1 block">Opmerking (optioneel)</label>
+            <div className="flex items-start gap-1">
+              <Textarea
+                value={opmerking}
+                onChange={(e) => setOpmerking(e.target.value)}
+                placeholder="Eventuele opmerking bij je beoordeling..."
+                rows={2}
+                className="text-sm"
+              />
+              {supported && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className={`shrink-0 ${listening ? "text-red-500 animate-pulse" : ""}`}
+                  onClick={toggle}
+                  title={listening ? "Stop opname" : "Spraak invoer"}
+                >
+                  {listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                </Button>
+              )}
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={akkoord} disabled={loading}>Akkoord</Button>
+            <Button variant="outline" onClick={nietAkkoord} disabled={loading}>Niet akkoord</Button>
+          </div>
         </div>
       )}
 
