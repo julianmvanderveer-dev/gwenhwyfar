@@ -11,8 +11,16 @@ export default function AppLayout() {
     navigate("/login");
   };
 
+  const bgClass = hasRole("ep_adviseur")
+    ? "bg-yellow-50"
+    : hasRole("auditor")
+    ? "bg-blue-50"
+    : hasRole("tekenaar")
+    ? "bg-green-50"
+    : "";
+
   return (
-    <div>
+    <div className={`min-h-screen ${bgClass}`}>
       <nav className="border-b p-2 flex gap-4 items-center text-sm">
         <Link to="/inbox" className="font-semibold">Inbox</Link>
         {hasRole("beheer") && (
