@@ -36,22 +36,24 @@ export const afwijkingBadge = (val: string | null) => {
   );
 };
 
-export const statusBadge = (val: string | null) => {
+export const statusBadge = (val: string | null, variant?: "kt" | "nk") => {
   if (!val) return null;
   const map: Record<string, string> = {
-    geselecteerd: "bg-gray-100 text-gray-700",
+    nog_niet_begonnen: "bg-gray-100 text-gray-700",
     deel1_bezig: "bg-blue-100 text-blue-700",
-    wacht_op_deel2: "bg-yellow-100 text-yellow-700",
-    reactie_open: "bg-orange-100 text-orange-700",
+    deel1_afgerond: "bg-yellow-100 text-yellow-700",
+    deel2_bezig: "bg-blue-100 text-blue-700",
     afgerond: "bg-green-100 text-green-700",
+    wacht_op_reactie: variant === "kt" ? "bg-red-100 text-red-700" : "bg-orange-100 text-orange-700",
     gesloten: "bg-green-200 text-green-800",
   };
   const label: Record<string, string> = {
-    geselecteerd: "Geselecteerd",
+    nog_niet_begonnen: "Nog niet begonnen",
     deel1_bezig: "Deel 1 bezig",
-    wacht_op_deel2: "Wacht op deel 2",
-    reactie_open: "Reactie open",
+    deel1_afgerond: "Deel 1 afgerond",
+    deel2_bezig: "Deel 2 bezig",
     afgerond: "Afgerond",
+    wacht_op_reactie: "Wacht op reactie",
     gesloten: "Gesloten",
   };
   return (

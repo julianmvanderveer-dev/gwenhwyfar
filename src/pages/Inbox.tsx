@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "react-router-dom";
@@ -182,7 +182,14 @@ export default function Inbox() {
       {/* Internal roles: projects and findings */}
       {(hasRole("tekenaar") || hasRole("auditor") || hasRole("beheer")) && (
         <>
-          {projects.length > 0 && (
+          {(() => {
+            // Filter out archived projects (afgerond > 7 days ago)
+            const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+            const visibleProjects = projects.filter(p => {
+              if (p.status === "afgerond" && p.gearchiveerd_op && new Date(p.gearchiveerd_op) < sevenDaysAgo) return false;
+              return true;
+            });
+            return visibleProjects.length > 0 && (
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2">
                 <h2 className="font-semibold">Projecten</h2>
@@ -200,10 +207,11 @@ export default function Inbox() {
                 </div>
               </div>
               <table className="w-full text-sm border">
-                <thead>
+               <thead>
                   <tr className="border-b bg-muted">
                     <th className="text-left p-2">Project</th>
                     <th className="text-left p-2">Status</th>
+                    <th className="text-left p-2">Deadline</th>
                     <th className="text-left p-2">Categorie</th>
                     <th className="text-left p-2">Soort</th>
                     <th className="text-left p-2">Adviseur</th>
@@ -213,7 +221,7 @@ export default function Inbox() {
                   </tr>
                 </thead>
                 <tbody>
-                  {projects.map((p) => (
+                  {visibleProjects.map((p) => (
                     <tr key={p.id} className="border-b">
                       <td className="p-2 font-medium">
                         <Link to={`/project/${p.id}`} className="underline text-primary">
@@ -221,6 +229,11 @@ export default function Inbox() {
                         </Link>
                       </td>
                       <td className="p-2">{statusBadge(p.status)}</td>
+                      <td className="p-2">
+                        {p.status === "wacht_op_reactie" && p.reactie_deadline
+                          ? new Date(p.reactie_deadline).toLocaleDateString("nl-NL")
+                          : "—"}
+                      </td>
                       <td className="p-2">{p.audit_categorie}</td>
                       <td className="p-2">{p.audit_soort}</td>
                       <td className="p-2">{p.adviseurs?.naam ?? "—"}</td>
@@ -259,7 +272,8 @@ export default function Inbox() {
                 </tbody>
               </table>
             </div>
-          )}
+            );
+          })()}
 
           {findings.length > 0 && (
             <div className="mb-6">
