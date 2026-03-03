@@ -1,31 +1,30 @@
 
 
-# Alles goedkeuren + Eindtabblad EP2
+# Inbox aanpassingen: verwijderen + kleurcodering
 
-## 1. "Alles goedkeuren" knop per tabblad
-In `ProjectDetail.tsx` een knop toevoegen bovenaan elk onderdeel-tab die alle findings in dat tabblad in één keer op "goed" zet (alleen als de gebruiker bewerkingsrechten heeft).
+## 1. Projecten verwijderen in Inbox
+- Verwijder-knop (prullenbak-icoon) toevoegen in de projectentabel, alleen zichtbaar voor gebruikers met de rol `beheer`
+- Bevestigingsdialoog via `AlertDialog` voordat het project daadwerkelijk verwijderd wordt
+- Bij verwijderen: eerst alle gekoppelde findings en messages verwijderen (cascade), daarna het project zelf
+- Na verwijderen: lijst herladen
 
-- Batch-update via `supabase.from("findings").update({ beoordeling: "goed" }).in("id", [...])`
-- Alleen zichtbaar als canDeel1 of canDeel2
+**Bestand:** `src/pages/Inbox.tsx`
+- Extra kolom "Actie" in de projectentabel
+- `deleteProject(id)` functie met `supabase.from("projects").delete().eq("id", id)`
+- Import AlertDialog + Trash2 icoon
 
-## 2. Eindtabblad (tab 6) voor EP2-beoordeling
-Een extra tab "EP2 Beoordeling" toevoegen aan de tablijst met:
-- Invoerveld: **Startwaarde EP2** (kWh/m²)
-- Invoerveld: **Eindwaarde EP2** (kWh/m²)
-- Berekend: **Afwijking absoluut** (eindwaarde − startwaarde)
-- Berekend: **Afwijking %** ((afwijking / startwaarde) × 100)
-- Selectievakje: **GOED / NK / KT**
+## 2. Kleurcodering beoordeling in EP-adviseur findings-tabel
+In de EP-adviseur sectie (openstaande audits) de kolom "Beoordeling" een kleur-badge geven:
+- **GOED** → groen (`bg-green-100 text-green-700`)
+- **NK** (niet_kritiek) → oranje (`bg-orange-100 text-orange-700`)
+- **KT** (kritiek) → rood (`bg-red-100 text-red-700`)
 
-Alleen bewerkbaar door auditor (canDeel2).
+Eveneens de kolom "Type afwijking" kleuren met dezelfde mapping.
 
-## 3. Database-wijziging
-Nieuwe kolommen op `projects` tabel:
-- `ep2_startwaarde` (numeric, nullable)
-- `ep2_eindwaarde` (numeric, nullable)
-- `ep2_beoordeling` (text, nullable) — waarden: "goed", "niet_kritiek", "kritiek"
+**Bestand:** `src/pages/Inbox.tsx` — kleine helper-functie voor kleurklasse op basis van waarde, toegepast in de EP-adviseur tabel-rijen.
 
 ## Technische details
-- Migratie: `ALTER TABLE projects ADD COLUMN ep2_startwaarde numeric, ADD COLUMN ep2_eindwaarde numeric, ADD COLUMN ep2_beoordeling text`
-- Afwijking absoluut en % worden client-side berekend (niet opgeslagen)
-- Alle wijzigingen in `src/pages/ProjectDetail.tsx`, plus één migratie
+- Delete cascade: de foreign keys op `findings.project_id` en `messages.finding_id` hebben al `ON DELETE CASCADE` ingesteld in de database, dus `supabase.from("projects").delete()` volstaat
+- RLS: de bestaande `Projects delete` policy staat alleen `beheer` toe, dus de knop werkt alleen voor die rol
+- Geen database-migratie nodig
 
