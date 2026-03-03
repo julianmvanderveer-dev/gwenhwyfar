@@ -26,9 +26,6 @@ export default function AppLayout() {
       <nav className="border-b p-2 flex gap-4 items-center text-sm">
         <Link to="/inbox" className="font-semibold">Inbox</Link>
         {hasRole("beheer") && (
-          <Link to="/project/nieuw">Nieuw project</Link>
-        )}
-        {hasRole("beheer") && (
           <Link to="/beheer">Beheer</Link>
         )}
         {hasRole("beheer") && (
