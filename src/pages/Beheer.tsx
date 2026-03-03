@@ -9,18 +9,9 @@ import type { Tables, Enums } from "@/integrations/supabase/types";
 import { Download, Plus, Pencil, Check, X, Trash2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Link } from "react-router-dom";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { statusBadge, beoordelingBadge, afwijkingBadge } from "@/lib/badges";
-import { toast as sonnerToast } from "sonner";
 
 type Profile = Tables<"profiles">;
-type Project = Tables<"projects"> & { adviseurs: { naam: string } | null };
 type Adviseur = Tables<"adviseurs">;
-type Finding = Tables<"findings">;
 
 const ALL_ROLES: Enums<"app_role">[] = ["beheer", "tekenaar", "auditor", "ep_adviseur"];
 const ROLE_LABELS: Record<Enums<"app_role">, string> = {
@@ -31,11 +22,9 @@ const ROLE_LABELS: Record<Enums<"app_role">, string> = {
 };
 
 export default function Beheer() {
-  const { hasRole, user, roles } = useAuth();
+  const { hasRole, user } = useAuth();
   const [profiles, setProfiles] = useState<(Profile & { roles: Enums<"app_role">[] })[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
   const [adviseurs, setAdviseurs] = useState<Adviseur[]>([]);
-  const [findings, setFindings] = useState<Finding[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ nummer: 0, naam: "", email: "" });
   const [adding, setAdding] = useState(false);
@@ -43,9 +32,7 @@ export default function Beheer() {
 
   useEffect(() => {
     loadUsers();
-    loadProjects();
     loadAdviseurs();
-    loadFindings();
   }, []);
 
   const loadUsers = async () => {
@@ -58,38 +45,9 @@ export default function Beheer() {
     setProfiles(combined);
   };
 
-  const loadProjects = async () => {
-    const { data } = await supabase
-      .from("projects")
-      .select("*, adviseurs(naam)")
-      .order("datum_aangemaakt", { ascending: false });
-    setProjects((data as Project[]) ?? []);
-  };
-
   const loadAdviseurs = async () => {
     const { data } = await supabase.from("adviseurs").select("*").order("naam");
     setAdviseurs(data ?? []);
-  };
-
-  const loadFindings = async () => {
-    if (!hasRole("tekenaar") && !hasRole("auditor")) return;
-    const eigenaar = hasRole("tekenaar") ? "tekenaar" : "auditor";
-    const { data } = await supabase
-      .from("findings")
-      .select("*")
-      .eq("eigenaar_beoordeling", eigenaar as any)
-      .eq("status", "reactie_ontvangen");
-    setFindings(data ?? []);
-  };
-
-  const deleteProject = async (id: string) => {
-    const { error } = await supabase.from("projects").delete().eq("id", id);
-    if (error) {
-      sonnerToast.error("Verwijderen mislukt: " + error.message);
-    } else {
-      sonnerToast.success("Project verwijderd");
-      loadProjects();
-    }
   };
 
   // ... adviseur CRUD handlers
@@ -158,16 +116,6 @@ export default function Beheer() {
     toast({ title: "Gebruikers geëxporteerd" });
   };
 
-  const exportProjecten = () => {
-    const rows = projects.map((p) => ({
-      Projectnaam: p.projectnaam, Status: p.status, Categorie: p.audit_categorie,
-      Soort: p.audit_soort, Prioriteit: p.prioriteit ? "Ja" : "Nee",
-      Adviseur: p.adviseurs?.naam ?? "", "Datum aangemaakt": new Date(p.datum_aangemaakt).toLocaleDateString("nl-NL"),
-    }));
-    downloadCsv(rows, "Projecten.csv");
-    toast({ title: "Projecten geëxporteerd" });
-  };
-
   // Role management
   const toggleRole = async (userId: string, role: Enums<"app_role">, hasIt: boolean) => {
     if (hasIt) {
@@ -192,108 +140,12 @@ export default function Beheer() {
     <div className="max-w-4xl mx-auto p-4">
       <h1 className="text-xl font-bold mb-4">Beheer</h1>
 
-      <Tabs defaultValue="projecten">
+      <Tabs defaultValue="gebruikers">
         <TabsList>
-          <TabsTrigger value="projecten">Projecten</TabsTrigger>
           <TabsTrigger value="gebruikers">Gebruikers</TabsTrigger>
           <TabsTrigger value="adviseurs">EP-adviseurs</TabsTrigger>
           <TabsTrigger value="rollen">Rollen</TabsTrigger>
         </TabsList>
-
-        {/* TAB: Projecten */}
-        <TabsContent value="projecten">
-          <div className="flex items-center justify-between mb-4">
-            <Link to="/project/nieuw">
-              <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Nieuw project</Button>
-            </Link>
-            <Button variant="outline" size="sm" onClick={exportProjecten}>
-              <Download className="h-4 w-4 mr-1" /> Export CSV
-            </Button>
-          </div>
-          <table className="w-full text-sm border">
-            <thead>
-              <tr className="border-b bg-muted">
-                <th className="text-left p-2">Project</th>
-                <th className="text-left p-2">Status</th>
-                <th className="text-left p-2">Categorie</th>
-                <th className="text-left p-2">Soort</th>
-                <th className="text-left p-2">Adviseur</th>
-                <th className="text-left p-2">Prioriteit</th>
-                <th className="text-left p-2">Datum</th>
-                <th className="text-left p-2 w-16"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {projects.map((p) => (
-                <tr key={p.id} className="border-b">
-                  <td className="p-2 font-medium">
-                    <Link to={`/project/${p.id}`} className="underline text-primary">{p.projectnaam}</Link>
-                  </td>
-                  <td className="p-2">{statusBadge(p.status)}</td>
-                  <td className="p-2">{p.audit_categorie}</td>
-                  <td className="p-2">{p.audit_soort}</td>
-                  <td className="p-2">{p.adviseurs?.naam ?? "—"}</td>
-                  <td className="p-2">{p.prioriteit ? "Ja" : "Nee"}</td>
-                  <td className="p-2">{new Date(p.datum_aangemaakt).toLocaleDateString("nl-NL")}</td>
-                  <td className="p-2">
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Project verwijderen?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Weet je zeker dat je "{p.projectnaam}" wilt verwijderen? Alle bijbehorende findings en berichten worden ook verwijderd.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Annuleren</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => deleteProject(p.id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Verwijderen
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {findings.length > 0 && (
-            <div className="mt-6">
-              <h2 className="font-semibold mb-2">Findings te beoordelen</h2>
-              <table className="w-full text-sm border">
-                <thead>
-                  <tr className="border-b bg-muted">
-                    <th className="text-left p-2">Onderdeel</th>
-                    <th className="text-left p-2">Controlepunt</th>
-                    <th className="text-left p-2">Status</th>
-                    <th className="text-left p-2">Actie</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {findings.map((f) => (
-                    <tr key={f.id} className="border-b">
-                      <td className="p-2">{f.onderdeel}</td>
-                      <td className="p-2">{f.controlepunt}</td>
-                      <td className="p-2">{f.status}</td>
-                      <td className="p-2">
-                        <Link to={`/finding/${f.id}/beoordeling`} className="underline text-primary">Beoordelen</Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </TabsContent>
 
         {/* TAB: Gebruikers */}
         <TabsContent value="gebruikers">
