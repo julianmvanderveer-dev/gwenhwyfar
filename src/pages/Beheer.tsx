@@ -317,7 +317,7 @@ export default function Beheer() {
                       </>
                     ) : (
                       <>
-                        <td className="px-4 py-2.5 text-muted-foreground">{a.nummer}</td>
+                        <td className="px-4 py-2.5 text-muted-foreground">{String(a.nummer).padStart(3, '0')}</td>
                         <td className="px-4 py-2.5 font-medium">{a.naam}</td>
                         <td className="px-4 py-2.5 text-muted-foreground">{a.email ?? "—"}</td>
                         <td className="px-4 py-2.5 text-center">
