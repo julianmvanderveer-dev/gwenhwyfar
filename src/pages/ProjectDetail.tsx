@@ -393,9 +393,6 @@ export default function ProjectDetail() {
             </div>
           </TabsContent>
         </Tabs>
-      ) : (
-        <p className="text-muted-foreground">Geen findings.</p>
-      )}
 
       <div className="mt-4 flex gap-2">
         {canDeel1 && (
