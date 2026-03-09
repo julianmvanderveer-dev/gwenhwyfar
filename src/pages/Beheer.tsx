@@ -135,7 +135,7 @@ export default function Beheer() {
 
   const exportAdviseurs = () => {
     const rows = adviseurs.map((a) => ({
-      Nummer: String(a.nummer), Naam: a.naam, "E-mail": a.email ?? "", Actief: a.actief ? "Ja" : "Nee",
+      Nummer: String(a.nummer).padStart(3, '0'), Naam: a.naam, "E-mail": a.email ?? "", Actief: a.actief ? "Ja" : "Nee",
     }));
     downloadCsv(rows, "EP-adviseurs.csv");
     toast({ title: "EP-adviseurs geëxporteerd" });
