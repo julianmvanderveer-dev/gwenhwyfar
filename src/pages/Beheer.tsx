@@ -137,7 +137,33 @@ export default function Beheer() {
     toast({ title: "Medewerker verwijderd" });
   };
 
-  const exportGebruikers = () => {
+  const addMember = async () => {
+    if (!memberForm.naam.trim() || !memberForm.email.trim() || !memberForm.password) return;
+    setSubmittingMember(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-team-member", {
+        body: {
+          naam: memberForm.naam.trim(),
+          email: memberForm.email.trim(),
+          password: memberForm.password,
+          roles: memberForm.roles,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setAddingMember(false);
+      setMemberForm({ naam: "", email: "", password: "", roles: [] });
+      setShowPassword(false);
+      loadUsers();
+      toast({ title: "Medewerker toegevoegd" });
+    } catch (err: any) {
+      toast({ title: "Fout bij toevoegen", description: err.message, variant: "destructive" });
+    } finally {
+      setSubmittingMember(false);
+    }
+  };
+
+
     const rows = profiles.map((p) => {
       const row: Record<string, string> = { Naam: p.naam, "E-mail": p.email, Actief: p.actief ? "Ja" : "Nee" };
       PROJECT_ROLES.forEach((r) => { row[ROLE_LABELS[r]] = p.roles.includes(r) ? "Ja" : "Nee"; });
