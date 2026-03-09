@@ -59,6 +59,19 @@ export default function ProjectDetail() {
     }
   };
 
+  const loadTemplateOnderdelen = async (categorie: string) => {
+    const { data } = await supabase
+      .from("checklist_templates")
+      .select("onderdeel")
+      .eq("audit_categorie", categorie as any);
+    if (data) {
+      const unique = [...new Set(data.map((t) => t.onderdeel))].sort((a, b) =>
+        a.localeCompare(b, undefined, { numeric: true })
+      );
+      setTemplateOnderdelen(unique);
+    }
+  };
+
   const loadFindings = async () => {
     const { data } = await supabase
       .from("findings")
