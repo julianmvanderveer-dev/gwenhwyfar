@@ -210,7 +210,10 @@ export default function Beheer() {
 
         {/* TAB: Projectteam */}
         <TabsContent value="team" className="space-y-4">
-          <div className="flex justify-end">
+          <div className="flex items-center justify-between">
+            <Button variant="outline" size="sm" onClick={() => setAddingMember(true)} disabled={addingMember} className="shadow-sm">
+              <Plus className="h-4 w-4 mr-1" /> Medewerker toevoegen
+            </Button>
             <Button variant="outline" size="sm" onClick={exportGebruikers} className="shadow-sm">
               <Download className="h-4 w-4 mr-1" /> Export CSV
             </Button>
