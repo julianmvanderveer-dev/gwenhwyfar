@@ -212,26 +212,26 @@ export default function Beheer() {
                         </td>
                       );
                     })}
-                    {EP_ROLES.map((role) => {
-                      const has = p.roles.includes(role);
-                      return (
-                        <td key={role} className="text-center px-3 py-2.5 border-r">
-                          <Checkbox
-                            checked={has}
-                            onCheckedChange={() => toggleRole(p.id, role, has)}
-                            className="mx-auto"
-                          />
-                        </td>
-                      );
-                    })}
-                    <td className="text-center px-3 py-2.5">
-                      <button
-                        onClick={() => toggleActief(p.id, p.actief)}
-                        className={`text-xs font-medium px-2 py-0.5 rounded-full ${p.actief ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}
-                      >
-                        {p.actief ? "Ja" : "Nee"}
-                      </button>
-                    </td>
+                     <td className="text-center px-3 py-2.5">
+                       <button
+                         onClick={() => toggleActief(p.id, p.actief)}
+                         className={`text-xs font-medium px-2 py-0.5 rounded-full ${p.actief ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}
+                       >
+                         {p.actief ? "Ja" : "Nee"}
+                       </button>
+                     </td>
+                     <td className="text-center px-3 py-2.5">
+                       <Button
+                         size="icon"
+                         variant="ghost"
+                         className="h-7 w-7 text-destructive"
+                         disabled={p.id === user?.id}
+                         title={p.id === user?.id ? "Je kunt je eigen account niet verwijderen" : "Verwijderen"}
+                         onClick={() => deleteProfile(p.id, p.naam)}
+                       >
+                         <Trash2 className="h-4 w-4" />
+                       </Button>
+                     </td>
                   </tr>
                 ))}
               </tbody>
