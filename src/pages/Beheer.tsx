@@ -3,17 +3,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
 import { downloadCsv } from "@/lib/csv";
 import type { Tables, Enums } from "@/integrations/supabase/types";
-import { Download, Plus, Pencil, Check, X, Trash2 } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Download, Plus, Pencil, Check, X, Trash2, Settings, Users } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type Profile = Tables<"profiles">;
 type Adviseur = Tables<"adviseurs">;
 
 const ALL_ROLES: Enums<"app_role">[] = ["beheer", "tekenaar", "auditor", "ep_adviseur"];
+const PROJECT_ROLES: Enums<"app_role">[] = ["beheer", "tekenaar", "auditor"];
+const EP_ROLES: Enums<"app_role">[] = ["ep_adviseur"];
+
 const ROLE_LABELS: Record<Enums<"app_role">, string> = {
   beheer: "Beheer",
   tekenaar: "Tekenaar",
@@ -50,7 +53,22 @@ export default function Beheer() {
     setAdviseurs(data ?? []);
   };
 
-  // ... adviseur CRUD handlers
+  const toggleRole = async (userId: string, role: Enums<"app_role">, hasIt: boolean) => {
+    if (hasIt) {
+      await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role as any);
+    } else {
+      await supabase.from("user_roles").insert({ user_id: userId, role });
+    }
+    loadUsers();
+    toast({ title: hasIt ? "Rol verwijderd" : "Rol toegevoegd" });
+  };
+
+  const toggleActief = async (userId: string, currentActief: boolean) => {
+    await supabase.from("profiles").update({ actief: !currentActief }).eq("id", userId);
+    loadUsers();
+  };
+
+  // Adviseur CRUD
   const toggleAdviseurActief = async (id: string, currentActief: boolean) => {
     await supabase.from("adviseurs").update({ actief: !currentActief }).eq("id", id);
     loadAdviseurs();
@@ -97,7 +115,16 @@ export default function Beheer() {
     toast({ title: "Adviseur verwijderd" });
   };
 
-  // Export functions
+  const exportGebruikers = () => {
+    const rows = profiles.map((p) => {
+      const row: Record<string, string> = { Naam: p.naam, "E-mail": p.email, Actief: p.actief ? "Ja" : "Nee" };
+      ALL_ROLES.forEach((r) => { row[ROLE_LABELS[r]] = p.roles.includes(r) ? "Ja" : "Nee"; });
+      return row;
+    });
+    downloadCsv(rows, "Projectteam.csv");
+    toast({ title: "Projectteam geëxporteerd" });
+  };
+
   const exportAdviseurs = () => {
     const rows = adviseurs.map((a) => ({
       Nummer: String(a.nummer), Naam: a.naam, "E-mail": a.email ?? "", Actief: a.actief ? "Ja" : "Nee",
@@ -106,238 +133,210 @@ export default function Beheer() {
     toast({ title: "EP-adviseurs geëxporteerd" });
   };
 
-  const exportGebruikers = () => {
-    const rows = profiles.map((p) => {
-      const row: Record<string, string> = { Naam: p.naam, "E-mail": p.email, Actief: p.actief ? "Ja" : "Nee" };
-      ALL_ROLES.forEach((r) => { row[r] = p.roles.includes(r) ? "Ja" : "Nee"; });
-      return row;
-    });
-    downloadCsv(rows, "Gebruikers.csv");
-    toast({ title: "Gebruikers geëxporteerd" });
-  };
-
-  // Role management
-  const toggleRole = async (userId: string, role: Enums<"app_role">, hasIt: boolean) => {
-    if (hasIt) {
-      await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role as any);
-    } else {
-      await supabase.from("user_roles").insert({ user_id: userId, role });
-    }
-    loadUsers();
-    toast({ title: hasIt ? "Rol verwijderd" : "Rol toegevoegd" });
-  };
-
-  const toggleActief = async (userId: string, currentActief: boolean) => {
-    await supabase.from("profiles").update({ actief: !currentActief }).eq("id", userId);
-    loadUsers();
-  };
-
   if (!hasRole("beheer")) {
     return <div className="p-4">Geen toegang.</div>;
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
-      <h1 className="text-xl font-bold mb-4">Beheer</h1>
+    <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
+      <div className="flex items-center gap-3">
+        <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
+          <Settings className="h-5 w-5 text-primary-foreground" />
+        </div>
+        <div>
+          <h1 className="text-xl font-bold tracking-tight">Beheer</h1>
+          <p className="text-xs text-muted-foreground">Team- en adviseurbeheer</p>
+        </div>
+      </div>
 
-      <Tabs defaultValue="gebruikers">
+      <Tabs defaultValue="team">
         <TabsList>
-          <TabsTrigger value="gebruikers">Gebruikers</TabsTrigger>
-          <TabsTrigger value="adviseurs">EP-adviseurs</TabsTrigger>
-          <TabsTrigger value="rollen">Rollen</TabsTrigger>
+          <TabsTrigger value="team" className="gap-1.5">
+            <Users className="h-3.5 w-3.5" />
+            Projectteam
+          </TabsTrigger>
+          <TabsTrigger value="adviseurs" className="gap-1.5">
+            EP-adviseurs
+          </TabsTrigger>
         </TabsList>
 
-        {/* TAB: Gebruikers */}
-        <TabsContent value="gebruikers">
-          <div className="flex justify-end mb-4">
-            <Button variant="outline" size="sm" onClick={exportGebruikers}>
+        {/* TAB: Projectteam */}
+        <TabsContent value="team" className="space-y-4">
+          <div className="flex justify-end">
+            <Button variant="outline" size="sm" onClick={exportGebruikers} className="shadow-sm">
               <Download className="h-4 w-4 mr-1" /> Export CSV
             </Button>
           </div>
-          <table className="w-full text-sm border">
-            <thead>
-              <tr className="border-b bg-muted">
-                <th className="text-left p-2">Naam</th>
-                <th className="text-left p-2">E-mail</th>
-                <th className="text-left p-2">Actief</th>
-                {ALL_ROLES.map((r) => (
-                  <th key={r} className="text-left p-2">{r}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {profiles.map((p) => (
-                <tr key={p.id} className="border-b">
-                  <td className="p-2">{p.naam}</td>
-                  <td className="p-2">{p.email}</td>
-                  <td className="p-2">
-                    <button onClick={() => toggleActief(p.id, p.actief)} className="underline">
-                      {p.actief ? "Ja" : "Nee"}
-                    </button>
-                  </td>
-                  {ALL_ROLES.map((role) => {
-                    const has = p.roles.includes(role);
-                    const isSelfBeheer = role === "beheer" && p.id === user?.id;
-                    return (
-                      <td key={role} className="p-2">
-                        <input
-                          type="checkbox"
-                          checked={has}
-                          disabled={isSelfBeheer}
-                          title={isSelfBeheer ? "Je kunt je eigen beheer-rol niet verwijderen" : undefined}
-                          onChange={() => toggleRole(p.id, role, has)}
-                        />
-                      </td>
-                    );
-                  })}
+
+          <div className="border rounded-lg overflow-hidden shadow-sm bg-card">
+            <table className="w-full text-sm">
+              <thead>
+                {/* Group headers */}
+                <tr className="border-b bg-secondary/60">
+                  <th colSpan={2} />
+                  <th colSpan={3} className="text-center px-2 py-2 text-xs font-bold uppercase tracking-wider text-accent border-l border-r">
+                    Projectrollen
+                  </th>
+                  <th colSpan={1} className="text-center px-2 py-2 text-xs font-bold uppercase tracking-wider text-warning border-r">
+                    EP-rollen
+                  </th>
+                  <th />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+                {/* Column headers */}
+                <tr className="border-b bg-secondary/40">
+                  <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Naam</th>
+                  <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">E-mail</th>
+                  {PROJECT_ROLES.map((r) => (
+                    <th key={r} className={`text-center px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground ${r === "beheer" ? "border-l" : ""} ${r === "auditor" ? "border-r" : ""}`}>
+                      {ROLE_LABELS[r]}
+                    </th>
+                  ))}
+                  {EP_ROLES.map((r) => (
+                    <th key={r} className="text-center px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r">
+                      {ROLE_LABELS[r]}
+                    </th>
+                  ))}
+                  <th className="text-center px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-16">Actief</th>
+                </tr>
+              </thead>
+              <tbody>
+                {profiles.map((p, i) => (
+                  <tr key={p.id} className={`border-b last:border-0 hover:bg-muted/50 transition-colors ${i % 2 === 0 ? '' : 'bg-muted/20'}`}>
+                    <td className="px-4 py-2.5 font-medium">{p.naam}</td>
+                    <td className="px-4 py-2.5 text-muted-foreground">{p.email}</td>
+                    {PROJECT_ROLES.map((role) => {
+                      const has = p.roles.includes(role);
+                      const isSelfBeheer = role === "beheer" && p.id === user?.id;
+                      return (
+                        <td key={role} className={`text-center px-3 py-2.5 ${role === "beheer" ? "border-l" : ""} ${role === "auditor" ? "border-r" : ""}`}>
+                          <Checkbox
+                            checked={has}
+                            disabled={isSelfBeheer}
+                            title={isSelfBeheer ? "Je kunt je eigen beheer-rol niet verwijderen" : undefined}
+                            onCheckedChange={() => toggleRole(p.id, role, has)}
+                            className="mx-auto"
+                          />
+                        </td>
+                      );
+                    })}
+                    {EP_ROLES.map((role) => {
+                      const has = p.roles.includes(role);
+                      return (
+                        <td key={role} className="text-center px-3 py-2.5 border-r">
+                          <Checkbox
+                            checked={has}
+                            onCheckedChange={() => toggleRole(p.id, role, has)}
+                            className="mx-auto"
+                          />
+                        </td>
+                      );
+                    })}
+                    <td className="text-center px-3 py-2.5">
+                      <button
+                        onClick={() => toggleActief(p.id, p.actief)}
+                        className={`text-xs font-medium px-2 py-0.5 rounded-full ${p.actief ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}
+                      >
+                        {p.actief ? "Ja" : "Nee"}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </TabsContent>
 
         {/* TAB: EP-adviseurs */}
-        <TabsContent value="adviseurs">
-          <div className="flex items-center justify-between mb-4">
-            <Button variant="outline" size="sm" onClick={() => setAdding(true)} disabled={adding}>
+        <TabsContent value="adviseurs" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <Button variant="outline" size="sm" onClick={() => setAdding(true)} disabled={adding} className="shadow-sm">
               <Plus className="h-4 w-4 mr-1" /> Adviseur toevoegen
             </Button>
-            <Button variant="outline" size="sm" onClick={exportAdviseurs}>
+            <Button variant="outline" size="sm" onClick={exportAdviseurs} className="shadow-sm">
               <Download className="h-4 w-4 mr-1" /> Export CSV
             </Button>
           </div>
-          <table className="w-full text-sm border">
-            <thead>
-              <tr className="border-b bg-muted">
-                <th className="text-left p-2">Nummer</th>
-                <th className="text-left p-2">Naam</th>
-                <th className="text-left p-2">E-mail</th>
-                <th className="text-left p-2">Actief</th>
-                <th className="text-left p-2 w-24"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {adding && (
-                <tr className="border-b bg-muted/30">
-                  <td className="p-2">
-                    <Input type="number" value={addForm.nummer || ""} onChange={(e) => setAddForm({ ...addForm, nummer: Number(e.target.value) })} placeholder="Nr" className="h-8 w-20" />
-                  </td>
-                  <td className="p-2">
-                    <Input value={addForm.naam} onChange={(e) => setAddForm({ ...addForm, naam: e.target.value })} placeholder="Naam" className="h-8" />
-                  </td>
-                  <td className="p-2">
-                    <Input value={addForm.email} onChange={(e) => setAddForm({ ...addForm, email: e.target.value })} placeholder="E-mail" className="h-8" />
-                  </td>
-                  <td className="p-2">—</td>
-                  <td className="p-2 flex gap-1">
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={addAdviseur}><Check className="h-4 w-4" /></Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setAdding(false); setAddForm({ nummer: 0, naam: "", email: "" }); }}><X className="h-4 w-4" /></Button>
-                  </td>
-                </tr>
-              )}
-              {adviseurs.map((a) => (
-                <tr key={a.id} className="border-b">
-                  {editingId === a.id ? (
-                    <>
-                      <td className="p-2">
-                        <Input type="number" value={editForm.nummer || ""} onChange={(e) => setEditForm({ ...editForm, nummer: Number(e.target.value) })} className="h-8 w-20" />
-                      </td>
-                      <td className="p-2">
-                        <Input value={editForm.naam} onChange={(e) => setEditForm({ ...editForm, naam: e.target.value })} className="h-8" />
-                      </td>
-                      <td className="p-2">
-                        <Input value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} className="h-8" />
-                      </td>
-                      <td className="p-2">
-                        <button onClick={() => toggleAdviseurActief(a.id, a.actief)} className="underline">
-                          {a.actief ? "Ja" : "Nee"}
-                        </button>
-                      </td>
-                      <td className="p-2 flex gap-1">
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={saveEdit}><Check className="h-4 w-4" /></Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditingId(null)}><X className="h-4 w-4" /></Button>
-                      </td>
-                    </>
-                  ) : (
-                    <>
-                      <td className="p-2">{a.nummer}</td>
-                      <td className="p-2 font-medium">{a.naam}</td>
-                      <td className="p-2">{a.email ?? "—"}</td>
-                      <td className="p-2">
-                        <button onClick={() => toggleAdviseurActief(a.id, a.actief)} className="underline">
-                          {a.actief ? "Ja" : "Nee"}
-                        </button>
-                      </td>
-                      <td className="p-2 flex gap-1">
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEdit(a)}><Pencil className="h-4 w-4" /></Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteAdviseur(a.id, a.naam)}><Trash2 className="h-4 w-4" /></Button>
-                      </td>
-                    </>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </TabsContent>
 
-        {/* TAB: Rollen */}
-        <TabsContent value="rollen">
-          {ALL_ROLES.map((role) => {
-            const usersWithRole = profiles.filter((p) => p.roles.includes(role));
-            const usersWithoutRole = profiles.filter((p) => !p.roles.includes(role) && p.actief);
-            return (
-              <div key={role} className="mb-6">
-                <h3 className="font-semibold text-sm mb-2">{ROLE_LABELS[role]}</h3>
-                <table className="w-full text-sm border mb-2">
-                  <thead>
-                    <tr className="border-b bg-muted">
-                      <th className="text-left p-2">Naam</th>
-                      <th className="text-left p-2">E-mail</th>
-                      <th className="text-left p-2 w-16"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {usersWithRole.length === 0 && (
-                      <tr><td colSpan={3} className="p-2 text-muted-foreground italic">Geen gebruikers met deze rol</td></tr>
-                    )}
-                    {usersWithRole.map((p) => {
-                      const isSelfBeheer = role === "beheer" && p.id === user?.id;
-                      return (
-                        <tr key={p.id} className="border-b">
-                          <td className="p-2">{p.naam}</td>
-                          <td className="p-2">{p.email}</td>
-                          <td className="p-2">
-                            <Button
-                              size="icon" variant="ghost" className="h-7 w-7 text-destructive"
-                              disabled={isSelfBeheer}
-                              title={isSelfBeheer ? "Je kunt je eigen beheer-rol niet verwijderen" : "Rol verwijderen"}
-                              onClick={() => toggleRole(p.id, role, true)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                {usersWithoutRole.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <Select onValueChange={(userId) => toggleRole(userId, role, false)}>
-                      <SelectTrigger className="w-64 h-8 text-sm">
-                        <SelectValue placeholder="Gebruiker toevoegen…" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {usersWithoutRole.map((p) => (
-                          <SelectItem key={p.id} value={p.id}>{p.naam} ({p.email})</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+          <div className="border rounded-lg overflow-hidden shadow-sm bg-card">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-secondary/60">
+                  <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Nummer</th>
+                  <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Naam</th>
+                  <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">E-mail</th>
+                  <th className="text-center px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Actief</th>
+                  <th className="w-24" />
+                </tr>
+              </thead>
+              <tbody>
+                {adding && (
+                  <tr className="border-b bg-primary/5">
+                    <td className="px-4 py-2.5">
+                      <Input type="number" value={addForm.nummer || ""} onChange={(e) => setAddForm({ ...addForm, nummer: Number(e.target.value) })} placeholder="Nr" className="h-8 w-20" />
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <Input value={addForm.naam} onChange={(e) => setAddForm({ ...addForm, naam: e.target.value })} placeholder="Naam" className="h-8" />
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <Input value={addForm.email} onChange={(e) => setAddForm({ ...addForm, email: e.target.value })} placeholder="E-mail" className="h-8" />
+                    </td>
+                    <td className="px-4 py-2.5 text-center">—</td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex gap-1">
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={addAdviseur}><Check className="h-4 w-4" /></Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setAdding(false); setAddForm({ nummer: 0, naam: "", email: "" }); }}><X className="h-4 w-4" /></Button>
+                      </div>
+                    </td>
+                  </tr>
                 )}
-              </div>
-            );
-          })}
+                {adviseurs.map((a, i) => (
+                  <tr key={a.id} className={`border-b last:border-0 hover:bg-muted/50 transition-colors ${i % 2 === 0 ? '' : 'bg-muted/20'}`}>
+                    {editingId === a.id ? (
+                      <>
+                        <td className="px-4 py-2.5">
+                          <Input type="number" value={editForm.nummer || ""} onChange={(e) => setEditForm({ ...editForm, nummer: Number(e.target.value) })} className="h-8 w-20" />
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <Input value={editForm.naam} onChange={(e) => setEditForm({ ...editForm, naam: e.target.value })} className="h-8" />
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <Input value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} className="h-8" />
+                        </td>
+                        <td className="px-4 py-2.5 text-center">
+                          <button onClick={() => toggleAdviseurActief(a.id, a.actief)} className={`text-xs font-medium px-2 py-0.5 rounded-full ${a.actief ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}>
+                            {a.actief ? "Ja" : "Nee"}
+                          </button>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <div className="flex gap-1">
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={saveEdit}><Check className="h-4 w-4" /></Button>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditingId(null)}><X className="h-4 w-4" /></Button>
+                          </div>
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="px-4 py-2.5 text-muted-foreground">{a.nummer}</td>
+                        <td className="px-4 py-2.5 font-medium">{a.naam}</td>
+                        <td className="px-4 py-2.5 text-muted-foreground">{a.email ?? "—"}</td>
+                        <td className="px-4 py-2.5 text-center">
+                          <button onClick={() => toggleAdviseurActief(a.id, a.actief)} className={`text-xs font-medium px-2 py-0.5 rounded-full ${a.actief ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}>
+                            {a.actief ? "Ja" : "Nee"}
+                          </button>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <div className="flex gap-1">
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEdit(a)}><Pencil className="h-4 w-4" /></Button>
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteAdviseur(a.id, a.naam)}><Trash2 className="h-4 w-4" /></Button>
+                          </div>
+                        </td>
+                      </>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
