@@ -1,4 +1,4 @@
-import { FolderKanban, Clock3, AlertTriangle, CheckCircle2, Mail } from "lucide-react";
+import { FolderKanban, Clock3, AlertTriangle, CheckCircle2, Mail, FileCheck } from "lucide-react";
 
 export type FaseKey =
   | "nieuw"
@@ -13,57 +13,49 @@ export const faseConfig: Record<FaseKey, {
   titel: string;
   omschrijving: string;
   icon: typeof FolderKanban;
-  borderClass: string;
-  bgClass: string;
+  accentClass: string;
 }> = {
   nieuw: {
-    titel: "1. Nieuwe projecten",
+    titel: "Nieuwe projecten",
     omschrijving: "Nieuw aangemaakt, moet worden opgepakt.",
     icon: FolderKanban,
-    borderClass: "border-border",
-    bgClass: "bg-muted/50",
+    accentClass: "text-muted-foreground",
   },
   deel1_bezig: {
-    titel: "2. Deel 1 bezig",
+    titel: "Deel 1 bezig",
     omschrijving: "In behandeling bij de tekenaar.",
     icon: Clock3,
-    borderClass: "border-primary/30",
-    bgClass: "bg-primary/5",
+    accentClass: "text-accent",
   },
   wacht_op_deel2: {
-    titel: "3. Wacht op deel 2",
+    titel: "Wacht op deel 2",
     omschrijving: "Deel 1 afgerond, wacht op auditor.",
-    icon: Clock3,
-    borderClass: "border-accent-foreground/20",
-    bgClass: "bg-accent/50",
+    icon: FileCheck,
+    accentClass: "text-warning",
   },
   deel2_bezig: {
-    titel: "4. Deel 2 bezig",
+    titel: "Deel 2 bezig",
     omschrijving: "Auditor is bezig met deel 2.",
     icon: Clock3,
-    borderClass: "border-primary/30",
-    bgClass: "bg-primary/5",
+    accentClass: "text-accent",
   },
   wacht_op_reactie_ep: {
-    titel: "5. Wacht op reactie EP",
+    titel: "Wacht op reactie EP",
     omschrijving: "Audit verzonden, wacht op reactie EP-adviseur.",
     icon: AlertTriangle,
-    borderClass: "border-destructive/30",
-    bgClass: "bg-destructive/5",
+    accentClass: "text-destructive",
   },
   afgerond: {
-    titel: "6. Afgerond",
+    titel: "Afgerond",
     omschrijving: "Audit goedgekeurd. Nog 14 dagen zichtbaar.",
     icon: CheckCircle2,
-    borderClass: "border-primary/20",
-    bgClass: "bg-primary/5",
+    accentClass: "text-primary",
   },
   reactie_ontvangen: {
-    titel: "7. Reactie ontvangen",
+    titel: "Reactie ontvangen",
     omschrijving: "EP-adviseur heeft gereageerd, wacht op opvolging.",
     icon: Mail,
-    borderClass: "border-accent-foreground/30",
-    bgClass: "bg-accent",
+    accentClass: "text-warning",
   },
 };
 
