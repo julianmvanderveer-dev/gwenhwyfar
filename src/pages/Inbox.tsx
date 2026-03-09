@@ -5,16 +5,14 @@ import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trash2, Download, Plus } from "lucide-react";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Plus, Search } from "lucide-react";
 import { toast } from "sonner";
-import { toast as uiToast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
-import { beoordelingBadge, afwijkingBadge, statusBadge } from "@/lib/badges";
-import { downloadCsv } from "@/lib/csv";
+import { beoordelingBadge, afwijkingBadge } from "@/lib/badges";
+import { orderedFases, faseConfig, getProjectFase, type FaseKey } from "@/components/projecten/faseConfig";
+import FaseKolom from "@/components/projecten/FaseKolom";
+import ExportFilter from "@/components/projecten/ExportFilter";
 
 type Project = Tables<"projects"> & { adviseurs: { naam: string } | null };
 type Finding = Tables<"findings">;
@@ -22,8 +20,10 @@ type Finding = Tables<"findings">;
 export default function Inbox() {
   const { user, roles, hasRole } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
-  const [findings, setFindings] = useState<(Finding & { project_naam?: string })[]>([]);
+  const [projectFindings, setProjectFindings] = useState<Record<string, Finding[]>>({});
+  const [findings, setFindings] = useState<Finding[]>([]);
   const [adviseurProjects, setAdviseurProjects] = useState<(Tables<"projects"> & { findings: Finding[] })[]>([]);
+  const [zoekterm, setZoekterm] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -41,7 +41,24 @@ export default function Inbox() {
       .select("*, adviseurs(naam)")
       .neq("status", "gesloten")
       .order("datum_aangemaakt", { ascending: false });
-    setProjects((projectData as Project[]) ?? []);
+    const loadedProjects = (projectData as Project[]) ?? [];
+    setProjects(loadedProjects);
+
+    // Load findings for all projects to detect fase 7 (reactie_ontvangen)
+    if (loadedProjects.length > 0) {
+      const projectIds = loadedProjects.map((p) => p.id);
+      const { data: allFindings } = await supabase
+        .from("findings")
+        .select("*")
+        .in("project_id", projectIds);
+      
+      const grouped: Record<string, Finding[]> = {};
+      (allFindings ?? []).forEach((f) => {
+        if (!grouped[f.project_id]) grouped[f.project_id] = [];
+        grouped[f.project_id].push(f);
+      });
+      setProjectFindings(grouped);
+    }
 
     if (hasRole("tekenaar") || hasRole("auditor")) {
       const eigenaar = hasRole("tekenaar") ? "tekenaar" : "auditor";
@@ -105,24 +122,60 @@ export default function Inbox() {
     }
   };
 
-  const exportProjecten = () => {
-    const rows = projects.map((p) => ({
-      Projectnaam: p.projectnaam, Status: p.status, Categorie: p.audit_categorie,
-      Soort: p.audit_soort, Prioriteit: p.prioriteit ? "Ja" : "Nee",
-      Adviseur: p.adviseurs?.naam ?? "", "Datum aangemaakt": new Date(p.datum_aangemaakt).toLocaleDateString("nl-NL"),
-    }));
-    downloadCsv(rows, "Projecten.csv");
-    uiToast({ title: "Projecten geëxporteerd" });
-  };
+  // Filter and group projects by fase
+  const projectenPerFase = useMemo(() => {
+    const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+    const needle = zoekterm.trim().toLowerCase();
+
+    const visible = projects.filter((p) => {
+      // Hide archived afgerond projects
+      if (p.status === "afgerond" && p.gearchiveerd_op && new Date(p.gearchiveerd_op) < fourteenDaysAgo) return false;
+      // Search filter
+      if (needle) {
+        const searchable = [p.projectnaam, p.adviseurs?.naam].filter(Boolean).join(" ").toLowerCase();
+        if (!searchable.includes(needle)) return false;
+      }
+      return true;
+    });
+
+    const grouped: Record<FaseKey, Project[]> = {} as any;
+    orderedFases.forEach((f) => (grouped[f] = []));
+
+    visible.forEach((p) => {
+      const pFindings = projectFindings[p.id] ?? [];
+      const hasReactie = pFindings.some((f) => f.status === "reactie_ontvangen");
+      const fase = getProjectFase(p.status, hasReactie);
+      grouped[fase].push(p);
+    });
+
+    return grouped;
+  }, [projects, projectFindings, zoekterm]);
+
+  const faseTellers = orderedFases.map((f) => ({
+    fase: f,
+    count: projectenPerFase[f]?.length ?? 0,
+  }));
+
+  const isBeheer = hasRole("beheer");
+  const isInternal = hasRole("tekenaar") || hasRole("auditor") || hasRole("beheer");
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
-      <h1 className="text-xl font-bold mb-4">Projecten</h1>
-      <p className="text-sm mb-4 text-muted-foreground">Rollen: {roles.join(", ") || "geen"}</p>
+    <div className="max-w-7xl mx-auto p-4 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold">Projecten</h1>
+          <p className="text-sm text-muted-foreground">Rollen: {roles.join(", ") || "geen"}</p>
+        </div>
+        {isBeheer && (
+          <Link to="/project/nieuw">
+            <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Nieuw project</Button>
+          </Link>
+        )}
+      </div>
 
       {/* EP-adviseur section */}
       {hasRole("ep_adviseur") && (
-        <div className="mb-6">
+        <div>
           <h2 className="font-semibold mb-2">Openstaande audits (EP-adviseur)</h2>
           {adviseurProjects.length === 0 ? (
             <p className="text-muted-foreground text-sm">Geen openstaande audits.</p>
@@ -179,104 +232,72 @@ export default function Inbox() {
         </div>
       )}
 
-      {/* Internal roles: projects and findings */}
-      {(hasRole("tekenaar") || hasRole("auditor") || hasRole("beheer")) && (
+      {/* Internal roles: phase-grouped view */}
+      {isInternal && (
         <>
-          {(() => {
-            // Filter out archived projects (afgerond > 7 days ago)
-            const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-            const visibleProjects = projects.filter(p => {
-              if (p.status === "afgerond" && p.gearchiveerd_op && new Date(p.gearchiveerd_op) < sevenDaysAgo) return false;
-              return true;
-            });
-            return visibleProjects.length > 0 && (
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="font-semibold">Projecten</h2>
-                <div className="flex gap-2">
-                  {hasRole("beheer") && (
-                    <Link to="/project/nieuw">
-                      <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Nieuw project</Button>
-                    </Link>
-                  )}
-                  {hasRole("beheer") && (
-                    <Button variant="outline" size="sm" onClick={exportProjecten}>
-                      <Download className="h-4 w-4 mr-1" /> Export CSV
-                    </Button>
-                  )}
-                </div>
-              </div>
-              <table className="w-full text-sm border">
-               <thead>
-                  <tr className="border-b bg-muted">
-                    <th className="text-left p-2">Project</th>
-                    <th className="text-left p-2">Status</th>
-                    <th className="text-left p-2">Deadline</th>
-                    <th className="text-left p-2">Categorie</th>
-                    <th className="text-left p-2">Soort</th>
-                    <th className="text-left p-2">Adviseur</th>
-                    <th className="text-left p-2">Prioriteit</th>
-                    <th className="text-left p-2">Datum</th>
-                    {hasRole("beheer") && <th className="text-left p-2 w-16"></th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleProjects.map((p) => (
-                    <tr key={p.id} className="border-b">
-                      <td className="p-2 font-medium">
-                        <Link to={`/project/${p.id}`} className="underline text-primary">
-                          {p.projectnaam}
-                        </Link>
-                      </td>
-                      <td className="p-2">{statusBadge(p.status)}</td>
-                      <td className="p-2">
-                        {p.status === "wacht_op_reactie" && p.reactie_deadline
-                          ? new Date(p.reactie_deadline).toLocaleDateString("nl-NL")
-                          : "—"}
-                      </td>
-                      <td className="p-2">{p.audit_categorie}</td>
-                      <td className="p-2">{p.audit_soort}</td>
-                      <td className="p-2">{p.adviseurs?.naam ?? "—"}</td>
-                      <td className="p-2">{p.prioriteit ? "Ja" : "Nee"}</td>
-                      <td className="p-2">{new Date(p.datum_aangemaakt).toLocaleDateString("nl-NL")}</td>
-                      {hasRole("beheer") && (
-                        <td className="p-2">
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Project verwijderen?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Weet je zeker dat je "{p.projectnaam}" wilt verwijderen? Alle bijbehorende findings en berichten worden ook verwijderd.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Annuleren</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => deleteProject(p.id)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  Verwijderen
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          {/* Search + fase tellers */}
+          <div className="space-y-3">
+            <div className="relative max-w-sm">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Zoek op projectnaam of adviseur..."
+                value={zoekterm}
+                onChange={(e) => setZoekterm(e.target.value)}
+                className="pl-9 h-9"
+              />
             </div>
-            );
-          })()}
 
+            <div className="flex flex-wrap gap-2">
+              {faseTellers.map(({ fase, count }) => (
+                <div key={fase} className="text-xs px-2.5 py-1 rounded-md bg-muted text-muted-foreground">
+                  <span className="font-medium">{faseConfig[fase].titel}:</span> {count}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Kolom / Lijst tabs */}
+          <Tabs defaultValue="kolommen">
+            <TabsList>
+              <TabsTrigger value="kolommen">Kolomweergave</TabsTrigger>
+              <TabsTrigger value="lijst">Onder elkaar</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="kolommen">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {orderedFases.map((fase) => (
+                  <FaseKolom
+                    key={fase}
+                    fase={fase}
+                    projecten={projectenPerFase[fase]}
+                    canDelete={isBeheer}
+                    onDelete={deleteProject}
+                  />
+                ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="lijst">
+              <div className="space-y-4">
+                {orderedFases.map((fase) => (
+                  <FaseKolom
+                    key={fase}
+                    fase={fase}
+                    projecten={projectenPerFase[fase]}
+                    canDelete={isBeheer}
+                    onDelete={deleteProject}
+                  />
+                ))}
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          {/* Export */}
+          {isBeheer && <ExportFilter projects={projects} />}
+
+          {/* Findings te beoordelen */}
           {findings.length > 0 && (
-            <div className="mb-6">
+            <div>
               <h2 className="font-semibold mb-2">Findings te beoordelen</h2>
               <table className="w-full text-sm border">
                 <thead>
