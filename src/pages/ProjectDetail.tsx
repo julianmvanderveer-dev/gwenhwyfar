@@ -176,7 +176,10 @@ export default function ProjectDetail() {
 
   if (!project) return <div className="p-4">Laden...</div>;
 
-  const onderdelen = [...new Set(findings.map((f) => f.onderdeel))];
+  const findingOnderdelen = [...new Set(findings.map((f) => f.onderdeel))];
+  const onderdelen = [...new Set([...templateOnderdelen, ...findingOnderdelen])].sort((a, b) =>
+    a.localeCompare(b, undefined, { numeric: true })
+  );
   const allTabs = [...onderdelen, "__ep2__"];
   const canDeel1 = hasRole("tekenaar") && (project.status === "nog_niet_begonnen" || project.status === "deel1_bezig");
   const canDeel2 = hasRole("auditor") && (project.status === "deel1_afgerond" || project.status === "deel2_bezig");
