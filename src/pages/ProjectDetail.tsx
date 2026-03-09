@@ -228,9 +228,11 @@ export default function ProjectDetail() {
             <TabsTrigger value="__ep2__">6. EP2 Beoordeling</TabsTrigger>
           </TabsList>
 
-          {onderdelen.map((o) => (
+          {onderdelen.map((o) => {
+            const onderdeelFindings = findings.filter((f) => f.onderdeel === o);
+            return (
             <TabsContent key={o} value={o}>
-              {canEditAny && (
+              {canEditAny && onderdeelFindings.length > 0 && (
                 <div className="mb-2">
                   <Button
                     variant="outline"
