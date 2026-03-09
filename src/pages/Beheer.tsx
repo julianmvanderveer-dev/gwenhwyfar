@@ -188,12 +188,8 @@ export default function Beheer() {
                       {ROLE_LABELS[r]}
                     </th>
                   ))}
-                  {EP_ROLES.map((r) => (
-                    <th key={r} className="text-center px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r">
-                      {ROLE_LABELS[r]}
-                    </th>
-                  ))}
-                  <th className="text-center px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-16">Actief</th>
+                   <th className="text-center px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-16">Actief</th>
+                   <th className="w-12" />
                 </tr>
               </thead>
               <tbody>
