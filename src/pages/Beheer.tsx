@@ -163,7 +163,7 @@ export default function Beheer() {
     }
   };
 
-
+  const exportGebruikers = () => {
     const rows = profiles.map((p) => {
       const row: Record<string, string> = { Naam: p.naam, "E-mail": p.email, Actief: p.actief ? "Ja" : "Nee" };
       PROJECT_ROLES.forEach((r) => { row[ROLE_LABELS[r]] = p.roles.includes(r) ? "Ja" : "Nee"; });
