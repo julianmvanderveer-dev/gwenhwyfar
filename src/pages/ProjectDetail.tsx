@@ -18,6 +18,7 @@ export default function ProjectDetail() {
   const { user, hasRole } = useAuth();
   const [project, setProject] = useState<Project | null>(null);
   const [findings, setFindings] = useState<Finding[]>([]);
+  const [templateOnderdelen, setTemplateOnderdelen] = useState<string[]>([]);
   const [ep2Start, setEp2Start] = useState<string>("");
   const [ep2Eind, setEp2Eind] = useState<string>("");
   const [ep2Beoordeling, setEp2Beoordeling] = useState<string>("");
@@ -25,7 +26,10 @@ export default function ProjectDetail() {
 
   useEffect(() => {
     if (!id) return;
-    loadProject().then(() => autoSetStatus());
+    loadProject().then((p) => {
+      autoSetStatus();
+      if (p) loadTemplateOnderdelen(p.audit_categorie);
+    });
     loadFindings();
   }, [id]);
 
@@ -52,6 +56,19 @@ export default function ProjectDetail() {
     } else if (hasRole("auditor") && p.status === "deel1_afgerond") {
       await supabase.from("projects").update({ status: "deel2_bezig" as any }).eq("id", id!);
       loadProject();
+    }
+  };
+
+  const loadTemplateOnderdelen = async (categorie: string) => {
+    const { data } = await supabase
+      .from("checklist_templates")
+      .select("onderdeel")
+      .eq("audit_categorie", categorie as any);
+    if (data) {
+      const unique = [...new Set(data.map((t) => t.onderdeel))].sort((a, b) =>
+        a.localeCompare(b, undefined, { numeric: true })
+      );
+      setTemplateOnderdelen(unique);
     }
   };
 
@@ -159,7 +176,10 @@ export default function ProjectDetail() {
 
   if (!project) return <div className="p-4">Laden...</div>;
 
-  const onderdelen = [...new Set(findings.map((f) => f.onderdeel))];
+  const findingOnderdelen = [...new Set(findings.map((f) => f.onderdeel))];
+  const onderdelen = [...new Set([...templateOnderdelen, ...findingOnderdelen])].sort((a, b) =>
+    a.localeCompare(b, undefined, { numeric: true })
+  );
   const allTabs = [...onderdelen, "__ep2__"];
   const canDeel1 = hasRole("tekenaar") && (project.status === "nog_niet_begonnen" || project.status === "deel1_bezig");
   const canDeel2 = hasRole("auditor") && (project.status === "deel1_afgerond" || project.status === "deel2_bezig");
@@ -200,8 +220,7 @@ export default function ProjectDetail() {
         Status: {statusLabel[project.status]} | Categorie: {project.audit_categorie} | Soort: {project.audit_soort} | {project.toelatingsaudit && "Toelatingsaudit | "}Prioriteit: {project.prioriteit ? "Ja" : "Nee"}
       </p>
 
-      {onderdelen.length > 0 ? (
-        <Tabs value={activeTab || onderdelen[0]} onValueChange={setActiveTab}>
+      <Tabs value={activeTab || onderdelen[0] || "__ep2__"} onValueChange={setActiveTab}>
           <TabsList className="flex-wrap h-auto">
             {onderdelen.map((o) => (
               <TabsTrigger key={o} value={o}>{o}</TabsTrigger>
@@ -209,9 +228,11 @@ export default function ProjectDetail() {
             <TabsTrigger value="__ep2__">6. EP2 Beoordeling</TabsTrigger>
           </TabsList>
 
-          {onderdelen.map((o) => (
+          {onderdelen.map((o) => {
+            const onderdeelFindings = findings.filter((f) => f.onderdeel === o);
+            return (
             <TabsContent key={o} value={o}>
-              {canEditAny && (
+              {canEditAny && onderdeelFindings.length > 0 && (
                 <div className="mb-2">
                   <Button
                     variant="outline"
@@ -234,7 +255,14 @@ export default function ProjectDetail() {
                   </tr>
                 </thead>
                 <tbody>
-                  {findings.filter((f) => f.onderdeel === o).map((f) => (
+                  {onderdeelFindings.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="p-4 text-center text-muted-foreground">
+                        Nog geen findings voor dit onderdeel.
+                      </td>
+                    </tr>
+                  ) : (
+                    onderdeelFindings.map((f) => (
                     <React.Fragment key={f.id}>
                       <tr className="border-b">
                         <td className="p-2">{f.controlepunt}</td>
@@ -288,7 +316,8 @@ export default function ProjectDetail() {
                         </tr>
                       )}
                     </React.Fragment>
-                  ))}
+                    ))
+                  )}
                 </tbody>
               </table>
               <div className="flex justify-between mt-4">
@@ -301,7 +330,8 @@ export default function ProjectDetail() {
                 )}
               </div>
             </TabsContent>
-          ))}
+          );
+          })}
 
           {/* EP2 Eindtabblad */}
           <TabsContent value="__ep2__">
@@ -374,9 +404,6 @@ export default function ProjectDetail() {
             </div>
           </TabsContent>
         </Tabs>
-      ) : (
-        <p className="text-muted-foreground">Geen findings.</p>
-      )}
 
       <div className="mt-4 flex gap-2">
         {canDeel1 && (
