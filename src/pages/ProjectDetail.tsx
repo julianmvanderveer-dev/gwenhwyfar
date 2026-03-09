@@ -18,6 +18,7 @@ export default function ProjectDetail() {
   const { user, hasRole } = useAuth();
   const [project, setProject] = useState<Project | null>(null);
   const [findings, setFindings] = useState<Finding[]>([]);
+  const [templateOnderdelen, setTemplateOnderdelen] = useState<string[]>([]);
   const [ep2Start, setEp2Start] = useState<string>("");
   const [ep2Eind, setEp2Eind] = useState<string>("");
   const [ep2Beoordeling, setEp2Beoordeling] = useState<string>("");
@@ -25,7 +26,10 @@ export default function ProjectDetail() {
 
   useEffect(() => {
     if (!id) return;
-    loadProject().then(() => autoSetStatus());
+    loadProject().then((p) => {
+      autoSetStatus();
+      if (p) loadTemplateOnderdelen(p.audit_categorie);
+    });
     loadFindings();
   }, [id]);
 
