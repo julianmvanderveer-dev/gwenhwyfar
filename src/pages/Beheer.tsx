@@ -115,10 +115,18 @@ export default function Beheer() {
     toast({ title: "Adviseur verwijderd" });
   };
 
+  const deleteProfile = async (userId: string, naam: string) => {
+    if (!confirm(`Weet je zeker dat je "${naam}" wilt verwijderen?`)) return;
+    await supabase.from("user_roles").delete().eq("user_id", userId);
+    await supabase.from("profiles").delete().eq("id", userId);
+    loadUsers();
+    toast({ title: "Medewerker verwijderd" });
+  };
+
   const exportGebruikers = () => {
     const rows = profiles.map((p) => {
       const row: Record<string, string> = { Naam: p.naam, "E-mail": p.email, Actief: p.actief ? "Ja" : "Nee" };
-      ALL_ROLES.forEach((r) => { row[ROLE_LABELS[r]] = p.roles.includes(r) ? "Ja" : "Nee"; });
+      PROJECT_ROLES.forEach((r) => { row[ROLE_LABELS[r]] = p.roles.includes(r) ? "Ja" : "Nee"; });
       return row;
     });
     downloadCsv(rows, "Projectteam.csv");
