@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -9,16 +9,23 @@ import type { Tables, Enums } from "@/integrations/supabase/types";
 import { addMonths, addDays } from "date-fns";
 import FindingToelichting from "@/components/FindingToelichting";
 import { Input } from "@/components/ui/input";
+import { statusBadge, beoordelingBadge, afwijkingBadge } from "@/lib/badges";
+import { ArrowLeft, CheckCircle2, ClipboardCheck, ChevronLeft, ChevronRight } from "lucide-react";
 
 type Project = Tables<"projects">;
-type Finding = Tables<"findings"> & { deel?: number; toelichting?: string | null };
+type Finding = Tables<"findings">;
+type Template = { id: string; code: string; onderdeel: string; controlepunt: string; deel: number };
+
+// A merged row: template + optional existing finding
+type MergedRow = Template & { finding?: Finding };
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { user, hasRole } = useAuth();
   const [project, setProject] = useState<Project | null>(null);
   const [findings, setFindings] = useState<Finding[]>([]);
-  const [templateOnderdelen, setTemplateOnderdelen] = useState<string[]>([]);
+  const [templates, setTemplates] = useState<Template[]>([]);
   const [ep2Start, setEp2Start] = useState<string>("");
   const [ep2Eind, setEp2Eind] = useState<string>("");
   const [ep2Beoordeling, setEp2Beoordeling] = useState<string>("");
@@ -28,16 +35,16 @@ export default function ProjectDetail() {
     if (!id) return;
     loadProject().then((p) => {
       autoSetStatus();
-      if (p) loadTemplateOnderdelen(p.audit_categorie);
+      if (p) loadTemplates(p.audit_categorie);
     });
     loadFindings();
   }, [id]);
 
   useEffect(() => {
     if (project) {
-      setEp2Start((project as any).ep2_startwaarde?.toString() ?? "");
-      setEp2Eind((project as any).ep2_eindwaarde?.toString() ?? "");
-      setEp2Beoordeling((project as any).ep2_beoordeling ?? "");
+      setEp2Start(project.ep2_startwaarde?.toString() ?? "");
+      setEp2Eind(project.ep2_eindwaarde?.toString() ?? "");
+      setEp2Beoordeling(project.ep2_beoordeling ?? "");
     }
   }, [project]);
 
@@ -59,17 +66,14 @@ export default function ProjectDetail() {
     }
   };
 
-  const loadTemplateOnderdelen = async (categorie: string) => {
+  const loadTemplates = async (categorie: string) => {
     const { data } = await supabase
       .from("checklist_templates")
-      .select("onderdeel")
-      .eq("audit_categorie", categorie as any);
-    if (data) {
-      const unique = [...new Set(data.map((t) => t.onderdeel))].sort((a, b) =>
-        a.localeCompare(b, undefined, { numeric: true })
-      );
-      setTemplateOnderdelen(unique);
-    }
+      .select("id, code, onderdeel, controlepunt, deel")
+      .eq("audit_categorie", categorie as any)
+      .order("onderdeel")
+      .order("code");
+    setTemplates((data as Template[]) ?? []);
   };
 
   const loadFindings = async () => {
@@ -78,11 +82,32 @@ export default function ProjectDetail() {
       .select("*")
       .eq("project_id", id!)
       .order("created_at");
-    const sorted = ((data as Finding[]) ?? []).sort((a, b) =>
-      a.onderdeel.localeCompare(b.onderdeel, undefined, { numeric: true }) ||
-      a.controlepunt.localeCompare(b.controlepunt, undefined, { numeric: true })
+    setFindings((data as Finding[]) ?? []);
+  };
+
+  // Create a finding on-the-fly when a user sets a beoordeling on a template row without an existing finding
+  const ensureFinding = async (template: Template): Promise<string> => {
+    // Check if finding already exists
+    const existing = findings.find(
+      (f) => f.onderdeel === template.onderdeel && f.controlepunt === template.controlepunt && f.deel === template.deel
     );
-    setFindings(sorted);
+    if (existing) return existing.id;
+
+    const { data, error } = await supabase
+      .from("findings")
+      .insert({
+        project_id: id!,
+        onderdeel: template.onderdeel,
+        controlepunt: template.controlepunt,
+        deel: template.deel,
+      })
+      .select("id")
+      .single();
+    if (error) {
+      toast({ title: "Fout", description: error.message, variant: "destructive" });
+      throw error;
+    }
+    return data!.id;
   };
 
   const updateBeoordeling = async (findingId: string, beoordeling: Enums<"beoordeling_type">) => {
@@ -98,18 +123,50 @@ export default function ProjectDetail() {
     loadFindings();
   };
 
+  const handleBeoordeling = async (row: MergedRow, beoordeling: string) => {
+    try {
+      const fId = row.finding?.id ?? (await ensureFinding(row));
+      if (!beoordeling) {
+        // Clear beoordeling
+        await supabase.from("findings").update({ beoordeling: null, type_afwijking: null } as any).eq("id", fId);
+        loadFindings();
+      } else {
+        await updateBeoordeling(fId, beoordeling as Enums<"beoordeling_type">);
+      }
+    } catch {
+      // error already toasted
+    }
+  };
+
   const updateAfwijkingType = async (findingId: string, type: Enums<"afwijking_type">) => {
     await supabase.from("findings").update({ type_afwijking: type }).eq("id", findingId);
     loadFindings();
   };
 
   const allesGoedkeuren = async (onderdeel: string) => {
-    const ids = findings
-      .filter((f) => f.onderdeel === onderdeel && canEditFinding(f) && f.beoordeling !== "goed")
+    // First ensure all template rows for this onderdeel have findings
+    const onderdeelTemplates = templates.filter((t) => t.onderdeel === onderdeel);
+    for (const t of onderdeelTemplates) {
+      const existing = findings.find(
+        (f) => f.onderdeel === t.onderdeel && f.controlepunt === t.controlepunt && f.deel === t.deel
+      );
+      if (!existing && canEditTemplate(t)) {
+        await ensureFinding(t);
+      }
+    }
+    await loadFindings();
+    // Now update all to goed
+    const { data: currentFindings } = await supabase
+      .from("findings")
+      .select("id, onderdeel, deel, beoordeling")
+      .eq("project_id", id!)
+      .eq("onderdeel", onderdeel);
+    const ids = (currentFindings ?? [])
+      .filter((f) => canEditFindingByDeel(f.deel) && f.beoordeling !== "goed")
       .map((f) => f.id);
     if (ids.length === 0) return;
     await supabase.from("findings").update({ beoordeling: "goed" as any }).in("id", ids);
-    toast({ title: "Alles goedgekeurd", description: `${ids.length} finding(s) op goed gezet.` });
+    toast({ title: "Alles goedgekeurd", description: `${ids.length} post(en) op goed gezet.` });
     loadFindings();
   };
 
@@ -133,7 +190,6 @@ export default function ProjectDetail() {
         }).eq("id", f.id);
       }
     }
-    // Check if there are any KT or NK findings
     const hasKtOrNk = findings.some(f => f.beoordeling === "niet_goed" || f.beoordeling === "interne_alert");
     const hasKt = findings.some(f => f.type_afwijking === "kritiek");
 
@@ -174,29 +230,45 @@ export default function ProjectDetail() {
     loadProject();
   };
 
-  if (!project) return <div className="p-4">Laden...</div>;
+  if (!project) return <div className="p-6 text-muted-foreground">Laden...</div>;
 
-  const findingOnderdelen = [...new Set(findings.map((f) => f.onderdeel))];
-  const onderdelen = [...new Set([...templateOnderdelen, ...findingOnderdelen])].sort((a, b) =>
+  // Build merged rows per onderdeel
+  const onderdelen = [...new Set(templates.map((t) => t.onderdeel))].sort((a, b) =>
     a.localeCompare(b, undefined, { numeric: true })
   );
   const allTabs = [...onderdelen, "__ep2__"];
+
   const canDeel1 = hasRole("tekenaar") && (project.status === "nog_niet_begonnen" || project.status === "deel1_bezig");
   const canDeel2 = hasRole("auditor") && (project.status === "deel1_afgerond" || project.status === "deel2_bezig");
 
-  const canEditFinding = (f: Finding) => {
-    if (canDeel1 && f.deel === 1) return true;
-    if (canDeel2 && f.deel === 2) return true;
+  const canEditFindingByDeel = (deel: number) => {
+    if (canDeel1 && deel === 1) return true;
+    if (canDeel2 && deel === 2) return true;
     return false;
   };
 
+  const canEditFinding = (f: Finding) => canEditFindingByDeel(f.deel);
+  const canEditTemplate = (t: Template) => canEditFindingByDeel(t.deel);
   const canEditAny = canDeel1 || canDeel2;
+
+  const getMergedRows = (onderdeel: string): MergedRow[] => {
+    const onderdeelTemplates = templates
+      .filter((t) => t.onderdeel === onderdeel)
+      .sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
+    return onderdeelTemplates.map((t) => {
+      const finding = findings.find(
+        (f) => f.onderdeel === t.onderdeel && f.controlepunt === t.controlepunt && f.deel === t.deel
+      );
+      return { ...t, finding };
+    });
+  };
 
   const currentIndex = allTabs.indexOf(activeTab);
   const goTo = (dir: -1 | 1) => {
     const next = allTabs[currentIndex + dir];
     if (next) setActiveTab(next);
   };
+
   const statusLabel: Record<string, string> = {
     nog_niet_begonnen: "Nog niet begonnen",
     deel1_bezig: "Deel 1 bezig",
@@ -214,205 +286,236 @@ export default function ProjectDetail() {
   const afwijkingPct = afwijkingAbs !== null && startVal !== 0 ? (afwijkingAbs / startVal) * 100 : null;
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
-      <h1 className="text-xl font-bold mb-1">{project.projectnaam}</h1>
-      <p className="text-sm text-muted-foreground mb-4">
-        Status: {statusLabel[project.status]} | Categorie: {project.audit_categorie} | Soort: {project.audit_soort} | {project.toelatingsaudit && "Toelatingsaudit | "}Prioriteit: {project.prioriteit ? "Ja" : "Nee"}
-      </p>
+    <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center shrink-0">
+          <ClipboardCheck className="h-5 w-5 text-primary-foreground" />
+        </div>
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold tracking-tight truncate">{project.projectnaam}</h1>
+          <p className="text-xs text-muted-foreground">
+            {project.audit_categorie} · {project.audit_soort}
+            {project.toelatingsaudit && " · Toelatingsaudit"}
+            {project.prioriteit && " · Prioriteit"}
+          </p>
+        </div>
+        <div className="ml-auto shrink-0">
+          {statusBadge(project.status)}
+        </div>
+      </div>
 
+      {/* Tabs */}
       <Tabs value={activeTab || onderdelen[0] || "__ep2__"} onValueChange={setActiveTab}>
-          <TabsList className="flex-wrap h-auto">
-            {onderdelen.map((o) => (
-              <TabsTrigger key={o} value={o}>{o}</TabsTrigger>
-            ))}
-            <TabsTrigger value="__ep2__">6. EP2 Beoordeling</TabsTrigger>
-          </TabsList>
+        <TabsList className="flex-wrap h-auto gap-1">
+          {onderdelen.map((o) => (
+            <TabsTrigger key={o} value={o} className="text-xs">{o}</TabsTrigger>
+          ))}
+          <TabsTrigger value="__ep2__" className="text-xs">EP2 Beoordeling</TabsTrigger>
+        </TabsList>
 
-          {onderdelen.map((o) => {
-            const onderdeelFindings = findings.filter((f) => f.onderdeel === o);
-            return (
-            <TabsContent key={o} value={o}>
-              {canEditAny && onderdeelFindings.length > 0 && (
-                <div className="mb-2">
+        {onderdelen.map((o) => {
+          const rows = getMergedRows(o);
+          return (
+            <TabsContent key={o} value={o} className="space-y-3">
+              {canEditAny && rows.length > 0 && (
+                <div className="flex items-center justify-between">
                   <Button
                     variant="outline"
                     size="sm"
+                    className="shadow-sm gap-1.5"
                     onClick={() => allesGoedkeuren(o)}
                   >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
                     Alles goedkeuren
                   </Button>
                 </div>
               )}
-              <table className="w-full text-sm border">
-                <thead>
-                  <tr className="border-b bg-muted">
-                    <th className="text-left p-2">Controlepunt</th>
-                    <th className="text-left p-2 w-20">Deel</th>
-                    <th className="text-left p-2">Beoordeling</th>
-                    <th className="text-left p-2">Type afwijking</th>
-                    <th className="text-left p-2">Deadline</th>
-                    <th className="text-left p-2">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {onderdeelFindings.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="p-4 text-center text-muted-foreground">
-                        Nog geen findings voor dit onderdeel.
-                      </td>
+              <div className="border rounded-lg overflow-hidden shadow-sm bg-card">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-secondary/60">
+                      <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Code</th>
+                      <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Controlepunt</th>
+                      <th className="text-center px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-16">Deel</th>
+                      <th className="text-left px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Beoordeling</th>
+                      <th className="text-left px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Type</th>
+                      <th className="text-left px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Deadline</th>
+                      <th className="text-left px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Status</th>
                     </tr>
-                  ) : (
-                    onderdeelFindings.map((f) => (
-                    <React.Fragment key={f.id}>
-                      <tr className="border-b">
-                        <td className="p-2">{f.controlepunt}</td>
-                        <td className="p-2">
-                          <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${f.deel === 1 ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}`}>
-                            Deel {f.deel}
-                          </span>
-                        </td>
-                        <td className="p-2">
-                          {canEditFinding(f) ? (
-                            <select
-                              className="border rounded px-1 py-0.5 text-sm"
-                              value={f.beoordeling ?? ""}
-                              onChange={(e) => updateBeoordeling(f.id, e.target.value as any)}
-                            >
-                              <option value="">—</option>
-                              <option value="goed">Goed</option>
-                              <option value="niet_goed">Niet goed</option>
-                              <option value="interne_alert">Interne alert</option>
-                            </select>
-                          ) : (
-                            f.beoordeling ?? "—"
+                  </thead>
+                  <tbody>
+                    {rows.map((row, i) => {
+                      const f = row.finding;
+                      const editable = canEditTemplate(row);
+                      return (
+                        <React.Fragment key={row.id}>
+                          <tr className={`border-b last:border-0 hover:bg-muted/50 transition-colors ${i % 2 !== 0 ? 'bg-muted/20' : ''}`}>
+                            <td className="px-4 py-2.5 text-muted-foreground font-mono text-xs">{row.code}</td>
+                            <td className="px-4 py-2.5 font-medium">{row.controlepunt}</td>
+                            <td className="px-3 py-2.5 text-center">
+                              <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${row.deel === 1 ? "bg-accent/10 text-accent" : "bg-primary/10 text-primary"}`}>
+                                {row.deel}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2.5">
+                              {editable ? (
+                                <select
+                                  className="border border-input rounded-md px-2 py-1 text-sm bg-background"
+                                  value={f?.beoordeling ?? ""}
+                                  onChange={(e) => handleBeoordeling(row, e.target.value)}
+                                >
+                                  <option value="">—</option>
+                                  <option value="goed">Goed</option>
+                                  <option value="niet_goed">Niet goed</option>
+                                  <option value="interne_alert">Interne alert</option>
+                                </select>
+                              ) : (
+                                f?.beoordeling ? beoordelingBadge(f.beoordeling) : <span className="text-muted-foreground">—</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2.5">
+                              {f && editable && (f.beoordeling === "niet_goed" || f.beoordeling === "interne_alert") ? (
+                                <select
+                                  className="border border-input rounded-md px-2 py-1 text-sm bg-background"
+                                  value={f.type_afwijking ?? ""}
+                                  onChange={(e) => updateAfwijkingType(f.id, e.target.value as any)}
+                                >
+                                  <option value="kritiek">Kritiek</option>
+                                  <option value="niet_kritiek">Niet kritiek</option>
+                                </select>
+                              ) : (
+                                f?.type_afwijking ? afwijkingBadge(f.type_afwijking) : <span className="text-muted-foreground">—</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2.5 text-muted-foreground text-xs">
+                              {f?.deadline ? new Date(f.deadline).toLocaleDateString("nl-NL") : "—"}
+                            </td>
+                            <td className="px-3 py-2.5 text-xs">
+                              {f ? statusBadge(f.status) : <span className="text-muted-foreground">—</span>}
+                            </td>
+                          </tr>
+                          {f && ((editable && (f.beoordeling === "niet_goed" || f.beoordeling === "interne_alert")) || f.toelichting) && (
+                            <tr className="border-b bg-muted/30">
+                              <td colSpan={7} className="px-4 pb-2 pt-1">
+                                <FindingToelichting
+                                  findingId={f.id}
+                                  initialValue={f.toelichting}
+                                  editable={editable}
+                                />
+                              </td>
+                            </tr>
                           )}
-                        </td>
-                        <td className="p-2">
-                          {canEditFinding(f) && (f.beoordeling === "niet_goed" || f.beoordeling === "interne_alert") ? (
-                            <select
-                              className="border rounded px-1 py-0.5 text-sm"
-                              value={f.type_afwijking ?? ""}
-                              onChange={(e) => updateAfwijkingType(f.id, e.target.value as any)}
-                            >
-                              <option value="kritiek">Kritiek</option>
-                              <option value="niet_kritiek">Niet kritiek</option>
-                            </select>
-                          ) : (
-                            f.type_afwijking ?? "—"
-                          )}
-                        </td>
-                        <td className="p-2">{f.deadline ? new Date(f.deadline).toLocaleDateString("nl-NL") : "—"}</td>
-                        <td className="p-2">{f.status}</td>
-                      </tr>
-                      {((canEditFinding(f) && (f.beoordeling === "niet_goed" || f.beoordeling === "interne_alert")) || (f as any).toelichting) && (
-                        <tr key={f.id + "-toel"} className="border-b bg-muted/30">
-                          <td colSpan={6} className="px-2 pb-2">
-                            <FindingToelichting
-                              findingId={f.id}
-                              initialValue={(f as any).toelichting}
-                              editable={canEditFinding(f)}
-                            />
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                    ))
-                  )}
-                </tbody>
-              </table>
-              <div className="flex justify-between mt-4">
-                {allTabs.indexOf(o) > 0 && (
-                  <Button variant="outline" size="sm" onClick={() => goTo(-1)}>← Vorige</Button>
-                )}
-                <div className="flex-1" />
+                        </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {/* Navigation */}
+              <div className="flex justify-between">
+                {allTabs.indexOf(o) > 0 ? (
+                  <Button variant="outline" size="sm" onClick={() => goTo(-1)} className="gap-1">
+                    <ChevronLeft className="h-4 w-4" /> Vorige
+                  </Button>
+                ) : <div />}
                 {allTabs.indexOf(o) < allTabs.length - 1 && (
-                  <Button variant="outline" size="sm" onClick={() => goTo(1)}>Volgende →</Button>
+                  <Button variant="outline" size="sm" onClick={() => goTo(1)} className="gap-1">
+                    Volgende <ChevronRight className="h-4 w-4" />
+                  </Button>
                 )}
               </div>
             </TabsContent>
           );
-          })}
+        })}
 
-          {/* EP2 Eindtabblad */}
-          <TabsContent value="__ep2__">
-            <div className="border rounded p-4 space-y-4 max-w-md">
-              <h2 className="text-lg font-semibold">EP2 Beoordeling</h2>
+        {/* EP2 Tab */}
+        <TabsContent value="__ep2__" className="space-y-4">
+          <div className="border rounded-lg shadow-sm bg-card p-6 space-y-5 max-w-lg">
+            <h2 className="text-lg font-semibold tracking-tight">EP2 Beoordeling</h2>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Startwaarde EP2 (kWh/m²)</label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={ep2Start}
-                  onChange={(e) => setEp2Start(e.target.value)}
-                  disabled={!canDeel2}
-                  placeholder="bijv. 125.50"
-                />
-              </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Startwaarde EP2 (kWh/m²)</label>
+              <Input
+                type="number"
+                step="0.01"
+                value={ep2Start}
+                onChange={(e) => setEp2Start(e.target.value)}
+                disabled={!canDeel2}
+                placeholder="bijv. 125.50"
+              />
+            </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Eindwaarde EP2 (kWh/m²)</label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={ep2Eind}
-                  onChange={(e) => setEp2Eind(e.target.value)}
-                  disabled={!canDeel2}
-                  placeholder="bijv. 130.00"
-                />
-              </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Eindwaarde EP2 (kWh/m²)</label>
+              <Input
+                type="number"
+                step="0.01"
+                value={ep2Eind}
+                onChange={(e) => setEp2Eind(e.target.value)}
+                disabled={!canDeel2}
+                placeholder="bijv. 130.00"
+              />
+            </div>
 
-              {afwijkingAbs !== null && (
-                <div className="grid grid-cols-2 gap-4 p-3 bg-muted rounded text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Afwijking absoluut:</span>
-                    <p className="font-medium">{afwijkingAbs.toFixed(2)} kWh/m²</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Afwijking %:</span>
-                    <p className="font-medium">{afwijkingPct !== null ? afwijkingPct.toFixed(1) + "%" : "—"}</p>
-                  </div>
+            {afwijkingAbs !== null && (
+              <div className="grid grid-cols-2 gap-4 p-4 bg-muted rounded-lg text-sm">
+                <div>
+                  <span className="text-muted-foreground text-xs uppercase tracking-wider">Afwijking absoluut</span>
+                  <p className="font-semibold mt-0.5">{afwijkingAbs.toFixed(2)} kWh/m²</p>
                 </div>
-              )}
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Beoordeling</label>
-                <select
-                  className="w-full border rounded px-2 py-1.5 text-sm"
-                  value={ep2Beoordeling}
-                  onChange={(e) => setEp2Beoordeling(e.target.value)}
-                  disabled={!canDeel2}
-                >
-                  <option value="">— Selecteer —</option>
-                  <option value="goed">GOED</option>
-                  <option value="niet_kritiek">NK (Niet kritiek)</option>
-                  <option value="kritiek">KT (Kritiek)</option>
-                </select>
+                <div>
+                  <span className="text-muted-foreground text-xs uppercase tracking-wider">Afwijking %</span>
+                  <p className="font-semibold mt-0.5">{afwijkingPct !== null ? afwijkingPct.toFixed(1) + "%" : "—"}</p>
+                </div>
               </div>
+            )}
 
-              {canDeel2 && (
-                <Button onClick={saveEp2} size="sm">
-                  EP2 opslaan
-                </Button>
-              )}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Beoordeling</label>
+              <select
+                className="w-full border border-input rounded-md px-3 py-2 text-sm bg-background"
+                value={ep2Beoordeling}
+                onChange={(e) => setEp2Beoordeling(e.target.value)}
+                disabled={!canDeel2}
+              >
+                <option value="">— Selecteer —</option>
+                <option value="goed">GOED</option>
+                <option value="niet_kritiek">NK (Niet kritiek)</option>
+                <option value="kritiek">KT (Kritiek)</option>
+              </select>
             </div>
-            <div className="flex justify-between mt-4">
-              {currentIndex > 0 && (
-                <Button variant="outline" size="sm" onClick={() => goTo(-1)}>← Vorige</Button>
-              )}
-              <div className="flex-1" />
-            </div>
-          </TabsContent>
-        </Tabs>
 
-      <div className="mt-4 flex gap-2">
-        {canDeel1 && (
-          <Button onClick={deel1Afronden}>Deel 1 afronden</Button>
-        )}
-        {canDeel2 && (
-          <Button onClick={auditAfronden}>Audit afronden</Button>
-        )}
-      </div>
+            {canDeel2 && (
+              <Button onClick={saveEp2} size="sm" className="shadow-sm">
+                EP2 opslaan
+              </Button>
+            )}
+          </div>
+          <div className="flex justify-between">
+            {currentIndex > 0 ? (
+              <Button variant="outline" size="sm" onClick={() => goTo(-1)} className="gap-1">
+                <ChevronLeft className="h-4 w-4" /> Vorige
+              </Button>
+            ) : <div />}
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Footer actions */}
+      {(canDeel1 || canDeel2) && (
+        <div className="border rounded-lg bg-card p-4 flex items-center gap-3 shadow-sm">
+          {canDeel1 && (
+            <Button onClick={deel1Afronden} className="shadow-sm">Deel 1 afronden</Button>
+          )}
+          {canDeel2 && (
+            <Button onClick={auditAfronden} className="shadow-sm">Audit afronden</Button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
