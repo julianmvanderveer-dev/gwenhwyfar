@@ -1,0 +1,1 @@
+CREATE POLICY "Beheer deletes profiles" ON public.profiles FOR DELETE USING (has_role('beheer'::app_role));

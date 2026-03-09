@@ -115,10 +115,18 @@ export default function Beheer() {
     toast({ title: "Adviseur verwijderd" });
   };
 
+  const deleteProfile = async (userId: string, naam: string) => {
+    if (!confirm(`Weet je zeker dat je "${naam}" wilt verwijderen?`)) return;
+    await supabase.from("user_roles").delete().eq("user_id", userId);
+    await supabase.from("profiles").delete().eq("id", userId);
+    loadUsers();
+    toast({ title: "Medewerker verwijderd" });
+  };
+
   const exportGebruikers = () => {
     const rows = profiles.map((p) => {
       const row: Record<string, string> = { Naam: p.naam, "E-mail": p.email, Actief: p.actief ? "Ja" : "Nee" };
-      ALL_ROLES.forEach((r) => { row[ROLE_LABELS[r]] = p.roles.includes(r) ? "Ja" : "Nee"; });
+      PROJECT_ROLES.forEach((r) => { row[ROLE_LABELS[r]] = p.roles.includes(r) ? "Ja" : "Nee"; });
       return row;
     });
     downloadCsv(rows, "Projectteam.csv");
@@ -172,16 +180,13 @@ export default function Beheer() {
             <table className="w-full text-sm">
               <thead>
                 {/* Group headers */}
-                <tr className="border-b bg-secondary/60">
-                  <th colSpan={2} />
-                  <th colSpan={3} className="text-center px-2 py-2 text-xs font-bold uppercase tracking-wider text-accent border-l border-r">
-                    Projectrollen
-                  </th>
-                  <th colSpan={1} className="text-center px-2 py-2 text-xs font-bold uppercase tracking-wider text-warning border-r">
-                    EP-rollen
-                  </th>
-                  <th />
-                </tr>
+                 <tr className="border-b bg-secondary/60">
+                   <th colSpan={2} />
+                   <th colSpan={3} className="text-center px-2 py-2 text-xs font-bold uppercase tracking-wider text-accent border-l border-r">
+                     Projectrollen
+                   </th>
+                   <th colSpan={2} />
+                 </tr>
                 {/* Column headers */}
                 <tr className="border-b bg-secondary/40">
                   <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Naam</th>
@@ -191,12 +196,8 @@ export default function Beheer() {
                       {ROLE_LABELS[r]}
                     </th>
                   ))}
-                  {EP_ROLES.map((r) => (
-                    <th key={r} className="text-center px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground border-r">
-                      {ROLE_LABELS[r]}
-                    </th>
-                  ))}
-                  <th className="text-center px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-16">Actief</th>
+                   <th className="text-center px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-16">Actief</th>
+                   <th className="w-12" />
                 </tr>
               </thead>
               <tbody>
@@ -219,26 +220,26 @@ export default function Beheer() {
                         </td>
                       );
                     })}
-                    {EP_ROLES.map((role) => {
-                      const has = p.roles.includes(role);
-                      return (
-                        <td key={role} className="text-center px-3 py-2.5 border-r">
-                          <Checkbox
-                            checked={has}
-                            onCheckedChange={() => toggleRole(p.id, role, has)}
-                            className="mx-auto"
-                          />
-                        </td>
-                      );
-                    })}
-                    <td className="text-center px-3 py-2.5">
-                      <button
-                        onClick={() => toggleActief(p.id, p.actief)}
-                        className={`text-xs font-medium px-2 py-0.5 rounded-full ${p.actief ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}
-                      >
-                        {p.actief ? "Ja" : "Nee"}
-                      </button>
-                    </td>
+                     <td className="text-center px-3 py-2.5">
+                       <button
+                         onClick={() => toggleActief(p.id, p.actief)}
+                         className={`text-xs font-medium px-2 py-0.5 rounded-full ${p.actief ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive'}`}
+                       >
+                         {p.actief ? "Ja" : "Nee"}
+                       </button>
+                     </td>
+                     <td className="text-center px-3 py-2.5">
+                       <Button
+                         size="icon"
+                         variant="ghost"
+                         className="h-7 w-7 text-destructive"
+                         disabled={p.id === user?.id}
+                         title={p.id === user?.id ? "Je kunt je eigen account niet verwijderen" : "Verwijderen"}
+                         onClick={() => deleteProfile(p.id, p.naam)}
+                       >
+                         <Trash2 className="h-4 w-4" />
+                       </Button>
+                     </td>
                   </tr>
                 ))}
               </tbody>
