@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
 import { downloadCsv } from "@/lib/csv";
 import type { Tables, Enums } from "@/integrations/supabase/types";
-import { Download, Plus, Pencil, Check, X, Trash2, Settings, Users } from "lucide-react";
+import { Download, Plus, Pencil, Check, X, Trash2, Settings, Users, Eye, EyeOff } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type Profile = Tables<"profiles">;
@@ -16,6 +16,8 @@ type Adviseur = Tables<"adviseurs">;
 const ALL_ROLES: Enums<"app_role">[] = ["beheer", "tekenaar", "auditor", "ep_adviseur"];
 const PROJECT_ROLES: Enums<"app_role">[] = ["beheer", "tekenaar", "auditor"];
 const EP_ROLES: Enums<"app_role">[] = ["ep_adviseur"];
+
+const ROLE_PRIORITY: Record<string, number> = { beheer: 1, tekenaar: 2, auditor: 3 };
 
 const ROLE_LABELS: Record<Enums<"app_role">, string> = {
   beheer: "Beheer",
