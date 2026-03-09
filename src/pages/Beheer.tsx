@@ -53,6 +53,12 @@ export default function Beheer() {
       ...p,
       roles: (roleData ?? []).filter((r) => r.user_id === p.id).map((r) => r.role),
     }));
+    // Sort by role priority: Beheer → Tekenaar → Auditor → geen rol, then alphabetically
+    combined.sort((a, b) => {
+      const prioA = Math.min(...a.roles.map((r) => ROLE_PRIORITY[r] ?? 99), 99);
+      const prioB = Math.min(...b.roles.map((r) => ROLE_PRIORITY[r] ?? 99), 99);
+      return prioA - prioB || a.naam.localeCompare(b.naam);
+    });
     setProfiles(combined);
   };
 
