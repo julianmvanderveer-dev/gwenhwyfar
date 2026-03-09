@@ -255,7 +255,14 @@ export default function ProjectDetail() {
                   </tr>
                 </thead>
                 <tbody>
-                  {findings.filter((f) => f.onderdeel === o).map((f) => (
+                  {onderdeelFindings.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="p-4 text-center text-muted-foreground">
+                        Nog geen findings voor dit onderdeel.
+                      </td>
+                    </tr>
+                  ) : (
+                    onderdeelFindings.map((f) => (
                     <React.Fragment key={f.id}>
                       <tr className="border-b">
                         <td className="p-2">{f.controlepunt}</td>
@@ -309,7 +316,8 @@ export default function ProjectDetail() {
                         </tr>
                       )}
                     </React.Fragment>
-                  ))}
+                    ))
+                  )}
                 </tbody>
               </table>
               <div className="flex justify-between mt-4">
@@ -322,7 +330,8 @@ export default function ProjectDetail() {
                 )}
               </div>
             </TabsContent>
-          ))}
+          );
+          })}
 
           {/* EP2 Eindtabblad */}
           <TabsContent value="__ep2__">
