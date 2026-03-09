@@ -49,7 +49,7 @@ export default function Beheer() {
   };
 
   const loadAdviseurs = async () => {
-    const { data } = await supabase.from("adviseurs").select("*").order("naam");
+    const { data } = await supabase.from("adviseurs").select("*").order("nummer");
     setAdviseurs(data ?? []);
   };
 
@@ -135,7 +135,7 @@ export default function Beheer() {
 
   const exportAdviseurs = () => {
     const rows = adviseurs.map((a) => ({
-      Nummer: String(a.nummer), Naam: a.naam, "E-mail": a.email ?? "", Actief: a.actief ? "Ja" : "Nee",
+      Nummer: String(a.nummer).padStart(3, '0'), Naam: a.naam, "E-mail": a.email ?? "", Actief: a.actief ? "Ja" : "Nee",
     }));
     downloadCsv(rows, "EP-adviseurs.csv");
     toast({ title: "EP-adviseurs geëxporteerd" });
@@ -317,7 +317,7 @@ export default function Beheer() {
                       </>
                     ) : (
                       <>
-                        <td className="px-4 py-2.5 text-muted-foreground">{a.nummer}</td>
+                        <td className="px-4 py-2.5 text-muted-foreground">{String(a.nummer).padStart(3, '0')}</td>
                         <td className="px-4 py-2.5 font-medium">{a.naam}</td>
                         <td className="px-4 py-2.5 text-muted-foreground">{a.email ?? "—"}</td>
                         <td className="px-4 py-2.5 text-center">
