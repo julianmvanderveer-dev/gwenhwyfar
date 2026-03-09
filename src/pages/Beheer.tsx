@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
 import { downloadCsv } from "@/lib/csv";
 import type { Tables, Enums } from "@/integrations/supabase/types";
-import { Download, Plus, Pencil, Check, X, Trash2, Settings, Users } from "lucide-react";
+import { Download, Plus, Pencil, Check, X, Trash2, Settings, Users, Eye, EyeOff } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type Profile = Tables<"profiles">;
@@ -16,6 +16,8 @@ type Adviseur = Tables<"adviseurs">;
 const ALL_ROLES: Enums<"app_role">[] = ["beheer", "tekenaar", "auditor", "ep_adviseur"];
 const PROJECT_ROLES: Enums<"app_role">[] = ["beheer", "tekenaar", "auditor"];
 const EP_ROLES: Enums<"app_role">[] = ["ep_adviseur"];
+
+const ROLE_PRIORITY: Record<string, number> = { beheer: 1, tekenaar: 2, auditor: 3 };
 
 const ROLE_LABELS: Record<Enums<"app_role">, string> = {
   beheer: "Beheer",
@@ -33,6 +35,12 @@ export default function Beheer() {
   const [adding, setAdding] = useState(false);
   const [addForm, setAddForm] = useState({ nummer: 0, naam: "", email: "" });
 
+  // Team member add state
+  const [addingMember, setAddingMember] = useState(false);
+  const [memberForm, setMemberForm] = useState({ naam: "", email: "", password: "", roles: [] as Enums<"app_role">[] });
+  const [showPassword, setShowPassword] = useState(false);
+  const [submittingMember, setSubmittingMember] = useState(false);
+
   useEffect(() => {
     loadUsers();
     loadAdviseurs();
@@ -45,6 +53,12 @@ export default function Beheer() {
       ...p,
       roles: (roleData ?? []).filter((r) => r.user_id === p.id).map((r) => r.role),
     }));
+    // Sort by role priority: Beheer → Tekenaar → Auditor → geen rol, then alphabetically
+    combined.sort((a, b) => {
+      const prioA = Math.min(...a.roles.map((r) => ROLE_PRIORITY[r] ?? 99), 99);
+      const prioB = Math.min(...b.roles.map((r) => ROLE_PRIORITY[r] ?? 99), 99);
+      return prioA - prioB || a.naam.localeCompare(b.naam);
+    });
     setProfiles(combined);
   };
 
@@ -123,6 +137,32 @@ export default function Beheer() {
     toast({ title: "Medewerker verwijderd" });
   };
 
+  const addMember = async () => {
+    if (!memberForm.naam.trim() || !memberForm.email.trim() || !memberForm.password) return;
+    setSubmittingMember(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-team-member", {
+        body: {
+          naam: memberForm.naam.trim(),
+          email: memberForm.email.trim(),
+          password: memberForm.password,
+          roles: memberForm.roles,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setAddingMember(false);
+      setMemberForm({ naam: "", email: "", password: "", roles: [] });
+      setShowPassword(false);
+      loadUsers();
+      toast({ title: "Medewerker toegevoegd" });
+    } catch (err: any) {
+      toast({ title: "Fout bij toevoegen", description: err.message, variant: "destructive" });
+    } finally {
+      setSubmittingMember(false);
+    }
+  };
+
   const exportGebruikers = () => {
     const rows = profiles.map((p) => {
       const row: Record<string, string> = { Naam: p.naam, "E-mail": p.email, Actief: p.actief ? "Ja" : "Nee" };
@@ -170,7 +210,10 @@ export default function Beheer() {
 
         {/* TAB: Projectteam */}
         <TabsContent value="team" className="space-y-4">
-          <div className="flex justify-end">
+          <div className="flex items-center justify-between">
+            <Button variant="outline" size="sm" onClick={() => setAddingMember(true)} disabled={addingMember} className="shadow-sm">
+              <Plus className="h-4 w-4 mr-1" /> Medewerker toevoegen
+            </Button>
             <Button variant="outline" size="sm" onClick={exportGebruikers} className="shadow-sm">
               <Download className="h-4 w-4 mr-1" /> Export CSV
             </Button>
@@ -201,6 +244,50 @@ export default function Beheer() {
                 </tr>
               </thead>
               <tbody>
+                {addingMember && (
+                  <tr className="border-b bg-primary/5">
+                    <td className="px-4 py-2.5">
+                      <Input value={memberForm.naam} onChange={(e) => setMemberForm({ ...memberForm, naam: e.target.value })} placeholder="Naam" className="h-8" />
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <Input type="email" value={memberForm.email} onChange={(e) => setMemberForm({ ...memberForm, email: e.target.value })} placeholder="E-mail" className="h-8" />
+                    </td>
+                    {PROJECT_ROLES.map((role) => (
+                      <td key={role} className={`text-center px-3 py-2.5 ${role === "beheer" ? "border-l" : ""} ${role === "auditor" ? "border-r" : ""}`}>
+                        <Checkbox
+                          checked={memberForm.roles.includes(role)}
+                          onCheckedChange={(checked) => {
+                            setMemberForm({
+                              ...memberForm,
+                              roles: checked ? [...memberForm.roles, role] : memberForm.roles.filter((r) => r !== role),
+                            });
+                          }}
+                          className="mx-auto"
+                        />
+                      </td>
+                    ))}
+                    <td className="px-3 py-2.5">
+                      <div className="relative">
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          value={memberForm.password}
+                          onChange={(e) => setMemberForm({ ...memberForm, password: e.target.value })}
+                          placeholder="Wachtwoord"
+                          className="h-8 pr-8"
+                        />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground">
+                          {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                        </button>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <div className="flex gap-1">
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={addMember} disabled={submittingMember}><Check className="h-4 w-4" /></Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setAddingMember(false); setMemberForm({ naam: "", email: "", password: "", roles: [] }); setShowPassword(false); }}><X className="h-4 w-4" /></Button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
                 {profiles.map((p, i) => (
                   <tr key={p.id} className={`border-b last:border-0 hover:bg-muted/50 transition-colors ${i % 2 === 0 ? '' : 'bg-muted/20'}`}>
                     <td className="px-4 py-2.5 font-medium">{p.naam}</td>
