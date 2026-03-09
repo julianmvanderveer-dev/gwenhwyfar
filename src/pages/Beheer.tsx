@@ -172,16 +172,13 @@ export default function Beheer() {
             <table className="w-full text-sm">
               <thead>
                 {/* Group headers */}
-                <tr className="border-b bg-secondary/60">
-                  <th colSpan={2} />
-                  <th colSpan={3} className="text-center px-2 py-2 text-xs font-bold uppercase tracking-wider text-accent border-l border-r">
-                    Projectrollen
-                  </th>
-                  <th colSpan={1} className="text-center px-2 py-2 text-xs font-bold uppercase tracking-wider text-warning border-r">
-                    EP-rollen
-                  </th>
-                  <th />
-                </tr>
+                 <tr className="border-b bg-secondary/60">
+                   <th colSpan={2} />
+                   <th colSpan={3} className="text-center px-2 py-2 text-xs font-bold uppercase tracking-wider text-accent border-l border-r">
+                     Projectrollen
+                   </th>
+                   <th colSpan={2} />
+                 </tr>
                 {/* Column headers */}
                 <tr className="border-b bg-secondary/40">
                   <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Naam</th>
