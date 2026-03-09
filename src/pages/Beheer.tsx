@@ -244,6 +244,50 @@ export default function Beheer() {
                 </tr>
               </thead>
               <tbody>
+                {addingMember && (
+                  <tr className="border-b bg-primary/5">
+                    <td className="px-4 py-2.5">
+                      <Input value={memberForm.naam} onChange={(e) => setMemberForm({ ...memberForm, naam: e.target.value })} placeholder="Naam" className="h-8" />
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <Input type="email" value={memberForm.email} onChange={(e) => setMemberForm({ ...memberForm, email: e.target.value })} placeholder="E-mail" className="h-8" />
+                    </td>
+                    {PROJECT_ROLES.map((role) => (
+                      <td key={role} className={`text-center px-3 py-2.5 ${role === "beheer" ? "border-l" : ""} ${role === "auditor" ? "border-r" : ""}`}>
+                        <Checkbox
+                          checked={memberForm.roles.includes(role)}
+                          onCheckedChange={(checked) => {
+                            setMemberForm({
+                              ...memberForm,
+                              roles: checked ? [...memberForm.roles, role] : memberForm.roles.filter((r) => r !== role),
+                            });
+                          }}
+                          className="mx-auto"
+                        />
+                      </td>
+                    ))}
+                    <td className="px-3 py-2.5">
+                      <div className="relative">
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          value={memberForm.password}
+                          onChange={(e) => setMemberForm({ ...memberForm, password: e.target.value })}
+                          placeholder="Wachtwoord"
+                          className="h-8 pr-8"
+                        />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground">
+                          {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                        </button>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <div className="flex gap-1">
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={addMember} disabled={submittingMember}><Check className="h-4 w-4" /></Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setAddingMember(false); setMemberForm({ naam: "", email: "", password: "", roles: [] }); setShowPassword(false); }}><X className="h-4 w-4" /></Button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
                 {profiles.map((p, i) => (
                   <tr key={p.id} className={`border-b last:border-0 hover:bg-muted/50 transition-colors ${i % 2 === 0 ? '' : 'bg-muted/20'}`}>
                     <td className="px-4 py-2.5 font-medium">{p.naam}</td>
