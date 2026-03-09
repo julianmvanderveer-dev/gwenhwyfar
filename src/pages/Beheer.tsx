@@ -49,7 +49,7 @@ export default function Beheer() {
   };
 
   const loadAdviseurs = async () => {
-    const { data } = await supabase.from("adviseurs").select("*").order("naam");
+    const { data } = await supabase.from("adviseurs").select("*").order("nummer");
     setAdviseurs(data ?? []);
   };
 
