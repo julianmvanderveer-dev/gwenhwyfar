@@ -35,6 +35,12 @@ export default function Beheer() {
   const [adding, setAdding] = useState(false);
   const [addForm, setAddForm] = useState({ nummer: 0, naam: "", email: "" });
 
+  // Team member add state
+  const [addingMember, setAddingMember] = useState(false);
+  const [memberForm, setMemberForm] = useState({ naam: "", email: "", password: "", roles: [] as Enums<"app_role">[] });
+  const [showPassword, setShowPassword] = useState(false);
+  const [submittingMember, setSubmittingMember] = useState(false);
+
   useEffect(() => {
     loadUsers();
     loadAdviseurs();
