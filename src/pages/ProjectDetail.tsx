@@ -220,8 +220,7 @@ export default function ProjectDetail() {
         Status: {statusLabel[project.status]} | Categorie: {project.audit_categorie} | Soort: {project.audit_soort} | {project.toelatingsaudit && "Toelatingsaudit | "}Prioriteit: {project.prioriteit ? "Ja" : "Nee"}
       </p>
 
-      {onderdelen.length > 0 ? (
-        <Tabs value={activeTab || onderdelen[0]} onValueChange={setActiveTab}>
+      <Tabs value={activeTab || onderdelen[0] || "__ep2__"} onValueChange={setActiveTab}>
           <TabsList className="flex-wrap h-auto">
             {onderdelen.map((o) => (
               <TabsTrigger key={o} value={o}>{o}</TabsTrigger>
