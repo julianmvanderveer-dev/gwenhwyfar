@@ -134,6 +134,7 @@ export type Database = {
         Row: {
           afzender_id: string
           bericht: string
+          bijlage_pad: string | null
           datum: string
           finding_id: string
           id: string
@@ -141,6 +142,7 @@ export type Database = {
         Insert: {
           afzender_id: string
           bericht: string
+          bijlage_pad?: string | null
           datum?: string
           finding_id: string
           id?: string
@@ -148,6 +150,7 @@ export type Database = {
         Update: {
           afzender_id?: string
           bericht?: string
+          bijlage_pad?: string | null
           datum?: string
           finding_id?: string
           id?: string
