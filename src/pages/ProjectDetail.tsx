@@ -397,7 +397,7 @@ export default function ProjectDetail() {
                               {f ? statusBadge(f.status) : <span className="text-muted-foreground">—</span>}
                             </td>
                           </tr>
-                          {f && ((editable && (f.beoordeling === "niet_goed" || f.beoordeling === "interne_alert")) || f.toelichting) && (
+                          {f && ((editable && (f.beoordeling === "niet_goed" || f.beoordeling === "opmerking")) || f.toelichting) && (
                             <tr className="border-b bg-muted/30">
                               <td colSpan={7} className="px-4 pb-2 pt-1">
                                 <FindingToelichting
