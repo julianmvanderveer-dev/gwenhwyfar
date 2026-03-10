@@ -115,8 +115,7 @@ export default function ProjectDetail() {
     if (beoordeling === "niet_goed") {
       update.type_afwijking = "niet_kritiek";
       update.eigenaar_beoordeling = hasRole("tekenaar") ? "tekenaar" : "auditor";
-    } else if (beoordeling === "interne_alert") {
-      update.type_afwijking = "kritiek";
+    } else if (beoordeling === "opmerking") {
       update.eigenaar_beoordeling = hasRole("tekenaar") ? "tekenaar" : "auditor";
     }
     await supabase.from("findings").update(update).eq("id", findingId);
@@ -179,7 +178,7 @@ export default function ProjectDetail() {
   const auditAfronden = async () => {
     const now = new Date();
     for (const f of findings) {
-      if (f.beoordeling === "niet_goed" || f.beoordeling === "interne_alert") {
+      if (f.beoordeling === "niet_goed") {
         const deadline = f.type_afwijking === "kritiek"
           ? addDays(now, 28).toISOString()
           : addMonths(now, 3).toISOString();
@@ -188,12 +187,16 @@ export default function ProjectDetail() {
           zichtbaar_voor_adviseur: true,
           status: "open" as any,
         }).eq("id", f.id);
+      } else if (f.beoordeling === "opmerking") {
+        await supabase.from("findings").update({
+          zichtbaar_voor_adviseur: true,
+        }).eq("id", f.id);
       }
     }
-    const hasKtOrNk = findings.some(f => f.beoordeling === "niet_goed" || f.beoordeling === "interne_alert");
-    const hasKt = findings.some(f => f.type_afwijking === "kritiek");
+    const hasNietGoed = findings.some(f => f.beoordeling === "niet_goed");
+    const hasKt = findings.some(f => f.beoordeling === "niet_goed" && f.type_afwijking === "kritiek");
 
-    if (hasKtOrNk) {
+    if (hasNietGoed) {
       const now2 = new Date();
       const reactieDeadline = hasKt ? addDays(now2, 28).toISOString() : addMonths(now2, 3).toISOString();
       await supabase.from("projects").update({
@@ -371,14 +374,14 @@ export default function ProjectDetail() {
                                   <option value="">—</option>
                                   <option value="goed">Goed</option>
                                   <option value="niet_goed">Niet goed</option>
-                                  <option value="interne_alert">Interne alert</option>
+                                  <option value="opmerking">Opmerking</option>
                                 </select>
                               ) : (
                                 f?.beoordeling ? beoordelingBadge(f.beoordeling) : <span className="text-muted-foreground">—</span>
                               )}
                             </td>
                             <td className="px-3 py-2.5">
-                              {f && editable && (f.beoordeling === "niet_goed" || f.beoordeling === "interne_alert") ? (
+                              {f && editable && f.beoordeling === "niet_goed" ? (
                                 <select
                                   className="border border-input rounded-md px-2 py-1 text-sm bg-background"
                                   value={f.type_afwijking ?? ""}
@@ -398,7 +401,7 @@ export default function ProjectDetail() {
                               {f ? statusBadge(f.status) : <span className="text-muted-foreground">—</span>}
                             </td>
                           </tr>
-                          {f && ((editable && (f.beoordeling === "niet_goed" || f.beoordeling === "interne_alert")) || f.toelichting) && (
+                          {f && ((editable && (f.beoordeling === "niet_goed" || f.beoordeling === "opmerking")) || f.toelichting) && (
                             <tr className="border-b bg-muted/30">
                               <td colSpan={7} className="px-4 pb-2 pt-1">
                                 <FindingToelichting
