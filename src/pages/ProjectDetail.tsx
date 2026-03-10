@@ -178,7 +178,7 @@ export default function ProjectDetail() {
   const auditAfronden = async () => {
     const now = new Date();
     for (const f of findings) {
-      if (f.beoordeling === "niet_goed" || f.beoordeling === "interne_alert") {
+      if (f.beoordeling === "niet_goed") {
         const deadline = f.type_afwijking === "kritiek"
           ? addDays(now, 28).toISOString()
           : addMonths(now, 3).toISOString();
@@ -187,10 +187,14 @@ export default function ProjectDetail() {
           zichtbaar_voor_adviseur: true,
           status: "open" as any,
         }).eq("id", f.id);
+      } else if (f.beoordeling === "opmerking") {
+        await supabase.from("findings").update({
+          zichtbaar_voor_adviseur: true,
+        }).eq("id", f.id);
       }
     }
-    const hasKtOrNk = findings.some(f => f.beoordeling === "niet_goed" || f.beoordeling === "interne_alert");
-    const hasKt = findings.some(f => f.type_afwijking === "kritiek");
+    const hasNietGoed = findings.some(f => f.beoordeling === "niet_goed");
+    const hasKt = findings.some(f => f.beoordeling === "niet_goed" && f.type_afwijking === "kritiek");
 
     if (hasKtOrNk) {
       const now2 = new Date();
