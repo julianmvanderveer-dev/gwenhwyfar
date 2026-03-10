@@ -377,7 +377,7 @@ export default function ProjectDetail() {
                               )}
                             </td>
                             <td className="px-3 py-2.5">
-                              {f && editable && (f.beoordeling === "niet_goed" || f.beoordeling === "interne_alert") ? (
+                              {f && editable && f.beoordeling === "niet_goed" ? (
                                 <select
                                   className="border border-input rounded-md px-2 py-1 text-sm bg-background"
                                   value={f.type_afwijking ?? ""}
