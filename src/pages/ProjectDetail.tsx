@@ -370,7 +370,7 @@ export default function ProjectDetail() {
                                   <option value="">—</option>
                                   <option value="goed">Goed</option>
                                   <option value="niet_goed">Niet goed</option>
-                                  <option value="interne_alert">Interne alert</option>
+                                  <option value="opmerking">Opmerking</option>
                                 </select>
                               ) : (
                                 f?.beoordeling ? beoordelingBadge(f.beoordeling) : <span className="text-muted-foreground">—</span>
