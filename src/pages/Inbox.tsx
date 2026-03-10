@@ -215,9 +215,13 @@ export default function Inbox() {
                               <td className="px-4 py-2.5">{afwijkingBadge(f.type_afwijking)}</td>
                               <td className="px-4 py-2.5">{f.deadline ? new Date(f.deadline).toLocaleDateString("nl-NL") : "—"}</td>
                               <td className="px-4 py-2.5">
-                                <Link to={`/finding/${f.id}/reactie`} className="text-accent hover:underline font-medium">
-                                  Reageren
-                                </Link>
+                                {f.status === "reactie_ontvangen" ? (
+                                  <Badge variant="secondary" className="text-xs">Reactie ingediend</Badge>
+                                ) : (
+                                  <Link to={`/finding/${f.id}/reactie`} className="text-accent hover:underline font-medium">
+                                    Reageren
+                                  </Link>
+                                )}
                               </td>
                             </tr>
                           ))}
