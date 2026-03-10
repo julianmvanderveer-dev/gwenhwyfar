@@ -115,8 +115,7 @@ export default function ProjectDetail() {
     if (beoordeling === "niet_goed") {
       update.type_afwijking = "niet_kritiek";
       update.eigenaar_beoordeling = hasRole("tekenaar") ? "tekenaar" : "auditor";
-    } else if (beoordeling === "interne_alert") {
-      update.type_afwijking = "kritiek";
+    } else if (beoordeling === "opmerking") {
       update.eigenaar_beoordeling = hasRole("tekenaar") ? "tekenaar" : "auditor";
     }
     await supabase.from("findings").update(update).eq("id", findingId);
