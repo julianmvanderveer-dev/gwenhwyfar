@@ -5,12 +5,12 @@ export const beoordelingBadge = (val: string | null) => {
   const map: Record<string, string> = {
     goed: "bg-green-100 text-green-700",
     niet_goed: "bg-red-100 text-red-700",
-    interne_alert: "bg-orange-100 text-orange-700",
+    opmerking: "bg-blue-100 text-blue-700",
   };
   const label: Record<string, string> = {
     goed: "GOED",
     niet_goed: "NK",
-    interne_alert: "IA",
+    opmerking: "OPM",
   };
   return (
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${map[val] ?? ""}`}>

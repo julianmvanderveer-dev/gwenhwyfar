@@ -196,7 +196,7 @@ export default function ProjectDetail() {
     const hasNietGoed = findings.some(f => f.beoordeling === "niet_goed");
     const hasKt = findings.some(f => f.beoordeling === "niet_goed" && f.type_afwijking === "kritiek");
 
-    if (hasKtOrNk) {
+    if (hasNietGoed) {
       const now2 = new Date();
       const reactieDeadline = hasKt ? addDays(now2, 28).toISOString() : addMonths(now2, 3).toISOString();
       await supabase.from("projects").update({
