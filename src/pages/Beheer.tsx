@@ -68,13 +68,19 @@ export default function Beheer() {
   };
 
   const toggleRole = async (userId: string, role: Enums<"app_role">, hasIt: boolean) => {
-    if (hasIt) {
-      await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role as any);
-    } else {
-      await supabase.from("user_roles").insert({ user_id: userId, role });
+    try {
+      if (hasIt) {
+        const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role as any);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("user_roles").insert({ user_id: userId, role });
+        if (error) throw error;
+      }
+      loadUsers();
+      toast({ title: hasIt ? "Rol verwijderd" : "Rol toegevoegd" });
+    } catch (err: any) {
+      toast({ title: "Fout bij rolwijziging", description: err.message, variant: "destructive" });
     }
-    loadUsers();
-    toast({ title: hasIt ? "Rol verwijderd" : "Rol toegevoegd" });
   };
 
   const toggleActief = async (userId: string, currentActief: boolean) => {
