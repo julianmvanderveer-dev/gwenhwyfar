@@ -37,27 +37,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    let mounted = true;
+
+    // Initiële sessie: wacht op rollen vóór loading = false
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!mounted) return;
+      setUser(session?.user ?? null);
+      if (session?.user) await fetchRoles(session.user.id);
+      if (mounted) setLoading(false);
+    });
+
+    // Opvolgende auth-events (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
+        if (!mounted) return;
+        if (event === "INITIAL_SESSION") return;
         setUser(session?.user ?? null);
         if (session?.user) {
           setTimeout(() => fetchRoles(session.user.id), 0);
         } else {
           setRoles([]);
         }
-        setLoading(false);
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchRoles(session.user.id);
-      }
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {
