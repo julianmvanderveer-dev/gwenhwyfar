@@ -1,19 +1,19 @@
 
 
-## Plan: .env toevoegen aan .gitignore
+## Plan: useAuth.tsx race-condition fix
 
-De `.gitignore` mist regels voor `.env` bestanden. Dit is een standaard security best practice.
+De verbeterde versie van `useAuth.tsx` lost twee problemen op:
+
+1. **Race condition**: Rollen werden pas geladen ná `loading = false`, waardoor componenten even zonder rollen renderden
+2. **Dubbele INITIAL_SESSION**: `getSession()` en `onAuthStateChange` vuurden allebei bij opstart, nu wordt `INITIAL_SESSION` geskipt
+3. **Memory leak**: `mounted` flag voorkomt state-updates na unmount
 
 ### Wijziging
 
-**`.gitignore`** — Na de `*.local` regel het volgende blok toevoegen:
+**`src/hooks/useAuth.tsx`** — Vervang de huidige `useEffect` met de versie uit het bericht:
+- `getSession()` wacht op `fetchRoles` vóór `setLoading(false)`
+- `onAuthStateChange` skipt `INITIAL_SESSION` event
+- `mounted` flag beschermt tegen updates na unmount
 
-```
-# Environment variables — nooit committen
-.env
-.env.*
-!.env.example
-```
-
-Geen impact op compatibiliteit — het `.env` bestand wordt al automatisch gegenereerd door Lovable Cloud en hoort niet in version control.
+Geen breaking changes — zelfde API, zelfde context shape.
 
