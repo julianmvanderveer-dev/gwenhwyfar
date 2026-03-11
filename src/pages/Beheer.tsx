@@ -68,23 +68,37 @@ export default function Beheer() {
   };
 
   const toggleRole = async (userId: string, role: Enums<"app_role">, hasIt: boolean) => {
-    if (hasIt) {
-      await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role as any);
-    } else {
-      await supabase.from("user_roles").insert({ user_id: userId, role });
+    try {
+      if (hasIt) {
+        const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", role as any);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("user_roles").insert({ user_id: userId, role });
+        if (error) throw error;
+      }
+      loadUsers();
+      toast({ title: hasIt ? "Rol verwijderd" : "Rol toegevoegd" });
+    } catch (err: any) {
+      toast({ title: "Fout bij rolwijziging", description: err.message, variant: "destructive" });
     }
-    loadUsers();
-    toast({ title: hasIt ? "Rol verwijderd" : "Rol toegevoegd" });
   };
 
   const toggleActief = async (userId: string, currentActief: boolean) => {
-    await supabase.from("profiles").update({ actief: !currentActief }).eq("id", userId);
+    const { error } = await supabase.from("profiles").update({ actief: !currentActief }).eq("id", userId);
+    if (error) {
+      toast({ title: "Fout bij statuswijziging", description: error.message, variant: "destructive" });
+      return;
+    }
     loadUsers();
   };
 
   // Adviseur CRUD
   const toggleAdviseurActief = async (id: string, currentActief: boolean) => {
-    await supabase.from("adviseurs").update({ actief: !currentActief }).eq("id", id);
+    const { error } = await supabase.from("adviseurs").update({ actief: !currentActief }).eq("id", id);
+    if (error) {
+      toast({ title: "Fout bij statuswijziging", description: error.message, variant: "destructive" });
+      return;
+    }
     loadAdviseurs();
   };
 
@@ -95,11 +109,15 @@ export default function Beheer() {
 
   const saveEdit = async () => {
     if (!editingId || !editForm.naam.trim()) return;
-    await supabase.from("adviseurs").update({
+    const { error } = await supabase.from("adviseurs").update({
       nummer: editForm.nummer,
       naam: editForm.naam.trim(),
       email: editForm.email.trim() || null,
     }).eq("id", editingId);
+    if (error) {
+      toast({ title: "Fout bij opslaan", description: error.message, variant: "destructive" });
+      return;
+    }
     setEditingId(null);
     loadAdviseurs();
     toast({ title: "Adviseur bijgewerkt" });
@@ -124,17 +142,27 @@ export default function Beheer() {
 
   const deleteAdviseur = async (id: string, naam: string) => {
     if (!confirm(`Weet je zeker dat je "${naam}" wilt verwijderen?`)) return;
-    await supabase.from("adviseurs").delete().eq("id", id);
+    const { error } = await supabase.from("adviseurs").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Fout bij verwijderen", description: error.message, variant: "destructive" });
+      return;
+    }
     loadAdviseurs();
     toast({ title: "Adviseur verwijderd" });
   };
 
   const deleteProfile = async (userId: string, naam: string) => {
     if (!confirm(`Weet je zeker dat je "${naam}" wilt verwijderen?`)) return;
-    await supabase.from("user_roles").delete().eq("user_id", userId);
-    await supabase.from("profiles").delete().eq("id", userId);
-    loadUsers();
-    toast({ title: "Medewerker verwijderd" });
+    try {
+      const { error: roleError } = await supabase.from("user_roles").delete().eq("user_id", userId);
+      if (roleError) throw roleError;
+      const { error: profileError } = await supabase.from("profiles").delete().eq("id", userId);
+      if (profileError) throw profileError;
+      loadUsers();
+      toast({ title: "Medewerker verwijderd" });
+    } catch (err: any) {
+      toast({ title: "Fout bij verwijderen", description: err.message, variant: "destructive" });
+    }
   };
 
   const addMember = async () => {
