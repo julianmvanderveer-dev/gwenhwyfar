@@ -86,11 +86,15 @@ export default function FindingReactie() {
     return path;
   };
 
-
-  const createSignedUrl = async (path: string): Promise<string | null> => {
-    const { data, error } = await supabase.storage.from("finding-documents").createSignedUrl(path, 3600);
-    if (error) return null;
-    return data?.signedUrl ?? null;
+  const handleDownload = async (path: string) => {
+    const { data, error } = await supabase.storage
+      .from("finding-documents")
+      .createSignedUrl(path, 3600);
+    if (error || !data?.signedUrl) {
+      toast({ title: "Download mislukt", description: "Kan geen downloadlink aanmaken.", variant: "destructive" });
+      return;
+    }
+    window.open(data.signedUrl, "_blank");
   };
 
   const accepteren = async () => {
@@ -126,7 +130,7 @@ export default function FindingReactie() {
       let bijlagePad: string | null = null;
       if (bestand) {
         bijlagePad = await uploadFile();
-        if (!bijlagePad) return; // upload failed, toast already shown
+        if (!bijlagePad) return;
       }
 
       const [msgResult, updateResult] = await Promise.all([
@@ -172,11 +176,6 @@ export default function FindingReactie() {
     } else {
       toast({ title: "Reactie verzonden", description: `Nog ${remaining.length} finding(s) open.` });
     }
-  };
-
-  const handleDownload = async (path: string) => {
-    const url = await createSignedUrl(path);
-    if (url) window.open(url, "_blank");
   };
 
   if (!finding) return <div className="p-4">Laden...</div>;
