@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { Mic, MicOff, Upload, FileText, Download, Check, X } from "lucide-react";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
-import { Badge } from "@/components/ui/badge";
+
 import type { Tables } from "@/integrations/supabase/types";
 
 type Finding = Tables<"findings">;
@@ -39,16 +39,28 @@ export default function FindingReactie() {
   }, [id]);
 
   const loadFinding = async () => {
-    const { data } = await supabase.from("findings").select("*").eq("id", id!).single();
+    const { data, error } = await supabase.from("findings").select("*").eq("id", id!).maybeSingle();
+    if (error) {
+      toast({ title: "Fout bij laden finding", description: error.message, variant: "destructive" });
+      return;
+    }
+    if (!data) {
+      toast({ title: "Finding niet gevonden", variant: "destructive" });
+      return;
+    }
     setFinding(data);
   };
 
   const loadMessages = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("messages")
       .select("*")
       .eq("finding_id", id!)
       .order("datum");
+    if (error) {
+      toast({ title: "Fout bij laden berichten", description: error.message, variant: "destructive" });
+      return;
+    }
     setMessages(data ?? []);
   };
 
@@ -74,10 +86,6 @@ export default function FindingReactie() {
     return path;
   };
 
-  const getDownloadUrl = (path: string) => {
-    const { data } = supabase.storage.from("finding-documents").getPublicUrl(path);
-    return data?.publicUrl;
-  };
 
   const createSignedUrl = async (path: string): Promise<string | null> => {
     const { data, error } = await supabase.storage.from("finding-documents").createSignedUrl(path, 3600);
@@ -88,49 +96,62 @@ export default function FindingReactie() {
   const accepteren = async () => {
     if (!user || !finding) return;
     setLoading(true);
+    try {
+      const [msgResult, updateResult] = await Promise.all([
+        supabase.from("messages").insert({
+          finding_id: id!,
+          afzender_id: user.id,
+          bericht: "Afwijking geaccepteerd",
+        }),
+        supabase.from("findings").update({ status: "reactie_ontvangen" }).eq("id", id!),
+      ]);
+      if (msgResult.error) throw msgResult.error;
+      if (updateResult.error) throw updateResult.error;
 
-    await supabase.from("messages").insert({
-      finding_id: id!,
-      afzender_id: user.id,
-      bericht: "Afwijking geaccepteerd",
-    });
-    await supabase.from("findings").update({ status: "reactie_ontvangen" as any }).eq("id", id!);
-
-    await checkRemainingFindings();
-    setBericht("");
-    loadMessages();
-    loadFinding();
-    setLoading(false);
+      await checkRemainingFindings();
+      setBericht("");
+      loadMessages();
+      loadFinding();
+    } catch (err: any) {
+      toast({ title: "Fout bij accepteren", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const nietAkkoord = async () => {
     if (!bericht.trim() || !user || !finding) return;
     setLoading(true);
-
-    let bijlagePad: string | null = null;
-    if (bestand) {
-      bijlagePad = await uploadFile();
-      if (bestand && !bijlagePad) {
-        setLoading(false);
-        return; // upload failed
+    try {
+      let bijlagePad: string | null = null;
+      if (bestand) {
+        bijlagePad = await uploadFile();
+        if (!bijlagePad) return; // upload failed, toast already shown
       }
+
+      const [msgResult, updateResult] = await Promise.all([
+        supabase.from("messages").insert({
+          finding_id: id!,
+          afzender_id: user.id,
+          bericht: bericht.trim(),
+          bijlage_pad: bijlagePad,
+        }),
+        supabase.from("findings").update({ status: "reactie_ontvangen" }).eq("id", id!),
+      ]);
+      if (msgResult.error) throw msgResult.error;
+      if (updateResult.error) throw updateResult.error;
+
+      await checkRemainingFindings();
+      setBericht("");
+      setBestand(null);
+      setModus("keuze");
+      loadMessages();
+      loadFinding();
+    } catch (err: any) {
+      toast({ title: "Fout bij verzenden reactie", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
-
-    await supabase.from("messages").insert({
-      finding_id: id!,
-      afzender_id: user.id,
-      bericht: bericht.trim(),
-      bijlage_pad: bijlagePad,
-    });
-    await supabase.from("findings").update({ status: "reactie_ontvangen" as any }).eq("id", id!);
-
-    await checkRemainingFindings();
-    setBericht("");
-    setBestand(null);
-    setModus("keuze");
-    loadMessages();
-    loadFinding();
-    setLoading(false);
   };
 
   const checkRemainingFindings = async () => {
@@ -182,9 +203,9 @@ export default function FindingReactie() {
               <div key={m.id} className="border rounded p-2 text-sm">
                 <p className="text-muted-foreground text-xs">{new Date(m.datum).toLocaleString("nl-NL")}</p>
                 <p>{m.bericht}</p>
-                {(m as any).bijlage_pad && (
+                {m.bijlage_pad && (
                   <button
-                    onClick={() => handleDownload((m as any).bijlage_pad)}
+                    onClick={() => handleDownload(m.bijlage_pad!)}
                     className="flex items-center gap-1 mt-1 text-xs text-accent hover:underline"
                   >
                     <Download className="h-3 w-3" />
