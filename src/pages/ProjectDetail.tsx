@@ -34,8 +34,10 @@ export default function ProjectDetail() {
   useEffect(() => {
     if (!id) return;
     loadProject().then((p) => {
-      autoSetStatus();
-      if (p) loadTemplates(p.audit_categorie);
+      if (p) {
+        autoSetStatus(p.status);
+        loadTemplates(p.audit_categorie);
+      }
     });
     loadFindings();
   }, [id]);
