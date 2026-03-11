@@ -142,7 +142,11 @@ export default function Beheer() {
 
   const deleteAdviseur = async (id: string, naam: string) => {
     if (!confirm(`Weet je zeker dat je "${naam}" wilt verwijderen?`)) return;
-    await supabase.from("adviseurs").delete().eq("id", id);
+    const { error } = await supabase.from("adviseurs").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Fout bij verwijderen", description: error.message, variant: "destructive" });
+      return;
+    }
     loadAdviseurs();
     toast({ title: "Adviseur verwijderd" });
   };
