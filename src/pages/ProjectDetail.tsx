@@ -56,13 +56,11 @@ export default function ProjectDetail() {
     return data;
   };
 
-  const autoSetStatus = async () => {
-    const { data: p } = await supabase.from("projects").select("status").eq("id", id!).single();
-    if (!p) return;
-    if (hasRole("tekenaar") && p.status === "nog_niet_begonnen") {
+  const autoSetStatus = async (currentStatus: string) => {
+    if (hasRole("tekenaar") && currentStatus === "nog_niet_begonnen") {
       await supabase.from("projects").update({ status: "deel1_bezig" as any }).eq("id", id!);
       loadProject();
-    } else if (hasRole("auditor") && p.status === "deel1_afgerond") {
+    } else if (hasRole("auditor") && currentStatus === "deel1_afgerond") {
       await supabase.from("projects").update({ status: "deel2_bezig" as any }).eq("id", id!);
       loadProject();
     }
