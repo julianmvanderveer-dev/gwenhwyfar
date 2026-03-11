@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { Mic, MicOff, Upload, FileText, Download, Check, X } from "lucide-react";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
-import { Badge } from "@/components/ui/badge";
+
 import type { Tables } from "@/integrations/supabase/types";
 
 type Finding = Tables<"findings">;
