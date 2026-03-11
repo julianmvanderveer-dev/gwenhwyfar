@@ -153,10 +153,16 @@ export default function Beheer() {
 
   const deleteProfile = async (userId: string, naam: string) => {
     if (!confirm(`Weet je zeker dat je "${naam}" wilt verwijderen?`)) return;
-    await supabase.from("user_roles").delete().eq("user_id", userId);
-    await supabase.from("profiles").delete().eq("id", userId);
-    loadUsers();
-    toast({ title: "Medewerker verwijderd" });
+    try {
+      const { error: roleError } = await supabase.from("user_roles").delete().eq("user_id", userId);
+      if (roleError) throw roleError;
+      const { error: profileError } = await supabase.from("profiles").delete().eq("id", userId);
+      if (profileError) throw profileError;
+      loadUsers();
+      toast({ title: "Medewerker verwijderd" });
+    } catch (err: any) {
+      toast({ title: "Fout bij verwijderen", description: err.message, variant: "destructive" });
+    }
   };
 
   const addMember = async () => {
