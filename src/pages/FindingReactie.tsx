@@ -86,10 +86,6 @@ export default function FindingReactie() {
     return path;
   };
 
-  const getDownloadUrl = (path: string) => {
-    const { data } = supabase.storage.from("finding-documents").getPublicUrl(path);
-    return data?.publicUrl;
-  };
 
   const createSignedUrl = async (path: string): Promise<string | null> => {
     const { data, error } = await supabase.storage.from("finding-documents").createSignedUrl(path, 3600);
