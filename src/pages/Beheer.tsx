@@ -84,7 +84,11 @@ export default function Beheer() {
   };
 
   const toggleActief = async (userId: string, currentActief: boolean) => {
-    await supabase.from("profiles").update({ actief: !currentActief }).eq("id", userId);
+    const { error } = await supabase.from("profiles").update({ actief: !currentActief }).eq("id", userId);
+    if (error) {
+      toast({ title: "Fout bij statuswijziging", description: error.message, variant: "destructive" });
+      return;
+    }
     loadUsers();
   };
 
