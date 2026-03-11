@@ -100,49 +100,62 @@ export default function FindingReactie() {
   const accepteren = async () => {
     if (!user || !finding) return;
     setLoading(true);
+    try {
+      const [msgResult, updateResult] = await Promise.all([
+        supabase.from("messages").insert({
+          finding_id: id!,
+          afzender_id: user.id,
+          bericht: "Afwijking geaccepteerd",
+        }),
+        supabase.from("findings").update({ status: "reactie_ontvangen" }).eq("id", id!),
+      ]);
+      if (msgResult.error) throw msgResult.error;
+      if (updateResult.error) throw updateResult.error;
 
-    await supabase.from("messages").insert({
-      finding_id: id!,
-      afzender_id: user.id,
-      bericht: "Afwijking geaccepteerd",
-    });
-    await supabase.from("findings").update({ status: "reactie_ontvangen" as any }).eq("id", id!);
-
-    await checkRemainingFindings();
-    setBericht("");
-    loadMessages();
-    loadFinding();
-    setLoading(false);
+      await checkRemainingFindings();
+      setBericht("");
+      loadMessages();
+      loadFinding();
+    } catch (err: any) {
+      toast({ title: "Fout bij accepteren", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const nietAkkoord = async () => {
     if (!bericht.trim() || !user || !finding) return;
     setLoading(true);
-
-    let bijlagePad: string | null = null;
-    if (bestand) {
-      bijlagePad = await uploadFile();
-      if (bestand && !bijlagePad) {
-        setLoading(false);
-        return; // upload failed
+    try {
+      let bijlagePad: string | null = null;
+      if (bestand) {
+        bijlagePad = await uploadFile();
+        if (!bijlagePad) return; // upload failed, toast already shown
       }
+
+      const [msgResult, updateResult] = await Promise.all([
+        supabase.from("messages").insert({
+          finding_id: id!,
+          afzender_id: user.id,
+          bericht: bericht.trim(),
+          bijlage_pad: bijlagePad,
+        }),
+        supabase.from("findings").update({ status: "reactie_ontvangen" }).eq("id", id!),
+      ]);
+      if (msgResult.error) throw msgResult.error;
+      if (updateResult.error) throw updateResult.error;
+
+      await checkRemainingFindings();
+      setBericht("");
+      setBestand(null);
+      setModus("keuze");
+      loadMessages();
+      loadFinding();
+    } catch (err: any) {
+      toast({ title: "Fout bij verzenden reactie", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
-
-    await supabase.from("messages").insert({
-      finding_id: id!,
-      afzender_id: user.id,
-      bericht: bericht.trim(),
-      bijlage_pad: bijlagePad,
-    });
-    await supabase.from("findings").update({ status: "reactie_ontvangen" as any }).eq("id", id!);
-
-    await checkRemainingFindings();
-    setBericht("");
-    setBestand(null);
-    setModus("keuze");
-    loadMessages();
-    loadFinding();
-    setLoading(false);
   };
 
   const checkRemainingFindings = async () => {
