@@ -39,16 +39,28 @@ export default function FindingReactie() {
   }, [id]);
 
   const loadFinding = async () => {
-    const { data } = await supabase.from("findings").select("*").eq("id", id!).single();
+    const { data, error } = await supabase.from("findings").select("*").eq("id", id!).maybeSingle();
+    if (error) {
+      toast({ title: "Fout bij laden finding", description: error.message, variant: "destructive" });
+      return;
+    }
+    if (!data) {
+      toast({ title: "Finding niet gevonden", variant: "destructive" });
+      return;
+    }
     setFinding(data);
   };
 
   const loadMessages = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("messages")
       .select("*")
       .eq("finding_id", id!)
       .order("datum");
+    if (error) {
+      toast({ title: "Fout bij laden berichten", description: error.message, variant: "destructive" });
+      return;
+    }
     setMessages(data ?? []);
   };
 
