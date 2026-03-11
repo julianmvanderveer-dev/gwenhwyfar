@@ -109,11 +109,15 @@ export default function Beheer() {
 
   const saveEdit = async () => {
     if (!editingId || !editForm.naam.trim()) return;
-    await supabase.from("adviseurs").update({
+    const { error } = await supabase.from("adviseurs").update({
       nummer: editForm.nummer,
       naam: editForm.naam.trim(),
       email: editForm.email.trim() || null,
     }).eq("id", editingId);
+    if (error) {
+      toast({ title: "Fout bij opslaan", description: error.message, variant: "destructive" });
+      return;
+    }
     setEditingId(null);
     loadAdviseurs();
     toast({ title: "Adviseur bijgewerkt" });
