@@ -207,9 +207,9 @@ export default function FindingReactie() {
               <div key={m.id} className="border rounded p-2 text-sm">
                 <p className="text-muted-foreground text-xs">{new Date(m.datum).toLocaleString("nl-NL")}</p>
                 <p>{m.bericht}</p>
-                {(m as any).bijlage_pad && (
+                {m.bijlage_pad && (
                   <button
-                    onClick={() => handleDownload((m as any).bijlage_pad)}
+                    onClick={() => handleDownload(m.bijlage_pad!)}
                     className="flex items-center gap-1 mt-1 text-xs text-accent hover:underline"
                   >
                     <Download className="h-3 w-3" />
