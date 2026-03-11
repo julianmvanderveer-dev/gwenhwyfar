@@ -34,8 +34,10 @@ export default function ProjectDetail() {
   useEffect(() => {
     if (!id) return;
     loadProject().then((p) => {
-      autoSetStatus();
-      if (p) loadTemplates(p.audit_categorie);
+      if (p) {
+        autoSetStatus(p.status);
+        loadTemplates(p.audit_categorie);
+      }
     });
     loadFindings();
   }, [id]);
@@ -54,13 +56,11 @@ export default function ProjectDetail() {
     return data;
   };
 
-  const autoSetStatus = async () => {
-    const { data: p } = await supabase.from("projects").select("status").eq("id", id!).single();
-    if (!p) return;
-    if (hasRole("tekenaar") && p.status === "nog_niet_begonnen") {
+  const autoSetStatus = async (currentStatus: string) => {
+    if (hasRole("tekenaar") && currentStatus === "nog_niet_begonnen") {
       await supabase.from("projects").update({ status: "deel1_bezig" as any }).eq("id", id!);
       loadProject();
-    } else if (hasRole("auditor") && p.status === "deel1_afgerond") {
+    } else if (hasRole("auditor") && currentStatus === "deel1_afgerond") {
       await supabase.from("projects").update({ status: "deel2_bezig" as any }).eq("id", id!);
       loadProject();
     }
@@ -177,24 +177,32 @@ export default function ProjectDetail() {
 
   const auditAfronden = async () => {
     const now = new Date();
-    for (const f of findings) {
-      if (f.beoordeling === "niet_goed") {
-        const deadline = f.type_afwijking === "kritiek"
-          ? addDays(now, 28).toISOString()
-          : addMonths(now, 3).toISOString();
-        await supabase.from("findings").update({
-          deadline,
-          zichtbaar_voor_adviseur: true,
-          status: "open" as any,
-        }).eq("id", f.id);
-      } else if (f.beoordeling === "opmerking") {
-        await supabase.from("findings").update({
-          zichtbaar_voor_adviseur: true,
-        }).eq("id", f.id);
-      }
-    }
-    const hasNietGoed = findings.some(f => f.beoordeling === "niet_goed");
-    const hasKt = findings.some(f => f.beoordeling === "niet_goed" && f.type_afwijking === "kritiek");
+    const nietGoedFindings = findings.filter(f => f.beoordeling === "niet_goed");
+    const opmerkingFindings = findings.filter(f => f.beoordeling === "opmerking");
+    const hasKt = nietGoedFindings.some(f => f.type_afwijking === "kritiek");
+
+    const kritiekIds = nietGoedFindings.filter(f => f.type_afwijking === "kritiek").map(f => f.id);
+    const nietKritiekIds = nietGoedFindings.filter(f => f.type_afwijking !== "kritiek").map(f => f.id);
+
+    await Promise.all([
+      kritiekIds.length > 0 && supabase.from("findings").update({
+        deadline: addDays(now, 28).toISOString(),
+        zichtbaar_voor_adviseur: true,
+        status: "open" as any,
+      }).in("id", kritiekIds),
+
+      nietKritiekIds.length > 0 && supabase.from("findings").update({
+        deadline: addMonths(now, 3).toISOString(),
+        zichtbaar_voor_adviseur: true,
+        status: "open" as any,
+      }).in("id", nietKritiekIds),
+
+      opmerkingFindings.length > 0 && supabase.from("findings").update({
+        zichtbaar_voor_adviseur: true,
+      }).in("id", opmerkingFindings.map(f => f.id)),
+    ].filter(Boolean));
+
+    const hasNietGoed = nietGoedFindings.length > 0;
 
     if (hasNietGoed) {
       const now2 = new Date();
