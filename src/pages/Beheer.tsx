@@ -94,7 +94,11 @@ export default function Beheer() {
 
   // Adviseur CRUD
   const toggleAdviseurActief = async (id: string, currentActief: boolean) => {
-    await supabase.from("adviseurs").update({ actief: !currentActief }).eq("id", id);
+    const { error } = await supabase.from("adviseurs").update({ actief: !currentActief }).eq("id", id);
+    if (error) {
+      toast({ title: "Fout bij statuswijziging", description: error.message, variant: "destructive" });
+      return;
+    }
     loadAdviseurs();
   };
 
