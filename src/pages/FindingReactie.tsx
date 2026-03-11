@@ -97,6 +97,87 @@ export default function FindingReactie() {
     window.open(data.signedUrl, "_blank");
   };
 
+  const accepteren = async () => {
+    if (!user || !finding) return;
+    setLoading(true);
+    try {
+      const [msgResult, updateResult] = await Promise.all([
+        supabase.from("messages").insert({
+          finding_id: id!,
+          afzender_id: user.id,
+          bericht: "Afwijking geaccepteerd",
+        }),
+        supabase.from("findings").update({ status: "reactie_ontvangen" }).eq("id", id!),
+      ]);
+      if (msgResult.error) throw msgResult.error;
+      if (updateResult.error) throw updateResult.error;
+
+      await checkRemainingFindings();
+      setBericht("");
+      loadMessages();
+      loadFinding();
+    } catch (err: any) {
+      toast({ title: "Fout bij accepteren", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const nietAkkoord = async () => {
+    if (!bericht.trim() || !user || !finding) return;
+    setLoading(true);
+    try {
+      let bijlagePad: string | null = null;
+      if (bestand) {
+        bijlagePad = await uploadFile();
+        if (!bijlagePad) return;
+      }
+
+      const [msgResult, updateResult] = await Promise.all([
+        supabase.from("messages").insert({
+          finding_id: id!,
+          afzender_id: user.id,
+          bericht: bericht.trim(),
+          bijlage_pad: bijlagePad,
+        }),
+        supabase.from("findings").update({ status: "reactie_ontvangen" }).eq("id", id!),
+      ]);
+      if (msgResult.error) throw msgResult.error;
+      if (updateResult.error) throw updateResult.error;
+
+      await checkRemainingFindings();
+      setBericht("");
+      setBestand(null);
+      setModus("keuze");
+      loadMessages();
+      loadFinding();
+    } catch (err: any) {
+      toast({ title: "Fout bij verzenden reactie", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkRemainingFindings = async () => {
+    if (!finding) return;
+    const { data: remaining } = await supabase
+      .from("findings")
+      .select("id")
+      .eq("project_id", finding.project_id)
+      .eq("status", "open")
+      .eq("zichtbaar_voor_adviseur", true)
+      .neq("id", id!);
+
+    if (!remaining || remaining.length === 0) {
+      toast({
+        title: "Alles ingediend!",
+        description: "Alle findings voor dit project zijn beantwoord.",
+      });
+    } else {
+      toast({ title: "Reactie verzonden", description: `Nog ${remaining.length} finding(s) open.` });
+    }
+  };
+
   if (!finding) return <div className="p-4">Laden...</div>;
 
   return (
