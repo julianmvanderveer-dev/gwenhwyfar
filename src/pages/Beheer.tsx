@@ -166,7 +166,18 @@ export default function Beheer() {
   };
 
   const addMember = async () => {
-    if (!memberForm.naam.trim() || !memberForm.email.trim() || !memberForm.password) return;
+    if (!memberForm.naam.trim()) {
+      toast({ title: "Naam is verplicht", variant: "destructive" });
+      return;
+    }
+    if (!memberForm.email.trim()) {
+      toast({ title: "E-mail is verplicht", variant: "destructive" });
+      return;
+    }
+    if (!memberForm.password) {
+      toast({ title: "Wachtwoord is verplicht", variant: "destructive" });
+      return;
+    }
     setSubmittingMember(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-team-member", {
@@ -256,7 +267,8 @@ export default function Beheer() {
                    <th colSpan={3} className="text-center px-2 py-2 text-xs font-bold uppercase tracking-wider text-accent border-l border-r">
                      Projectrollen
                    </th>
-                   <th colSpan={2} />
+                   <th className="text-center px-2 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">Wachtwoord</th>
+                   <th />
                  </tr>
                 {/* Column headers */}
                 <tr className="border-b bg-secondary/40">
