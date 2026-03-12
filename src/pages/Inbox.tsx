@@ -13,6 +13,7 @@ import { beoordelingBadge, afwijkingBadge } from "@/lib/badges";
 import { orderedFases, faseConfig, getProjectFase, type FaseKey } from "@/components/projecten/faseConfig";
 import FaseTabel from "@/components/projecten/FaseTabel";
 import ExportFilter from "@/components/projecten/ExportFilter";
+import MedewerkerDashboard from "@/components/dashboard/MedewerkerDashboard";
 
 type Project = Tables<"projects"> & { adviseurs: { naam: string } | null; toegewezen_profiel?: { naam: string } | null };
 type Finding = Tables<"findings">;
@@ -162,7 +163,8 @@ export default function Inbox() {
 
   const totalVisible = orderedFases.reduce((sum, f) => sum + (projectenPerFase[f]?.length ?? 0), 0);
   const isBeheer = hasRole("beheer");
-  const isInternal = hasRole("tekenaar") || hasRole("auditor") || hasRole("beheer");
+  const isMedewerker = hasRole("tekenaar") || hasRole("auditor");
+  const isInternal = isMedewerker || isBeheer;
 
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
@@ -249,8 +251,11 @@ export default function Inbox() {
         </div>
       )}
 
-      {/* Internal roles: collapsible table view */}
-      {isInternal && (
+      {/* Medewerker dashboard (tekenaar/auditor) */}
+      {isMedewerker && !isBeheer && <MedewerkerDashboard />}
+
+      {/* Beheer: full phase tables */}
+      {isBeheer && (
         <>
           {/* Search */}
           <div className="relative max-w-md">
@@ -295,40 +300,7 @@ export default function Inbox() {
           </div>
 
           {/* Export */}
-          {isBeheer && <ExportFilter projects={projects} />}
-
-          {/* Findings te beoordelen */}
-          {findings.length > 0 && (
-            <div className="bg-card rounded-lg border shadow-sm p-4">
-              <h2 className="font-semibold mb-3 text-sm">Findings te beoordelen</h2>
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-secondary/60 border-b">
-                      <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Onderdeel</th>
-                      <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Controlepunt</th>
-                      <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Status</th>
-                      <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Actie</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {findings.map((f, i) => (
-                      <tr key={f.id} className={`border-b last:border-0 ${i % 2 === 0 ? 'bg-card' : 'bg-background'}`}>
-                        <td className="px-4 py-2.5">{f.onderdeel}</td>
-                        <td className="px-4 py-2.5">{f.controlepunt}</td>
-                        <td className="px-4 py-2.5">{f.status}</td>
-                        <td className="px-4 py-2.5">
-                          <Link to={`/finding/${f.id}/beoordeling`} className="text-accent hover:underline font-medium">
-                            Beoordelen
-                          </Link>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+          <ExportFilter projects={projects} />
         </>
       )}
 
