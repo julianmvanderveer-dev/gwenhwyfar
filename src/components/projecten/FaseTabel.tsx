@@ -97,6 +97,15 @@ export default function FaseTabel({ fase, faseIndex, projecten, canDelete, onDel
                     <td className="px-4 py-2.5 text-muted-foreground">{p.audit_categorie}</td>
                     <td className="px-4 py-2.5 text-muted-foreground">{p.audit_soort}</td>
                     <td className="px-4 py-2.5 text-muted-foreground">{p.adviseurs?.naam ?? "—"}</td>
+                    {showToewijzing && (
+                      <td className="px-4 py-2.5">
+                        {p.toegewezen_aan ? (
+                          <span className="text-foreground">{p.toegewezen_profiel?.naam ?? "Onbekend"}</span>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">Pool</Badge>
+                        )}
+                      </td>
+                    )}
                     <td className="px-4 py-2.5 text-muted-foreground">{formatDate(p.datum_aangemaakt)}</td>
                     {fase === "wacht_op_reactie_ep" && (
                       <td className="px-4 py-2.5">
