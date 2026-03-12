@@ -27,6 +27,11 @@ const ROLE_LABELS: Record<Enums<"app_role">, string> = {
   ep_adviseur: "EP-adviseur",
 };
 
+type ToewijzingProject = Tables<"projects"> & {
+  adviseurs: { naam: string } | null;
+  toegewezen_profiel: { naam: string } | null;
+};
+
 export default function Beheer() {
   const { hasRole, user } = useAuth();
   const [profiles, setProfiles] = useState<(Profile & { roles: Enums<"app_role">[] })[]>([]);
@@ -41,6 +46,12 @@ export default function Beheer() {
   const [memberForm, setMemberForm] = useState({ naam: "", email: "", password: "", roles: [] as Enums<"app_role">[] });
   const [showPassword, setShowPassword] = useState(false);
   const [submittingMember, setSubmittingMember] = useState(false);
+
+  // Toewijzingen state
+  const [toewijzingProjecten, setToewijzingProjecten] = useState<ToewijzingProject[]>([]);
+  const [toewijsbarePersonen, setToewijsbarePersonen] = useState<{ id: string; naam: string; roles: string[] }[]>([]);
+  const [hertoewijzingProjectId, setHertoewijzingProjectId] = useState<string | null>(null);
+  const [hertoewijzingAan, setHertoewijzingAan] = useState("");
 
   useEffect(() => {
     loadUsers();
