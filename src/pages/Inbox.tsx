@@ -14,7 +14,7 @@ import { orderedFases, faseConfig, getProjectFase, type FaseKey } from "@/compon
 import FaseTabel from "@/components/projecten/FaseTabel";
 import ExportFilter from "@/components/projecten/ExportFilter";
 
-type Project = Tables<"projects"> & { adviseurs: { naam: string } | null };
+type Project = Tables<"projects"> & { adviseurs: { naam: string } | null; toegewezen_profiel?: { naam: string } | null };
 type Finding = Tables<"findings">;
 
 export default function Inbox() {
