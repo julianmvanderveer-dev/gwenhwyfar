@@ -24,10 +24,14 @@ interface FaseTabelProps {
     reactie_deadline: string | null;
     status: string;
     adviseurs?: { naam: string } | null;
+    toewijzing?: string;
+    toegewezen_aan?: string | null;
+    toegewezen_profiel?: { naam: string } | null;
   }>;
   canDelete: boolean;
   onDelete: (id: string) => void;
   defaultOpen?: boolean;
+  showToewijzing?: boolean;
 }
 
 function formatDate(date: string) {
