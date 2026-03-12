@@ -267,7 +267,8 @@ export default function Beheer() {
                    <th colSpan={3} className="text-center px-2 py-2 text-xs font-bold uppercase tracking-wider text-accent border-l border-r">
                      Projectrollen
                    </th>
-                   <th colSpan={2} />
+                   <th className="text-center px-2 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">Wachtwoord</th>
+                   <th />
                  </tr>
                 {/* Column headers */}
                 <tr className="border-b bg-secondary/40">
