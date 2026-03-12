@@ -14,7 +14,7 @@ import { orderedFases, faseConfig, getProjectFase, type FaseKey } from "@/compon
 import FaseTabel from "@/components/projecten/FaseTabel";
 import ExportFilter from "@/components/projecten/ExportFilter";
 
-type Project = Tables<"projects"> & { adviseurs: { naam: string } | null };
+type Project = Tables<"projects"> & { adviseurs: { naam: string } | null; toegewezen_profiel?: { naam: string } | null };
 type Finding = Tables<"findings">;
 
 export default function Inbox() {
@@ -41,7 +41,20 @@ export default function Inbox() {
       .select("*, adviseurs(naam)")
       .neq("status", "gesloten")
       .order("datum_aangemaakt", { ascending: false });
-    const loadedProjects = (projectData as Project[]) ?? [];
+    let loadedProjects = (projectData as Project[]) ?? [];
+
+    // Load toewijzing profile names for beheer
+    if (hasRole("beheer") && loadedProjects.length > 0) {
+      const userIds = [...new Set(loadedProjects.filter(p => p.toegewezen_aan).map(p => p.toegewezen_aan!))];
+      if (userIds.length > 0) {
+        const { data: profielData } = await supabase.from("profiles").select("id, naam").in("id", userIds);
+        const profielMap = new Map((profielData ?? []).map(p => [p.id, p]));
+        loadedProjects = loadedProjects.map(p => ({
+          ...p,
+          toegewezen_profiel: p.toegewezen_aan ? profielMap.get(p.toegewezen_aan) ?? null : null,
+        }));
+      }
+    }
     setProjects(loadedProjects);
 
     if (loadedProjects.length > 0) {
@@ -276,6 +289,7 @@ export default function Inbox() {
                 canDelete={isBeheer}
                 onDelete={deleteProject}
                 defaultOpen={projectenPerFase[fase].length > 0}
+                showToewijzing={isBeheer}
               />
             ))}
           </div>

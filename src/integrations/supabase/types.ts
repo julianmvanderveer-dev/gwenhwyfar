@@ -165,6 +165,30 @@ export type Database = {
           },
         ]
       }
+      notificaties: {
+        Row: {
+          bericht: string
+          created_at: string
+          gelezen: boolean
+          id: string
+          user_id: string
+        }
+        Insert: {
+          bericht: string
+          created_at?: string
+          gelezen?: boolean
+          id?: string
+          user_id: string
+        }
+        Update: {
+          bericht?: string
+          created_at?: string
+          gelezen?: boolean
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           actief: boolean
@@ -205,7 +229,10 @@ export type Database = {
           projectnaam: string
           reactie_deadline: string | null
           status: Database["public"]["Enums"]["project_status"]
+          toegewezen_aan: string | null
+          toegewezen_op: string | null
           toelatingsaudit: boolean
+          toewijzing: Database["public"]["Enums"]["toewijzing_type"]
         }
         Insert: {
           aangemaakt_door: string
@@ -222,7 +249,10 @@ export type Database = {
           projectnaam: string
           reactie_deadline?: string | null
           status?: Database["public"]["Enums"]["project_status"]
+          toegewezen_aan?: string | null
+          toegewezen_op?: string | null
           toelatingsaudit?: boolean
+          toewijzing?: Database["public"]["Enums"]["toewijzing_type"]
         }
         Update: {
           aangemaakt_door?: string
@@ -239,7 +269,10 @@ export type Database = {
           projectnaam?: string
           reactie_deadline?: string | null
           status?: Database["public"]["Enums"]["project_status"]
+          toegewezen_aan?: string | null
+          toegewezen_op?: string | null
           toelatingsaudit?: boolean
+          toewijzing?: Database["public"]["Enums"]["toewijzing_type"]
         }
         Relationships: [
           {
@@ -247,6 +280,13 @@ export type Database = {
             columns: ["adviseur_id"]
             isOneToOne: false
             referencedRelation: "adviseurs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_toegewezen_aan_fkey"
+            columns: ["toegewezen_aan"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -274,6 +314,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_project: {
+        Args: { _project_id: string; _user_id: string }
+        Returns: boolean
+      }
       has_any_role: {
         Args: { _roles: Database["public"]["Enums"]["app_role"][] }
         Returns: boolean
@@ -302,6 +346,7 @@ export type Database = {
         | "deel1_afgerond"
         | "deel2_bezig"
         | "wacht_op_reactie"
+      toewijzing_type: "specifiek" | "pool"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -448,6 +493,7 @@ export const Constants = {
         "deel2_bezig",
         "wacht_op_reactie",
       ],
+      toewijzing_type: ["specifiek", "pool"],
     },
   },
 } as const

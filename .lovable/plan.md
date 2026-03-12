@@ -1,109 +1,53 @@
 
 
-## Projecttoewijzingssysteem
+## Plan: Projectstatus-workflow herziening
 
-### 1. Database migratie
+### Huidige situatie
+De `project_status` enum heeft: `geselecteerd`, `deel1_bezig`, `wacht_op_deel2`, `afgerond`, `reactie_open`, `gesloten`.
 
-Nieuwe kolommen op `projects` tabel:
+### Gewenste statussen
+1. **nog_niet_begonnen** — Tekenaar heeft project nog niet geopend (vervangt `geselecteerd`)
+2. **deel1_bezig** — Tekenaar is ermee bezig (blijft)
+3. **deel1_afgerond** — Tekenaar klaar, auditor moet deel 2 doen (vervangt `wacht_op_deel2`)
+4. **deel2_bezig** — Auditor is bezig (nieuw)
+5. **afgerond** — Geen KT/NK, ter info naar EP-adviseur, na 1 week archiveren (blijft, maar andere betekenis)
+6. **wacht_op_reactie** — Wacht op reactie EP-adviseur, met deadline (vervangt `reactie_open`)
+7. **gesloten** — Gearchiveerd (blijft)
 
-```sql
--- Enum voor toewijzingstype
-CREATE TYPE public.toewijzing_type AS ENUM ('specifiek', 'pool');
+### Wijzigingen
 
--- Nieuwe kolommen
-ALTER TABLE public.projects
-  ADD COLUMN toewijzing toewijzing_type NOT NULL DEFAULT 'pool',
-  ADD COLUMN toegewezen_aan uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
-  ADD COLUMN toegewezen_op timestamptz;
-```
+#### 1. Database migratie
+- Voeg nieuwe enum-waarden toe: `nog_niet_begonnen`, `deel1_afgerond`, `deel2_bezig`, `wacht_op_reactie`
+- Migreer bestaande data: `geselecteerd` → `nog_niet_begonnen`, `wacht_op_deel2` → `deel1_afgerond`, `reactie_open` → `wacht_op_reactie`
+- Verwijder oude waarden (via recreatie van enum, want PostgreSQL kan geen waarden verwijderen)
+- Voeg `reactie_deadline` kolom toe aan `projects` (timestamptz, nullable)
+- Voeg `gearchiveerd_op` kolom toe aan `projects` (timestamptz, nullable) — voor de 1-week logica
 
-Atomische claim-functie (voorkomt race conditions):
+#### 2. `src/lib/badges.tsx` — statusBadge updaten
+- Nieuwe labels en kleuren voor alle statussen
+- `wacht_op_reactie` met oranje (NK) of rode (KT) codering afhankelijk van de ergste finding
 
-```sql
-CREATE OR REPLACE FUNCTION public.claim_project(_project_id uuid, _user_id uuid)
-RETURNS boolean
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  UPDATE public.projects
-  SET toegewezen_aan = _user_id,
-      toegewezen_op = now()
-  WHERE id = _project_id
-    AND toegewezen_aan IS NULL
-    AND toewijzing = 'pool'
-    AND status = 'nog_niet_begonnen';
-  RETURN FOUND;
-END;
-$$;
-```
+#### 3. `src/pages/Beheer.tsx` — Projecten-tab updaten
+- Toon `reactie_deadline` kolom bij `wacht_op_reactie`
+- Kleurcodering KT (rood) en NK (oranje) bij wacht_op_reactie status
 
-### 2. Projectzichtbaarheid (RLS aanpassing)
+#### 4. `src/pages/ProjectDetail.tsx` — Statuslabels en workflow updaten
+- Update `statusLabel` map
+- `canDeel1` check: `nog_niet_begonnen` of `deel1_bezig`
+- `canDeel2` check: `deel1_afgerond` of `deel2_bezig`
+- `deel1Afronden`: status → `deel1_afgerond`
+- `auditAfronden`: check of er KT/NK findings zijn. Zo niet → `afgerond` + `gearchiveerd_op = now()`. Zo ja → `wacht_op_reactie` + bereken `reactie_deadline` (KT: 1 maand, NK: 3 maanden, neem de kortste)
+- Auto-set `deel1_bezig` of `deel2_bezig` wanneer tekenaar/auditor project opent en status nog `nog_niet_begonnen`/`deel1_afgerond`
 
-De huidige `Projects select` policy laat alle interne gebruikers alle projecten zien. Dit moet worden aangescherpt zodat tekenaars/auditors alleen projecten zien die:
-- Aan hen zijn toegewezen (`toegewezen_aan = auth.uid()`), OF
-- In de pool staan en nog niet gestart (`toewijzing = 'pool' AND toegewezen_aan IS NULL`), OF
-- De gebruiker de beheerrol heeft (ziet alles)
+#### 5. `src/pages/Inbox.tsx` — Statuslabels updaten
+- Update `statusLabel` map
+- Filter: toon `afgerond` projecten alleen als `gearchiveerd_op` < 1 week geleden
 
-### 3. Frontend wijzigingen
+#### 6. Archivering na 1 week
+- In de Inbox/Beheer query: projecten met status `afgerond` en `gearchiveerd_op` ouder dan 7 dagen worden als `gesloten` getoond of gefilterd. Implementeer dit client-side bij laden, of via een simpele check die status naar `gesloten` zet.
 
-**ProjectAanmaken.tsx** — Toewijzingsoptie toevoegen:
-- Radio: "Algemene pool" (default) of "Specifieke toewijzing"
-- Bij specifiek: dropdown met actieve tekenaars/auditors (uit `profiles` + `user_roles`)
-- Sla `toewijzing` en optioneel `toegewezen_aan` + `toegewezen_op` op
-
-**ProjectDetail.tsx** — Atomisch claimen:
-- Bij `autoSetStatus`: vervang de directe status-update door eerst `claim_project` RPC aan te roepen
-- Als claim faalt (iemand anders was eerder): toon melding "Dit project is al door iemand anders opgepakt" en navigeer terug
-- Bij succes: update status zoals nu
-
-**Inbox.tsx** — Toewijzingsinformatie tonen:
-- In FaseTabel: kolom "Toegewezen aan" met naam van de toegewezen persoon, of "Pool" als nog niet geclaimed
-- Projecten die niet aan de ingelogde tekenaar/auditor zijn toegewezen en al geclaimed zijn, worden verborgen (via RLS)
-
-**FaseTabel.tsx** — Extra kolom:
-- "Toegewezen aan" kolom met naam (join op `profiles`) of "Pool"-badge
-
-**Beheer-overzicht** — Nieuw tabblad of sectie op bestaande projectenpagina:
-- Per project: toewijzingstype, toegewezen persoon + tijdstip, of "Wacht in pool"
-- Acties: "Terugplaatsen in pool" en "Hertoewijzen aan..." (dropdown met tekenaars/auditors)
-- Bij hertoewijzing: update `toegewezen_aan`, `toegewezen_op`, en optioneel `toewijzing` naar 'specifiek'
-
-### 4. Herindelingsmeldingen
-
-Geen e-mailnotificaties (conform bestaand patroon). In plaats daarvan:
-- Een `notificaties` tabel voor in-app meldingen:
-
-```sql
-CREATE TABLE public.notificaties (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  bericht text NOT NULL,
-  gelezen boolean NOT NULL DEFAULT false,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-ALTER TABLE public.notificaties ENABLE ROW LEVEL SECURITY;
--- Gebruikers zien alleen eigen notificaties
-CREATE POLICY "Eigen notificaties" ON public.notificaties
-  FOR ALL TO authenticated
-  USING (user_id = auth.uid())
-  WITH CHECK (user_id = auth.uid());
-```
-
-- Bij hertoewijzing door beheer: insert notificatie voor oude gebruiker ("Project X is aan je ontnomen") en nieuwe gebruiker ("Project X is aan je toegewezen")
-- Notificatie-indicator in de navigatie (belletje met teller)
-
-### 5. Betrokken bestanden
-
-| Bestand | Wijziging |
-|---------|-----------|
-| Database migratie | 3 kolommen + enum + claim-functie + notificaties-tabel + RLS |
-| `src/pages/ProjectAanmaken.tsx` | Toewijzingsopties (pool/specifiek + persoonskeuze) |
-| `src/pages/ProjectDetail.tsx` | Atomisch claimen via RPC bij project openen |
-| `src/pages/Inbox.tsx` | Toewijzingsinfo laden en doorgeven aan FaseTabel |
-| `src/components/projecten/FaseTabel.tsx` | Kolom "Toegewezen aan" |
-| `src/pages/Beheer.tsx` | Beheeroverzicht met hertoewijzings-acties |
-| `src/components/AppLayout.tsx` | Notificatie-indicator |
-| Nieuw: `src/components/NotificatieBel.tsx` | Notificatie-dropdown component |
+### Deadline-logica bij `wacht_op_reactie`
+- Kijk naar ergste finding-type: als er minstens 1 KT is → deadline = 1 maand. Anders (alleen NK) → deadline = 3 maanden.
+- Sla op in `projects.reactie_deadline`.
+- Toon in Beheer met kleurcodering: rood als KT-findings, oranje als alleen NK-findings.
 
