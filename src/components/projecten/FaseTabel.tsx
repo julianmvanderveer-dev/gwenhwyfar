@@ -38,7 +38,7 @@ function formatDate(date: string) {
   return new Date(date).toLocaleDateString("nl-NL");
 }
 
-export default function FaseTabel({ fase, faseIndex, projecten, canDelete, onDelete, defaultOpen = true }: FaseTabelProps) {
+export default function FaseTabel({ fase, faseIndex, projecten, canDelete, onDelete, defaultOpen = true, showToewijzing = false }: FaseTabelProps) {
   const [open, setOpen] = useState(defaultOpen);
   const config = faseConfig[fase];
   const Icon = config.icon;

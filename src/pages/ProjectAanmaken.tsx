@@ -6,12 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "@/hooks/use-toast";
 import type { Enums } from "@/integrations/supabase/types";
 import { EPW_D_CHECKLIST } from "@/data/epwd-checklist";
 import { EPW_B_CHECKLIST } from "@/data/epwb-checklist";
 
 type Adviseur = { id: string; nummer: number; naam: string; email: string | null; actief: boolean };
+type ToewijsbaarPersoon = { id: string; naam: string; email: string; roles: Enums<"app_role">[] };
 
 export default function ProjectAanmaken() {
   const { user, hasRole } = useAuth();
@@ -25,11 +27,30 @@ export default function ProjectAanmaken() {
   const [adviseurs, setAdviseurs] = useState<Adviseur[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Toewijzing state
+  const [toewijzing, setToewijzing] = useState<"pool" | "specifiek">("pool");
+  const [toegewezenAan, setToegewezenAan] = useState("");
+  const [toewijsbarePersonen, setToewijsbarePersonen] = useState<ToewijsbaarPersoon[]>([]);
+
   useEffect(() => {
     supabase.from("adviseurs").select("*").eq("actief", true).order("nummer").then(({ data }) => {
       setAdviseurs((data as Adviseur[]) ?? []);
     });
+    loadToewijsbarePersonen();
   }, []);
+
+  const loadToewijsbarePersonen = async () => {
+    const { data: profiles } = await supabase.from("profiles").select("id, naam, email").eq("actief", true);
+    const { data: roles } = await supabase.from("user_roles").select("user_id, role");
+    if (!profiles || !roles) return;
+
+    const personen: ToewijsbaarPersoon[] = profiles.map((p) => ({
+      ...p,
+      roles: roles.filter((r) => r.user_id === p.id).map((r) => r.role),
+    })).filter((p) => p.roles.includes("tekenaar") || p.roles.includes("auditor"));
+
+    setToewijsbarePersonen(personen);
+  };
 
   if (!hasRole("beheer")) {
     return <div className="p-4">Geen toegang.</div>;
@@ -40,7 +61,7 @@ export default function ProjectAanmaken() {
     if (!user) return;
     setLoading(true);
 
-    const { data: project, error } = await supabase.from("projects").insert({
+    const insertData: any = {
       projectnaam,
       adviseur_id: adviseurId || null,
       audit_categorie: auditCategorie,
@@ -48,7 +69,15 @@ export default function ProjectAanmaken() {
       toelatingsaudit,
       prioriteit,
       aangemaakt_door: user.id,
-    }).select("id").single();
+      toewijzing,
+    };
+
+    if (toewijzing === "specifiek" && toegewezenAan) {
+      insertData.toegewezen_aan = toegewezenAan;
+      insertData.toegewezen_op = new Date().toISOString();
+    }
+
+    const { data: project, error } = await supabase.from("projects").insert(insertData).select("id").single();
 
     if (error || !project) {
       toast({ title: "Fout", description: error?.message ?? "Onbekende fout", variant: "destructive" });
@@ -79,6 +108,14 @@ export default function ProjectAanmaken() {
       if (findingsError) {
         toast({ title: "Waarschuwing", description: "Project aangemaakt maar checklist kon niet worden ingevuld: " + findingsError.message, variant: "destructive" });
       }
+    }
+
+    // Notificatie bij specifieke toewijzing
+    if (toewijzing === "specifiek" && toegewezenAan) {
+      await supabase.from("notificaties").insert({
+        user_id: toegewezenAan,
+        bericht: `Project "${projectnaam}" is aan je toegewezen.`,
+      });
     }
 
     toast({ title: "Project aangemaakt" });
@@ -129,6 +166,41 @@ export default function ProjectAanmaken() {
           <Checkbox id="prioriteit" checked={prioriteit} onCheckedChange={(v) => setPrioriteit(v === true)} />
           <Label htmlFor="prioriteit">Prioriteit</Label>
         </div>
+
+        {/* Toewijzing */}
+        <div className="space-y-3 border rounded-lg p-4 bg-card">
+          <Label className="font-semibold">Toewijzing</Label>
+          <RadioGroup value={toewijzing} onValueChange={(v) => { setToewijzing(v as any); setToegewezenAan(""); }}>
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="pool" id="pool" />
+              <Label htmlFor="pool" className="font-normal">Algemene pool — zichtbaar voor alle tekenaars/auditors</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="specifiek" id="specifiek" />
+              <Label htmlFor="specifiek" className="font-normal">Specifieke toewijzing — alleen zichtbaar voor gekozen persoon</Label>
+            </div>
+          </RadioGroup>
+
+          {toewijzing === "specifiek" && (
+            <div>
+              <Label>Toewijzen aan</Label>
+              <select
+                className="border rounded px-2 py-1 w-full text-sm"
+                value={toegewezenAan}
+                onChange={(e) => setToegewezenAan(e.target.value)}
+                required
+              >
+                <option value="">— Selecteer persoon —</option>
+                {toewijsbarePersonen.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.naam} ({p.roles.filter(r => r !== "beheer").join(", ")})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+
         <Button type="submit" disabled={loading}>Aanmaken</Button>
       </form>
     </div>

@@ -33,6 +33,7 @@ export default function AppLayout() {
           <Link to="/checklist-beheer">Checklists</Link>
         )}
         <div className="ml-auto flex items-center gap-2">
+          <NotificatieBel />
           <span className="text-muted-foreground">{user?.email}</span>
           <Button variant="ghost" size="sm" onClick={handleSignOut}>Uitloggen</Button>
         </div>

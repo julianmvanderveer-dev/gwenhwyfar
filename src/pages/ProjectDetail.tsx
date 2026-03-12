@@ -58,6 +58,16 @@ export default function ProjectDetail() {
 
   const autoSetStatus = async (currentStatus: string) => {
     if (hasRole("tekenaar") && currentStatus === "nog_niet_begonnen") {
+      // Probeer atomisch te claimen bij pool-projecten
+      const { data: proj } = await supabase.from("projects").select("toewijzing, toegewezen_aan").eq("id", id!).single();
+      if (proj?.toewijzing === "pool" && !proj.toegewezen_aan) {
+        const { data: claimed } = await supabase.rpc("claim_project", { _project_id: id!, _user_id: user!.id });
+        if (!claimed) {
+          toast({ title: "Project niet beschikbaar", description: "Dit project is al door iemand anders opgepakt.", variant: "destructive" });
+          navigate("/inbox");
+          return;
+        }
+      }
       await supabase.from("projects").update({ status: "deel1_bezig" as any }).eq("id", id!);
       loadProject();
     } else if (hasRole("auditor") && currentStatus === "deel1_afgerond") {
