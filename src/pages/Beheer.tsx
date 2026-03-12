@@ -80,6 +80,93 @@ export default function Beheer() {
     setAdviseurs(data ?? []);
   };
 
+  const loadToewijzingen = async () => {
+    const { data: projectData } = await supabase
+      .from("projects")
+      .select("*, adviseurs(naam)")
+      .neq("status", "gesloten")
+      .order("datum_aangemaakt", { ascending: false });
+
+    const projects = (projectData ?? []) as ToewijzingProject[];
+
+    // Load profile names for toegewezen_aan
+    const userIds = [...new Set(projects.filter(p => p.toegewezen_aan).map(p => p.toegewezen_aan!))];
+    let profielMap = new Map<string, { naam: string }>();
+    if (userIds.length > 0) {
+      const { data: profielData } = await supabase.from("profiles").select("id, naam").in("id", userIds);
+      profielMap = new Map((profielData ?? []).map(p => [p.id, { naam: p.naam }]));
+    }
+
+    setToewijzingProjecten(projects.map(p => ({
+      ...p,
+      toegewezen_profiel: p.toegewezen_aan ? profielMap.get(p.toegewezen_aan) ?? null : null,
+    })));
+
+    // Load toewijsbare personen
+    const { data: allProfiles } = await supabase.from("profiles").select("id, naam").eq("actief", true);
+    const { data: allRoles } = await supabase.from("user_roles").select("user_id, role");
+    const personen = (allProfiles ?? []).map(p => ({
+      ...p,
+      roles: (allRoles ?? []).filter(r => r.user_id === p.id).map(r => r.role),
+    })).filter(p => p.roles.includes("tekenaar") || p.roles.includes("auditor"));
+    setToewijsbarePersonen(personen);
+  };
+
+  const hertoewijzen = async (projectId: string, nieuweUserId: string) => {
+    const project = toewijzingProjecten.find(p => p.id === projectId);
+    if (!project) return;
+
+    const oudeUserId = project.toegewezen_aan;
+
+    await supabase.from("projects").update({
+      toegewezen_aan: nieuweUserId,
+      toegewezen_op: new Date().toISOString(),
+      toewijzing: "specifiek" as any,
+    }).eq("id", projectId);
+
+    // Notificaties
+    const notificaties = [];
+    if (oudeUserId && oudeUserId !== nieuweUserId) {
+      notificaties.push({
+        user_id: oudeUserId,
+        bericht: `Project "${project.projectnaam}" is aan je ontnomen en hertoegewezen.`,
+      });
+    }
+    notificaties.push({
+      user_id: nieuweUserId,
+      bericht: `Project "${project.projectnaam}" is aan je toegewezen.`,
+    });
+    await supabase.from("notificaties").insert(notificaties);
+
+    toast({ title: "Project hertoegewezen" });
+    setHertoewijzingProjectId(null);
+    setHertoewijzingAan("");
+    loadToewijzingen();
+  };
+
+  const terugNaarPool = async (projectId: string) => {
+    const project = toewijzingProjecten.find(p => p.id === projectId);
+    if (!project) return;
+
+    const oudeUserId = project.toegewezen_aan;
+
+    await supabase.from("projects").update({
+      toegewezen_aan: null,
+      toegewezen_op: null,
+      toewijzing: "pool" as any,
+    }).eq("id", projectId);
+
+    if (oudeUserId) {
+      await supabase.from("notificaties").insert({
+        user_id: oudeUserId,
+        bericht: `Project "${project.projectnaam}" is aan je ontnomen en teruggeplaatst in de pool.`,
+      });
+    }
+
+    toast({ title: "Project teruggeplaatst in pool" });
+    loadToewijzingen();
+  };
+
   const toggleRole = async (userId: string, role: Enums<"app_role">, hasIt: boolean) => {
     try {
       if (hasIt) {
