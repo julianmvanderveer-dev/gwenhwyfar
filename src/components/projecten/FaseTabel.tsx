@@ -70,11 +70,14 @@ export default function FaseTabel({ fase, faseIndex, projecten, canDelete, onDel
           <div className="border rounded-b-lg overflow-hidden shadow-sm -mt-1">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-secondary/60 border-b">
+               <tr className="bg-secondary/60 border-b">
                   <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Project</th>
                   <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Categorie</th>
                   <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Soort</th>
                   <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Adviseur</th>
+                  {showToewijzing && (
+                    <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Toegewezen aan</th>
+                  )}
                   <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Aangemaakt</th>
                   {fase === "wacht_op_reactie_ep" && (
                     <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Deadline</th>
