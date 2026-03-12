@@ -56,6 +56,7 @@ export default function Beheer() {
   useEffect(() => {
     loadUsers();
     loadAdviseurs();
+    loadToewijzingen();
   }, []);
 
   const loadUsers = async () => {
