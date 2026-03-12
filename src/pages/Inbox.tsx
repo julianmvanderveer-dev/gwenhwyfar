@@ -13,6 +13,7 @@ import { beoordelingBadge, afwijkingBadge } from "@/lib/badges";
 import { orderedFases, faseConfig, getProjectFase, type FaseKey } from "@/components/projecten/faseConfig";
 import FaseTabel from "@/components/projecten/FaseTabel";
 import ExportFilter from "@/components/projecten/ExportFilter";
+import MedewerkerDashboard from "@/components/dashboard/MedewerkerDashboard";
 
 type Project = Tables<"projects"> & { adviseurs: { naam: string } | null; toegewezen_profiel?: { naam: string } | null };
 type Finding = Tables<"findings">;
