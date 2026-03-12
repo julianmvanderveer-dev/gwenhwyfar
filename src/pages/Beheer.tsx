@@ -345,6 +345,10 @@ export default function Beheer() {
           <TabsTrigger value="adviseurs" className="gap-1.5">
             EP-adviseurs
           </TabsTrigger>
+          <TabsTrigger value="toewijzingen" className="gap-1.5">
+            <ArrowRightLeft className="h-3.5 w-3.5" />
+            Toewijzingen
+          </TabsTrigger>
         </TabsList>
 
         {/* TAB: Projectteam */}
