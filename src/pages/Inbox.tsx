@@ -163,7 +163,8 @@ export default function Inbox() {
 
   const totalVisible = orderedFases.reduce((sum, f) => sum + (projectenPerFase[f]?.length ?? 0), 0);
   const isBeheer = hasRole("beheer");
-  const isInternal = hasRole("tekenaar") || hasRole("auditor") || hasRole("beheer");
+  const isMedewerker = hasRole("tekenaar") || hasRole("auditor");
+  const isInternal = isMedewerker || isBeheer;
 
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
