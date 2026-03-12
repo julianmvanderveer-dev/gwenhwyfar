@@ -166,7 +166,18 @@ export default function Beheer() {
   };
 
   const addMember = async () => {
-    if (!memberForm.naam.trim() || !memberForm.email.trim() || !memberForm.password) return;
+    if (!memberForm.naam.trim()) {
+      toast({ title: "Naam is verplicht", variant: "destructive" });
+      return;
+    }
+    if (!memberForm.email.trim()) {
+      toast({ title: "E-mail is verplicht", variant: "destructive" });
+      return;
+    }
+    if (!memberForm.password) {
+      toast({ title: "Wachtwoord is verplicht", variant: "destructive" });
+      return;
+    }
     setSubmittingMember(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-team-member", {
