@@ -250,8 +250,11 @@ export default function Inbox() {
         </div>
       )}
 
-      {/* Internal roles: collapsible table view */}
-      {isInternal && (
+      {/* Medewerker dashboard (tekenaar/auditor) */}
+      {isMedewerker && !isBeheer && <MedewerkerDashboard />}
+
+      {/* Beheer: full phase tables */}
+      {isBeheer && (
         <>
           {/* Search */}
           <div className="relative max-w-md">
@@ -296,40 +299,7 @@ export default function Inbox() {
           </div>
 
           {/* Export */}
-          {isBeheer && <ExportFilter projects={projects} />}
-
-          {/* Findings te beoordelen */}
-          {findings.length > 0 && (
-            <div className="bg-card rounded-lg border shadow-sm p-4">
-              <h2 className="font-semibold mb-3 text-sm">Findings te beoordelen</h2>
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-secondary/60 border-b">
-                      <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Onderdeel</th>
-                      <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Controlepunt</th>
-                      <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Status</th>
-                      <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Actie</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {findings.map((f, i) => (
-                      <tr key={f.id} className={`border-b last:border-0 ${i % 2 === 0 ? 'bg-card' : 'bg-background'}`}>
-                        <td className="px-4 py-2.5">{f.onderdeel}</td>
-                        <td className="px-4 py-2.5">{f.controlepunt}</td>
-                        <td className="px-4 py-2.5">{f.status}</td>
-                        <td className="px-4 py-2.5">
-                          <Link to={`/finding/${f.id}/beoordeling`} className="text-accent hover:underline font-medium">
-                            Beoordelen
-                          </Link>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+          <ExportFilter projects={projects} />
         </>
       )}
 
