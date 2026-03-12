@@ -1,6 +1,7 @@
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import NotificatieBel from "@/components/NotificatieBel";
 
 export default function AppLayout() {
   const { user, roles, signOut, hasRole } = useAuth();
