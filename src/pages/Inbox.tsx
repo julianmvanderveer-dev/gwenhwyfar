@@ -289,6 +289,7 @@ export default function Inbox() {
                 canDelete={isBeheer}
                 onDelete={deleteProject}
                 defaultOpen={projectenPerFase[fase].length > 0}
+                showToewijzing={isBeheer}
               />
             ))}
           </div>
