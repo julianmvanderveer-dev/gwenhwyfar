@@ -53,7 +53,7 @@ export const statusBadge = (val: string | null, variant?: "kt" | "nk") => {
     deel1_afgerond: "Deel 1 afgerond",
     deel2_bezig: "Deel 2 bezig",
     afgerond: "Afgerond",
-    wacht_op_reactie: "Wacht op reactie",
+    wacht_op_reactie: "Reactie EP-adviseur gevraagd",
     gesloten: "Gesloten",
   };
   return (
