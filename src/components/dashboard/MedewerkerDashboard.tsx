@@ -156,7 +156,7 @@ export default function MedewerkerDashboard() {
       // auditor
       switch (status) {
         case "deel1_afgerond": return { label: "Starten", clickable: true, variant: "default" };
-        case "deel2_bezig": return { label: "Mee bezig", clickable: true, variant: "outline" };
+        case "deel2_bezig": return { label: "Verder gaan", clickable: true, variant: "default" };
         case "wacht_op_reactie": return { label: "Reactie gevraagd", clickable: false };
         default: return { label: status, clickable: false };
       }
