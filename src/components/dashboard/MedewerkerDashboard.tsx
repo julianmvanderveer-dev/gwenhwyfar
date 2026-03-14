@@ -191,7 +191,7 @@ export default function MedewerkerDashboard() {
         {findings.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <Inbox className="h-10 w-10 mb-3 opacity-40" />
-            <p className="text-sm">Er zijn momenteel geen openstaande findings.</p>
+            <p className="text-sm">Er zijn momenteel geen openstaande bevindingen.</p>
           </div>
         ) : (
           <div className="border rounded-lg overflow-hidden bg-card shadow-sm">
