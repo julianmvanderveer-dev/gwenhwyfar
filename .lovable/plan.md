@@ -1,25 +1,42 @@
 
 
-## Verduidelijking projectlijst voor tekenaar/auditor
+## Fix: Projecten blijven toegewezen na claimen
 
-### Huidige situatie
-De filter op regel 125-127 toont projecten als `toegewezen_aan === user.id` OF `pool && geen eigenaar`. Dit betekent dat projecten met status `wacht_op_reactie` die aan de gebruiker zijn toegewezen correct blijven staan — dat werkt al goed.
+### Probleem
+Project "Fam. Oliebakker" heeft status `wacht_op_reactie` maar `toegewezen_aan` is NULL. Hierdoor verschijnt het in "Beschikbaar in pool" in plaats van "Aan mij toegewezen".
 
-Het probleem zit in de **categorisering**: projecten die ooit geclaimd/toegewezen zijn en nu in `wacht_op_reactie` staan, moeten onder "Aan mij toegewezen" vallen (niet in pool). Pool moet alleen projecten tonen die door Beheer zijn aangemaakt en in de pool geplaatst, nog niet geclaimd.
+**Oorzaak**: De `claim_project` database-functie werkt alleen bij status `nog_niet_begonnen`. Wanneer een tekenaar een project bewerkt en de status verandert (bijv. naar `deel1_bezig`, `wacht_op_reactie`), maar het claimen niet lukte of niet werd getriggerd, blijft `toegewezen_aan` NULL.
 
-### Analyse
-De huidige split-logica in het "Mijn projecten" tabblad:
-- **Aan mij toegewezen**: `p.toegewezen_aan === user.id`
-- **Pool**: `p.toewijzing === 'pool' && !p.toegewezen_aan`
+Daarnaast claimt de auditor-flow helemaal geen projecten — bij `autoSetStatus` voor auditor (regel 73-75 in ProjectDetail.tsx) wordt alleen de status gewijzigd maar `toegewezen_aan` niet gezet.
 
-Dit is feitelijk al correct: een project met `wacht_op_reactie` dat aan de gebruiker is toegewezen heeft `toegewezen_aan = user.id`, dus het valt onder "Aan mij toegewezen". Pool toont alleen niet-geclaimde projecten.
+### Oplossing
 
-**Maar**: de huidige query filtert `neq("status", "afgerond")` — projecten met `wacht_op_reactie` worden niet uitgefilterd, dus die blijven staan. Dit klopt.
+#### 1. Database: `claim_project` functie uitbreiden
+Verwijder de status-restrictie zodat pool-projecten altijd geclaimd kunnen worden, ongeacht hun status:
 
-Het enige wat ontbreekt: projecten met `wacht_op_reactie` staan bij de tekenaar als "Reactie gevraagd" — dat is correct gedrag.
+```sql
+UPDATE public.projects
+SET toegewezen_aan = _user_id, toegewezen_op = now()
+WHERE id = _project_id
+  AND toegewezen_aan IS NULL
+  AND toewijzing = 'pool';
+-- Verwijder: AND status = 'nog_niet_begonnen'
+```
 
-### Conclusie
-De logica werkt al zoals gewenst. Er is geen codewijziging nodig. De pool toont alleen niet-geclaimde projecten, en toegewezen projecten (inclusief `wacht_op_reactie`) blijven onder "Aan mij toegewezen" staan.
+#### 2. `ProjectDetail.tsx`: Auditor claimt ook pool-projecten
+In de auditor-branch van `autoSetStatus` (regel 73-75): voeg dezelfde claim-logica toe als bij de tekenaar, zodat de auditor bij het openen van een pool-project ook `toegewezen_aan` krijgt.
 
-Wil je dat ik iets specifieks verifieer door in te loggen als tekenaar, of is er een scenario dat je ziet dat niet klopt?
+#### 3. Data fix: "Fam. Oliebakker" corrigeren
+Update het project zodat `toegewezen_aan` wordt gezet op de tekenaar die eraan werkte.
+
+#### 4. `MedewerkerDashboard.tsx`: Vangnet-filter
+Als extra veiligheid: projecten met een status die wijst op actief werk (`deel1_bezig`, `deel1_afgerond`, `deel2_bezig`, `wacht_op_reactie`) maar zonder `toegewezen_aan`, tonen als "Aan mij toegewezen" als het project via RLS zichtbaar is (RLS laat alleen eigen projecten of pool-projecten door).
+
+### Bestanden
+
+| Bestand | Wijziging |
+|---------|-----------|
+| Database migratie | `claim_project` functie aanpassen |
+| `src/pages/ProjectDetail.tsx` | Auditor claim-logica toevoegen |
+| `src/components/dashboard/MedewerkerDashboard.tsx` | Vangnet-filter voor projecten zonder `toegewezen_aan` maar met actieve status |
 
