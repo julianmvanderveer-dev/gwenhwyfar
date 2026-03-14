@@ -11,6 +11,7 @@ import FindingToelichting from "@/components/FindingToelichting";
 import { Input } from "@/components/ui/input";
 import { statusBadge, beoordelingBadge, afwijkingBadge } from "@/lib/badges";
 import { ArrowLeft, CheckCircle2, ClipboardCheck, ChevronLeft, ChevronRight } from "lucide-react";
+import AandachtspuntenAdviseur from "@/components/projecten/AandachtspuntenAdviseur";
 
 type Project = Tables<"projects">;
 type Finding = Tables<"findings">;
