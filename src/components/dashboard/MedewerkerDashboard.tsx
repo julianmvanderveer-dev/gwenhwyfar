@@ -122,9 +122,16 @@ export default function MedewerkerDashboard() {
 
     // RLS already filters: only assigned to me OR pool unassigned
     // Additionally filter out projects claimed by others
-    const filtered = (data ?? []).filter(
+    let filtered = (data ?? []).filter(
       (p) => p.toegewezen_aan === user!.id || (p.toewijzing === "pool" && !p.toegewezen_aan)
     );
+
+    // Role-based visibility filter
+    if (eigenaarRol === "auditor") {
+      filtered = filtered.filter(
+        (p) => !["nog_niet_begonnen", "deel1_bezig"].includes(p.status)
+      );
+    }
 
     setProjecten(filtered);
   };
