@@ -238,8 +238,11 @@ export default function MedewerkerDashboard() {
       {/* ─── Mijn projecten ─── */}
       <TabsContent value="projecten" className="space-y-6">
         {(() => {
-          const assigned = projecten.filter((p) => p.toegewezen_aan === user!.id);
-          const pool = projecten.filter((p) => p.toewijzing === "pool" && !p.toegewezen_aan);
+          const ACTIVE_STATUSES = ["deel1_bezig", "deel1_afgerond", "deel2_bezig", "wacht_op_reactie"];
+          const assigned = projecten.filter(
+            (p) => p.toegewezen_aan === user!.id || (!p.toegewezen_aan && ACTIVE_STATUSES.includes(p.status))
+          );
+          const pool = projecten.filter((p) => p.toewijzing === "pool" && !p.toegewezen_aan && !ACTIVE_STATUSES.includes(p.status));
 
           const renderTable = (items: MijnProject[]) => (
             <div className="border rounded-lg overflow-hidden bg-card shadow-sm">
