@@ -122,8 +122,14 @@ export default function MedewerkerDashboard() {
 
     // RLS already filters: only assigned to me OR pool unassigned
     // Additionally filter out projects claimed by others
+    // Safety net: projects with active status but no toegewezen_aan that are visible via RLS
+    // should be treated as "assigned to me" (they came through RLS so they're mine or pool)
+    const ACTIVE_STATUSES = ["deel1_bezig", "deel1_afgerond", "deel2_bezig", "wacht_op_reactie"];
     let filtered = (data ?? []).filter(
-      (p) => p.toegewezen_aan === user!.id || (p.toewijzing === "pool" && !p.toegewezen_aan)
+      (p) =>
+        p.toegewezen_aan === user!.id ||
+        (p.toewijzing === "pool" && !p.toegewezen_aan) ||
+        (!p.toegewezen_aan && ACTIVE_STATUSES.includes(p.status))
     );
 
     // Role-based visibility filter
@@ -232,8 +238,11 @@ export default function MedewerkerDashboard() {
       {/* ─── Mijn projecten ─── */}
       <TabsContent value="projecten" className="space-y-6">
         {(() => {
-          const assigned = projecten.filter((p) => p.toegewezen_aan === user!.id);
-          const pool = projecten.filter((p) => p.toewijzing === "pool" && !p.toegewezen_aan);
+          const ACTIVE_STATUSES = ["deel1_bezig", "deel1_afgerond", "deel2_bezig", "wacht_op_reactie"];
+          const assigned = projecten.filter(
+            (p) => p.toegewezen_aan === user!.id || (!p.toegewezen_aan && ACTIVE_STATUSES.includes(p.status))
+          );
+          const pool = projecten.filter((p) => p.toewijzing === "pool" && !p.toegewezen_aan && !ACTIVE_STATUSES.includes(p.status));
 
           const renderTable = (items: MijnProject[]) => (
             <div className="border rounded-lg overflow-hidden bg-card shadow-sm">
