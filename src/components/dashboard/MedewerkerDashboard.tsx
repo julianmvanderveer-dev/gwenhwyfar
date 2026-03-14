@@ -136,6 +136,27 @@ export default function MedewerkerDashboard() {
     setProjecten(filtered);
   };
 
+  const getStatusInfo = (status: string, rol: string) => {
+    if (rol === "tekenaar") {
+      switch (status) {
+        case "nog_niet_begonnen": return { label: "Starten", clickable: true, variant: "default" };
+        case "deel1_bezig": return { label: "Mee bezig", clickable: true, variant: "outline" };
+        case "deel1_afgerond":
+        case "deel2_bezig": return { label: "Bij auditor", clickable: false };
+        case "wacht_op_reactie": return { label: "Reactie gevraagd", clickable: false };
+        default: return { label: status, clickable: false };
+      }
+    } else {
+      // auditor
+      switch (status) {
+        case "deel1_afgerond": return { label: "Starten", clickable: true, variant: "default" };
+        case "deel2_bezig": return { label: "Mee bezig", clickable: true, variant: "outline" };
+        case "wacht_op_reactie": return { label: "Reactie gevraagd", clickable: false };
+        default: return { label: status, clickable: false };
+      }
+    }
+  };
+
   const truncate = (text: string, max = 80) =>
     text.length > max ? text.slice(0, max) + "…" : text;
 
