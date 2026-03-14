@@ -222,28 +222,34 @@ export default function MedewerkerDashboard() {
                 <tr className="bg-secondary/60 border-b">
                   <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Projectnaam</th>
                   <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Type</th>
-                  <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Actie</th>
-                </tr>
-              </thead>
-              <tbody>
-                {projecten.map((p, i) => {
-                  const isNew = p.status === "nog_niet_begonnen";
-                  return (
-                    <tr key={p.id} className={`border-b last:border-0 ${i % 2 === 0 ? "bg-card" : "bg-background"}`}>
-                      <td className="px-4 py-2.5 font-medium">{p.projectnaam}</td>
-                      <td className="px-4 py-2.5">
-                        <Badge variant="secondary" className="text-xs">{p.audit_categorie}</Badge>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <Link to={`/project/${p.id}`}>
-                          <Button size="sm" variant={isNew ? "default" : "outline"} className="h-7 text-xs">
-                            {isNew ? "Starten" : "Openen"}
-                          </Button>
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
+                   <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Status</th>
+                 </tr>
+               </thead>
+               <tbody>
+                 {projecten.map((p, i) => {
+                   const statusInfo = getStatusInfo(p.status, eigenaarRol);
+                   return (
+                     <tr key={p.id} className={`border-b last:border-0 ${i % 2 === 0 ? "bg-card" : "bg-background"}`}>
+                       <td className="px-4 py-2.5 font-medium">{p.projectnaam}</td>
+                       <td className="px-4 py-2.5">
+                         <Badge variant="secondary" className="text-xs">{p.audit_categorie}</Badge>
+                       </td>
+                       <td className="px-4 py-2.5">
+                         {statusInfo.clickable ? (
+                           <Link to={`/project/${p.id}`}>
+                             <Button size="sm" variant={statusInfo.variant as any} className="h-7 text-xs">
+                               {statusInfo.label}
+                             </Button>
+                           </Link>
+                         ) : (
+                           <Badge variant="secondary" className="text-xs">
+                             {statusInfo.label}
+                           </Badge>
+                         )}
+                       </td>
+                     </tr>
+                   );
+                 })}
               </tbody>
             </table>
           </div>
