@@ -340,6 +340,11 @@ export default function ProjectDetail() {
         </div>
       </div>
 
+      {/* Aandachtspunten adviseur */}
+      {project.adviseur_id && (
+        <AandachtspuntenAdviseur adviseurId={project.adviseur_id} projectId={project.id} />
+      )}
+
       {/* Tabs */}
       <Tabs value={activeTab || onderdelen[0] || "__ep2__"} onValueChange={setActiveTab}>
         <TabsList className="flex-wrap h-auto gap-1">
