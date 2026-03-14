@@ -173,7 +173,7 @@ export default function MedewerkerDashboard() {
       <TabsList>
         <TabsTrigger value="findings" className="gap-2">
           <ClipboardList className="h-4 w-4" />
-          Findings
+          Bevindingen
           {findings.length > 0 && (
             <Badge variant="destructive" className="ml-1 text-xs px-1.5 py-0">
               {findings.length}
