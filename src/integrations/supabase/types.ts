@@ -318,6 +318,14 @@ export type Database = {
         Args: { _project_id: string; _user_id: string }
         Returns: boolean
       }
+      get_adviseur_aandachtspunten: {
+        Args: { _adviseur_id: string; _exclude_project_id: string }
+        Returns: {
+          aantal: number
+          controlepunt: string
+          onderdeel: string
+        }[]
+      }
       has_any_role: {
         Args: { _roles: Database["public"]["Enums"]["app_role"][] }
         Returns: boolean
