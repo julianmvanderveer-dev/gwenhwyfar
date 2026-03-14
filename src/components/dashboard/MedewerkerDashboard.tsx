@@ -146,7 +146,7 @@ export default function MedewerkerDashboard() {
     if (rol === "tekenaar") {
       switch (status) {
         case "nog_niet_begonnen": return { label: "Starten", clickable: true, variant: "default" };
-        case "deel1_bezig": return { label: "Mee bezig", clickable: true, variant: "outline" };
+        case "deel1_bezig": return { label: "Verder gaan", clickable: true, variant: "default" };
         case "deel1_afgerond":
         case "deel2_bezig": return { label: "Bij auditor", clickable: false };
         case "wacht_op_reactie": return { label: "Reactie gevraagd", clickable: false };
@@ -156,7 +156,7 @@ export default function MedewerkerDashboard() {
       // auditor
       switch (status) {
         case "deel1_afgerond": return { label: "Starten", clickable: true, variant: "default" };
-        case "deel2_bezig": return { label: "Mee bezig", clickable: true, variant: "outline" };
+        case "deel2_bezig": return { label: "Verder gaan", clickable: true, variant: "default" };
         case "wacht_op_reactie": return { label: "Reactie gevraagd", clickable: false };
         default: return { label: status, clickable: false };
       }
