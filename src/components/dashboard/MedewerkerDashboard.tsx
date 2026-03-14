@@ -173,7 +173,7 @@ export default function MedewerkerDashboard() {
       <TabsList>
         <TabsTrigger value="findings" className="gap-2">
           <ClipboardList className="h-4 w-4" />
-          Findings
+          Bevindingen
           {findings.length > 0 && (
             <Badge variant="destructive" className="ml-1 text-xs px-1.5 py-0">
               {findings.length}
@@ -191,7 +191,7 @@ export default function MedewerkerDashboard() {
         {findings.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <Inbox className="h-10 w-10 mb-3 opacity-40" />
-            <p className="text-sm">Er zijn momenteel geen openstaande findings.</p>
+            <p className="text-sm">Er zijn momenteel geen openstaande bevindingen.</p>
           </div>
         ) : (
           <div className="border rounded-lg overflow-hidden bg-card shadow-sm">
@@ -230,51 +230,68 @@ export default function MedewerkerDashboard() {
       </TabsContent>
 
       {/* ─── Mijn projecten ─── */}
-      <TabsContent value="projecten">
-        {projecten.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-            <FolderOpen className="h-10 w-10 mb-3 opacity-40" />
-            <p className="text-sm">Geen beschikbare projecten.</p>
-          </div>
-        ) : (
-          <div className="border rounded-lg overflow-hidden bg-card shadow-sm">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-secondary/60 border-b">
-                  <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Projectnaam</th>
-                  <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Type</th>
-                   <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Status</th>
-                 </tr>
-               </thead>
-               <tbody>
-                 {projecten.map((p, i) => {
-                   const statusInfo = getStatusInfo(p.status, eigenaarRol);
-                   return (
-                     <tr key={p.id} className={`border-b last:border-0 ${i % 2 === 0 ? "bg-card" : "bg-background"}`}>
-                       <td className="px-4 py-2.5 font-medium">{p.projectnaam}</td>
-                       <td className="px-4 py-2.5">
-                         <Badge variant="secondary" className="text-xs">{p.audit_categorie}</Badge>
-                       </td>
-                       <td className="px-4 py-2.5">
-                         {statusInfo.clickable ? (
-                           <Link to={`/project/${p.id}`}>
-                             <Button size="sm" variant={statusInfo.variant as any} className="h-7 text-xs">
-                               {statusInfo.label}
-                             </Button>
-                           </Link>
-                         ) : (
-                           <Badge variant="secondary" className="text-xs">
-                             {statusInfo.label}
-                           </Badge>
-                         )}
-                       </td>
-                     </tr>
-                   );
-                 })}
-              </tbody>
-            </table>
-          </div>
-        )}
+      <TabsContent value="projecten" className="space-y-6">
+        {(() => {
+          const assigned = projecten.filter((p) => p.toegewezen_aan === user!.id);
+          const pool = projecten.filter((p) => p.toewijzing === "pool" && !p.toegewezen_aan);
+
+          const renderTable = (items: MijnProject[]) => (
+            <div className="border rounded-lg overflow-hidden bg-card shadow-sm">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-secondary/60 border-b">
+                    <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Projectnaam</th>
+                    <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Type</th>
+                    <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((p, i) => {
+                    const statusInfo = getStatusInfo(p.status, eigenaarRol);
+                    return (
+                      <tr key={p.id} className={`border-b last:border-0 ${i % 2 === 0 ? "bg-card" : "bg-background"}`}>
+                        <td className="px-4 py-2.5 font-medium">{p.projectnaam}</td>
+                        <td className="px-4 py-2.5">
+                          <Badge variant="secondary" className="text-xs">{p.audit_categorie}</Badge>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          {statusInfo.clickable ? (
+                            <Link to={`/project/${p.id}`}>
+                              <Button size="sm" variant={statusInfo.variant as any} className="h-7 text-xs">
+                                {statusInfo.label}
+                              </Button>
+                            </Link>
+                          ) : (
+                            <Badge variant="secondary" className="text-xs">
+                              {statusInfo.label}
+                            </Badge>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          );
+
+          return (
+            <>
+              <div>
+                <h3 className="text-sm font-semibold mb-2 text-foreground">Aan mij toegewezen</h3>
+                {assigned.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4">Geen toegewezen projecten.</p>
+                ) : renderTable(assigned)}
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold mb-2 text-foreground">Beschikbaar in pool</h3>
+                {pool.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4">Geen beschikbare projecten in de pool.</p>
+                ) : renderTable(pool)}
+              </div>
+            </>
+          );
+        })()}
       </TabsContent>
     </Tabs>
   );
