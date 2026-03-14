@@ -11,6 +11,7 @@ import FindingToelichting from "@/components/FindingToelichting";
 import { Input } from "@/components/ui/input";
 import { statusBadge, beoordelingBadge, afwijkingBadge } from "@/lib/badges";
 import { ArrowLeft, CheckCircle2, ClipboardCheck, ChevronLeft, ChevronRight } from "lucide-react";
+import AandachtspuntenAdviseur from "@/components/projecten/AandachtspuntenAdviseur";
 
 type Project = Tables<"projects">;
 type Finding = Tables<"findings">;
@@ -306,7 +307,7 @@ export default function ProjectDetail() {
     deel1_afgerond: "Deel 1 afgerond",
     deel2_bezig: "Deel 2 bezig",
     afgerond: "Afgerond",
-    wacht_op_reactie: "Wacht op reactie",
+    wacht_op_reactie: "Reactie EP-adviseur gevraagd",
     gesloten: "Gesloten",
   };
 
@@ -338,6 +339,11 @@ export default function ProjectDetail() {
           {statusBadge(project.status)}
         </div>
       </div>
+
+      {/* Aandachtspunten adviseur */}
+      {project.adviseur_id && (
+        <AandachtspuntenAdviseur adviseurId={project.adviseur_id} projectId={project.id} />
+      )}
 
       {/* Tabs */}
       <Tabs value={activeTab || onderdelen[0] || "__ep2__"} onValueChange={setActiveTab}>

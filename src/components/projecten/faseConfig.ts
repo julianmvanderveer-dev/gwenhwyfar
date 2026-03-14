@@ -40,7 +40,7 @@ export const faseConfig: Record<FaseKey, {
     accentClass: "text-accent",
   },
   wacht_op_reactie_ep: {
-    titel: "Wacht op reactie EP",
+    titel: "Reactie EP-adviseur gevraagd",
     omschrijving: "Audit verzonden, wacht op reactie EP-adviseur.",
     icon: AlertTriangle,
     accentClass: "text-destructive",

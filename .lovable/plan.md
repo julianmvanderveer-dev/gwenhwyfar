@@ -1,52 +1,53 @@
 
 
-## Plan: Label wijzigen + Aandachtspunten adviseur
+## Plan: Projectstatus-workflow herziening
 
-### 1. "Reactie gevraagd" → "Reactie EP-adviseur gevraagd"
+### Huidige situatie
+De `project_status` enum heeft: `geselecteerd`, `deel1_bezig`, `wacht_op_deel2`, `afgerond`, `reactie_open`, `gesloten`.
 
-Twee plekken in `MedewerkerDashboard.tsx` (regels 152 en 160) waar het label "Reactie gevraagd" staat. Wijzigen naar "Reactie EP-adviseur gevraagd".
+### Gewenste statussen
+1. **nog_niet_begonnen** — Tekenaar heeft project nog niet geopend (vervangt `geselecteerd`)
+2. **deel1_bezig** — Tekenaar is ermee bezig (blijft)
+3. **deel1_afgerond** — Tekenaar klaar, auditor moet deel 2 doen (vervangt `wacht_op_deel2`)
+4. **deel2_bezig** — Auditor is bezig (nieuw)
+5. **afgerond** — Geen KT/NK, ter info naar EP-adviseur, na 1 week archiveren (blijft, maar andere betekenis)
+6. **wacht_op_reactie** — Wacht op reactie EP-adviseur, met deadline (vervangt `reactie_open`)
+7. **gesloten** — Gearchiveerd (blijft)
 
-Ook in `faseConfig.ts` (regel 38) de titel "Wacht op reactie EP" en de `statusBadge` in `badges.tsx` (regel 53) "Wacht op reactie" aanpassen naar "Reactie EP-adviseur gevraagd".
+### Wijzigingen
 
-### 2. Aandachtspunten-veld op ProjectDetail
+#### 1. Database migratie
+- Voeg nieuwe enum-waarden toe: `nog_niet_begonnen`, `deel1_afgerond`, `deel2_bezig`, `wacht_op_reactie`
+- Migreer bestaande data: `geselecteerd` → `nog_niet_begonnen`, `wacht_op_deel2` → `deel1_afgerond`, `reactie_open` → `wacht_op_reactie`
+- Verwijder oude waarden (via recreatie van enum, want PostgreSQL kan geen waarden verwijderen)
+- Voeg `reactie_deadline` kolom toe aan `projects` (timestamptz, nullable)
+- Voeg `gearchiveerd_op` kolom toe aan `projects` (timestamptz, nullable) — voor de 1-week logica
 
-Een nieuw informatieveld toevoegen in de header van `ProjectDetail.tsx`, dat de top 5 meest voorkomende afwijkingen (NK/KT findings met `beoordeling = 'niet_goed'`) toont voor de gekoppelde EP-adviseur, over **alle** eerdere projecten van die adviseur.
+#### 2. `src/lib/badges.tsx` — statusBadge updaten
+- Nieuwe labels en kleuren voor alle statussen
+- `wacht_op_reactie` met oranje (NK) of rode (KT) codering afhankelijk van de ergste finding
 
-**Logica:**
-- Bij het laden van het project, de `adviseur_id` gebruiken om alle findings op te halen uit andere projecten van dezelfde adviseur
-- Groepeer op `controlepunt`, tel het aantal keer dat elk controlepunt als `niet_goed` is beoordeeld
-- Toon de top 5 als een compacte lijst/card onder de header
+#### 3. `src/pages/Beheer.tsx` — Projecten-tab updaten
+- Toon `reactie_deadline` kolom bij `wacht_op_reactie`
+- Kleurcodering KT (rood) en NK (oranje) bij wacht_op_reactie status
 
-**Query (client-side):**
-```sql
-SELECT f.controlepunt, f.onderdeel, COUNT(*) as aantal
-FROM findings f
-JOIN projects p ON p.id = f.project_id
-WHERE p.adviseur_id = :adviseur_id
-  AND p.id != :current_project_id
-  AND f.beoordeling = 'niet_goed'
-GROUP BY f.controlepunt, f.onderdeel
-ORDER BY aantal DESC
-LIMIT 5
-```
+#### 4. `src/pages/ProjectDetail.tsx` — Statuslabels en workflow updaten
+- Update `statusLabel` map
+- `canDeel1` check: `nog_niet_begonnen` of `deel1_bezig`
+- `canDeel2` check: `deel1_afgerond` of `deel2_bezig`
+- `deel1Afronden`: status → `deel1_afgerond`
+- `auditAfronden`: check of er KT/NK findings zijn. Zo niet → `afgerond` + `gearchiveerd_op = now()`. Zo ja → `wacht_op_reactie` + bereken `reactie_deadline` (KT: 1 maand, NK: 3 maanden, neem de kortste)
+- Auto-set `deel1_bezig` of `deel2_bezig` wanneer tekenaar/auditor project opent en status nog `nog_niet_begonnen`/`deel1_afgerond`
 
-Dit wordt uitgevoerd via de Supabase client met een RPC-functie, omdat dit een aggregatiequery is die niet direct via de JS-client kan.
+#### 5. `src/pages/Inbox.tsx` — Statuslabels updaten
+- Update `statusLabel` map
+- Filter: toon `afgerond` projecten alleen als `gearchiveerd_op` < 1 week geleden
 
-**Database:**
-- Nieuwe database-functie `get_adviseur_aandachtspunten(adviseur_id, exclude_project_id)` die de top 5 retourneert
+#### 6. Archivering na 1 week
+- In de Inbox/Beheer query: projecten met status `afgerond` en `gearchiveerd_op` ouder dan 7 dagen worden als `gesloten` getoond of gefilterd. Implementeer dit client-side bij laden, of via een simpele check die status naar `gesloten` zet.
 
-**UI:**
-- Collapsible card/alert onder de project-header met titel "Aandachtspunten bij deze adviseur"
-- Lijst met controlepunt + aantal keer afwijking
-- Alleen tonen als er data is
-
-### Bestanden
-
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/components/dashboard/MedewerkerDashboard.tsx` | Label "Reactie EP-adviseur gevraagd" |
-| `src/lib/badges.tsx` | Label aanpassen |
-| `src/components/projecten/faseConfig.ts` | Titel aanpassen |
-| Database migratie | Nieuwe functie `get_adviseur_aandachtspunten` |
-| `src/pages/ProjectDetail.tsx` | Aandachtspunten-sectie toevoegen |
+### Deadline-logica bij `wacht_op_reactie`
+- Kijk naar ergste finding-type: als er minstens 1 KT is → deadline = 1 maand. Anders (alleen NK) → deadline = 3 maanden.
+- Sla op in `projects.reactie_deadline`.
+- Toon in Beheer met kleurcodering: rood als KT-findings, oranje als alleen NK-findings.
 
