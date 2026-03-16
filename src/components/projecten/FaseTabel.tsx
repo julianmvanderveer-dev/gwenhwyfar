@@ -125,7 +125,7 @@ export default function FaseTabel({
               <tbody>
                 {projecten.map((p, i) => {
                   const isEditing = hertoewijzingId === p.id;
-                  const gefilterd = getFilteredPersonen(p.status);
+                  const gefilterd = getFilteredPersonen(p);
                   const isTekenaarFase = ["nog_niet_begonnen", "deel1_bezig"].includes(p.status);
                   const isAuditorFase = ["deel1_afgerond", "deel2_bezig"].includes(p.status);
 
