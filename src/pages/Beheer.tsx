@@ -615,10 +615,23 @@ export default function Beheer() {
                             value={hertoewijzingAan}
                             onChange={(e) => setHertoewijzingAan(e.target.value)}
                           >
-                            <option value="">— Selecteer —</option>
-                            {toewijsbarePersonen.map((pp) => (
-                              <option key={pp.id} value={pp.id}>{pp.naam} ({pp.roles.filter(r => r !== "beheer").join(", ")})</option>
-                            ))}
+                            {(() => {
+                              const isTekenaarFase = ["nog_niet_begonnen", "deel1_bezig"].includes(p.status);
+                              const isAuditorFase = ["deel1_afgerond", "deel2_bezig"].includes(p.status);
+                              const gefilterd = toewijsbarePersonen.filter(pp => {
+                                if (isTekenaarFase) return pp.roles.includes("tekenaar");
+                                if (isAuditorFase) return pp.roles.includes("auditor");
+                                return true;
+                              });
+                              return (
+                                <>
+                                  <option value="">— Selecteer {isTekenaarFase ? "tekenaar" : isAuditorFase ? "auditor" : "persoon"} —</option>
+                                  {gefilterd.map((pp) => (
+                                    <option key={pp.id} value={pp.id}>{pp.naam} ({pp.roles.filter(r => r !== "beheer").join(", ")})</option>
+                                  ))}
+                                </>
+                              );
+                            })()}
                           </select>
                           <Button size="icon" variant="ghost" className="h-7 w-7" disabled={!hertoewijzingAan} onClick={() => hertoewijzen(p.id, hertoewijzingAan)}>
                             <Check className="h-4 w-4" />
