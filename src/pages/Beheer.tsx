@@ -308,6 +308,12 @@ export default function Beheer() {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
+      // Save audit categories for the new user
+      if (data?.user_id && memberForm.auditCategorieen.length > 0) {
+        await supabase.from("user_audit_categorieen").insert(
+          memberForm.auditCategorieen.map((cat) => ({ user_id: data.user_id, audit_categorie: cat })) as any
+        );
+      }
       setAddingMember(false);
       setMemberForm({ naam: "", email: "", password: "", roles: [], auditCategorieen: [] });
       setShowPassword(false);
