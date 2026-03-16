@@ -8,6 +8,7 @@ import { toast } from "@/hooks/use-toast";
 import type { Tables, Enums } from "@/integrations/supabase/types";
 import { addMonths, addDays } from "date-fns";
 import FindingToelichting from "@/components/FindingToelichting";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { statusBadge, beoordelingBadge, afwijkingBadge } from "@/lib/badges";
 import { ArrowLeft, CheckCircle2, ClipboardCheck, ChevronLeft, ChevronRight } from "lucide-react";
@@ -443,6 +444,27 @@ export default function ProjectDetail() {
                                   initialValue={f.toelichting}
                                   editable={editable}
                                 />
+                                {editable && f.beoordeling === "niet_goed" && (
+                                  <label className="flex items-center gap-2 mt-2 cursor-pointer text-xs text-muted-foreground">
+                                    <Checkbox
+                                      checked={f.upload_vereist}
+                                      onCheckedChange={async (checked) => {
+                                        const { error } = await supabase
+                                          .from("findings")
+                                          .update({ upload_vereist: !!checked })
+                                          .eq("id", f.id);
+                                        if (error) {
+                                          toast({ title: "Fout", description: "Kon upload-eis niet opslaan", variant: "destructive" });
+                                        } else {
+                                          setFindings((prev) =>
+                                            prev.map((fin) => fin.id === f.id ? { ...fin, upload_vereist: !!checked } : fin)
+                                          );
+                                        }
+                                      }}
+                                    />
+                                    Upload vereist voor EP-adviseur
+                                  </label>
+                                )}
                               </td>
                             </tr>
                           )}
