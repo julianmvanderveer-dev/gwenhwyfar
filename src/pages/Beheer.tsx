@@ -476,6 +476,7 @@ export default function Beheer() {
                           />
                         </td>
                       );
+                    })}
                     {AUDIT_CATEGORIEEN.map((cat, ci) => {
                       const hasCat = p.auditCategorieen.includes(cat);
                       const isRelevant = p.roles.includes("tekenaar") || p.roles.includes("auditor");
