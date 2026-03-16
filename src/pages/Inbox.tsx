@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import { beoordelingBadge, afwijkingBadge } from "@/lib/badges";
 import { orderedFases, faseConfig, getProjectFase, type FaseKey } from "@/components/projecten/faseConfig";
-import FaseTabel from "@/components/projecten/FaseTabel";
+import FaseTabel, { type ToewijsbarePersoon } from "@/components/projecten/FaseTabel";
 import ExportFilter from "@/components/projecten/ExportFilter";
 import MedewerkerDashboard from "@/components/dashboard/MedewerkerDashboard";
 
@@ -27,6 +27,7 @@ export default function Inbox() {
   const [adviseurFilterProject, setAdviseurFilterProject] = useState<string>("alle");
   const [adviseurFilterStatus, setAdviseurFilterStatus] = useState<string>("alle");
   const [zoekterm, setZoekterm] = useState("");
+  const [toewijsbarePersonen, setToewijsbarePersonen] = useState<ToewijsbarePersoon[]>([]);
 
   useEffect(() => {
     if (!user) return;
