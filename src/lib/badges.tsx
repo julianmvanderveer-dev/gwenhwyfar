@@ -46,6 +46,7 @@ export const statusBadge = (val: string | null, variant?: "kt" | "nk") => {
     afgerond: "bg-green-100 text-green-700",
     wacht_op_reactie: variant === "kt" ? "bg-red-100 text-red-700" : "bg-orange-100 text-orange-700",
     gesloten: "bg-green-200 text-green-800",
+    reactie_goedgekeurd: "bg-green-100 text-green-700",
   };
   const label: Record<string, string> = {
     nog_niet_begonnen: "Nog niet begonnen",
@@ -55,6 +56,7 @@ export const statusBadge = (val: string | null, variant?: "kt" | "nk") => {
     afgerond: "Afgerond",
     wacht_op_reactie: "Reactie EP-adviseur gevraagd",
     gesloten: "Gesloten",
+    reactie_goedgekeurd: "Reactie goedgekeurd",
   };
   return (
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${map[val] ?? "bg-gray-100 text-gray-700"}`}>

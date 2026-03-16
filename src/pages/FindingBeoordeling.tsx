@@ -50,8 +50,8 @@ export default function FindingBeoordeling() {
 
   const akkoord = async () => {
     setLoading(true);
-    await supabase.from("findings").update({ status: "gesloten" as any }).eq("id", id!);
-    toast({ title: "Finding gesloten", description: "Beoordeling: akkoord" });
+    await supabase.from("findings").update({ status: "reactie_goedgekeurd" as any, goedgekeurd_op: new Date().toISOString() } as any).eq("id", id!);
+    toast({ title: "Reactie goedgekeurd", description: "De reactie van de EP-adviseur is goedgekeurd." });
     loadFinding();
     setLoading(false);
   };

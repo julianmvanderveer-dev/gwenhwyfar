@@ -78,6 +78,7 @@ export type Database = {
           eigenaar_beoordeling:
             | Database["public"]["Enums"]["eigenaar_type"]
             | null
+          goedgekeurd_op: string | null
           id: string
           onderdeel: string
           project_id: string
@@ -96,6 +97,7 @@ export type Database = {
           eigenaar_beoordeling?:
             | Database["public"]["Enums"]["eigenaar_type"]
             | null
+          goedgekeurd_op?: string | null
           id?: string
           onderdeel: string
           project_id: string
@@ -114,6 +116,7 @@ export type Database = {
           eigenaar_beoordeling?:
             | Database["public"]["Enums"]["eigenaar_type"]
             | null
+          goedgekeurd_op?: string | null
           id?: string
           onderdeel?: string
           project_id?: string
@@ -345,7 +348,11 @@ export type Database = {
       audit_soort: "dossieraudit" | "projectaudit"
       beoordeling_type: "goed" | "niet_goed" | "opmerking"
       eigenaar_type: "tekenaar" | "auditor"
-      finding_status: "open" | "reactie_ontvangen" | "gesloten"
+      finding_status:
+        | "open"
+        | "reactie_ontvangen"
+        | "gesloten"
+        | "reactie_goedgekeurd"
       project_status:
         | "geselecteerd"
         | "deel1_bezig"
@@ -491,7 +498,12 @@ export const Constants = {
       audit_soort: ["dossieraudit", "projectaudit"],
       beoordeling_type: ["goed", "niet_goed", "opmerking"],
       eigenaar_type: ["tekenaar", "auditor"],
-      finding_status: ["open", "reactie_ontvangen", "gesloten"],
+      finding_status: [
+        "open",
+        "reactie_ontvangen",
+        "gesloten",
+        "reactie_goedgekeurd",
+      ],
       project_status: [
         "geselecteerd",
         "deel1_bezig",
