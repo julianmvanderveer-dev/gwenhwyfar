@@ -169,6 +169,60 @@ export default function Inbox() {
     }
   };
 
+  const loadToewijsbarePersonen = async () => {
+    const { data: allProfiles } = await supabase.from("profiles").select("id, naam").eq("actief", true);
+    const { data: allRoles } = await supabase.from("user_roles").select("user_id, role");
+    const personen = (allProfiles ?? []).map(p => ({
+      ...p,
+      roles: (allRoles ?? []).filter(r => r.user_id === p.id).map(r => r.role),
+    })).filter(p => p.roles.includes("tekenaar") || p.roles.includes("auditor"));
+    setToewijsbarePersonen(personen);
+  };
+
+  const hertoewijzen = async (projectId: string, nieuweUserId: string) => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+    const oudeUserId = project.toegewezen_aan;
+
+    await supabase.from("projects").update({
+      toegewezen_aan: nieuweUserId,
+      toegewezen_op: new Date().toISOString(),
+      toewijzing: "specifiek" as any,
+    }).eq("id", projectId);
+
+    const notificaties = [];
+    if (oudeUserId && oudeUserId !== nieuweUserId) {
+      notificaties.push({ user_id: oudeUserId, bericht: `Project "${project.projectnaam}" is aan je ontnomen en hertoegewezen.` });
+    }
+    notificaties.push({ user_id: nieuweUserId, bericht: `Project "${project.projectnaam}" is aan je toegewezen.` });
+    await supabase.from("notificaties").insert(notificaties);
+
+    toast.success("Project hertoegewezen");
+    loadData();
+  };
+
+  const terugNaarPool = async (projectId: string) => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+    const oudeUserId = project.toegewezen_aan;
+
+    await supabase.from("projects").update({
+      toegewezen_aan: null,
+      toegewezen_op: null,
+      toewijzing: "pool" as any,
+    }).eq("id", projectId);
+
+    if (oudeUserId) {
+      await supabase.from("notificaties").insert({
+        user_id: oudeUserId,
+        bericht: `Project "${project.projectnaam}" is teruggeplaatst in de pool.`,
+      });
+    }
+
+    toast.success("Project teruggeplaatst in pool");
+    loadData();
+  };
+
   const projectenPerFase = useMemo(() => {
     const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
     const needle = zoekterm.trim().toLowerCase();
