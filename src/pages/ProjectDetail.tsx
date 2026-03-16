@@ -8,6 +8,7 @@ import { toast } from "@/hooks/use-toast";
 import type { Tables, Enums } from "@/integrations/supabase/types";
 import { addMonths, addDays } from "date-fns";
 import FindingToelichting from "@/components/FindingToelichting";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { statusBadge, beoordelingBadge, afwijkingBadge } from "@/lib/badges";
 import { ArrowLeft, CheckCircle2, ClipboardCheck, ChevronLeft, ChevronRight } from "lucide-react";
