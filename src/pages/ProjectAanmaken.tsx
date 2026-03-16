@@ -15,7 +15,7 @@ import { EPU_B_CHECKLIST } from "@/data/epub-checklist";
 import { EPU_D_CHECKLIST } from "@/data/epud-checklist";
 
 type Adviseur = { id: string; nummer: number; naam: string; email: string | null; actief: boolean };
-type ToewijsbaarPersoon = { id: string; naam: string; email: string; roles: Enums<"app_role">[] };
+type ToewijsbaarPersoon = { id: string; naam: string; email: string; roles: Enums<"app_role">[]; auditCategorieen: Enums<"audit_categorie">[] };
 
 export default function ProjectAanmaken() {
   const { user, hasRole } = useAuth();
@@ -44,11 +44,13 @@ export default function ProjectAanmaken() {
   const loadToewijsbarePersonen = async () => {
     const { data: profiles } = await supabase.from("profiles").select("id, naam, email").eq("actief", true);
     const { data: roles } = await supabase.from("user_roles").select("user_id, role");
+    const { data: cats } = await supabase.from("user_audit_categorieen").select("user_id, audit_categorie");
     if (!profiles || !roles) return;
 
     const personen: ToewijsbaarPersoon[] = profiles.map((p) => ({
       ...p,
       roles: roles.filter((r) => r.user_id === p.id).map((r) => r.role),
+      auditCategorieen: (cats ?? []).filter((c) => c.user_id === p.id).map((c) => c.audit_categorie),
     })).filter((p) => p.roles.includes("tekenaar"));
 
     setToewijsbarePersonen(personen);
@@ -208,7 +210,9 @@ export default function ProjectAanmaken() {
                   required
                 >
                   <option value="">— Selecteer persoon —</option>
-                  {toewijsbarePersonen.map((p) => (
+                  {toewijsbarePersonen
+                    .filter((p) => p.auditCategorieen.length === 0 || p.auditCategorieen.includes(auditCategorie))
+                    .map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.naam} ({p.roles.filter(r => r !== "beheer").join(", ")})
                     </option>

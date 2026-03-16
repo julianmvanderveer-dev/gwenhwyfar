@@ -17,6 +17,7 @@ type Adviseur = Tables<"adviseurs">;
 const ALL_ROLES: Enums<"app_role">[] = ["beheer", "tekenaar", "auditor", "ep_adviseur"];
 const PROJECT_ROLES: Enums<"app_role">[] = ["beheer", "tekenaar", "auditor"];
 const EP_ROLES: Enums<"app_role">[] = ["ep_adviseur"];
+const AUDIT_CATEGORIEEN: Enums<"audit_categorie">[] = ["EPW-B", "EPW-D", "EPU-B", "EPU-D", "MWA-B", "MWA-U"];
 
 const ROLE_PRIORITY: Record<string, number> = { beheer: 1, tekenaar: 2, auditor: 3 };
 
@@ -34,7 +35,7 @@ type ToewijzingProject = Tables<"projects"> & {
 
 export default function Beheer() {
   const { hasRole, user } = useAuth();
-  const [profiles, setProfiles] = useState<(Profile & { roles: Enums<"app_role">[] })[]>([]);
+  const [profiles, setProfiles] = useState<(Profile & { roles: Enums<"app_role">[]; auditCategorieen: Enums<"audit_categorie">[] })[]>([]);
   const [adviseurs, setAdviseurs] = useState<Adviseur[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ nummer: 0, naam: "", email: "" });
@@ -43,13 +44,13 @@ export default function Beheer() {
 
   // Team member add state
   const [addingMember, setAddingMember] = useState(false);
-  const [memberForm, setMemberForm] = useState({ naam: "", email: "", password: "", roles: [] as Enums<"app_role">[] });
+  const [memberForm, setMemberForm] = useState({ naam: "", email: "", password: "", roles: [] as Enums<"app_role">[], auditCategorieen: [] as Enums<"audit_categorie">[] });
   const [showPassword, setShowPassword] = useState(false);
   const [submittingMember, setSubmittingMember] = useState(false);
 
   // Toewijzingen state
   const [toewijzingProjecten, setToewijzingProjecten] = useState<ToewijzingProject[]>([]);
-  const [toewijsbarePersonen, setToewijsbarePersonen] = useState<{ id: string; naam: string; roles: string[] }[]>([]);
+  const [toewijsbarePersonen, setToewijsbarePersonen] = useState<{ id: string; naam: string; roles: string[]; auditCategorieen: string[] }[]>([]);
   const [hertoewijzingProjectId, setHertoewijzingProjectId] = useState<string | null>(null);
   const [hertoewijzingAan, setHertoewijzingAan] = useState("");
 
@@ -62,9 +63,11 @@ export default function Beheer() {
   const loadUsers = async () => {
     const { data: profileData } = await supabase.from("profiles").select("*").order("naam");
     const { data: roleData } = await supabase.from("user_roles").select("*");
+    const { data: catData } = await supabase.from("user_audit_categorieen").select("*");
     const combined = (profileData ?? []).map((p) => ({
       ...p,
       roles: (roleData ?? []).filter((r) => r.user_id === p.id).map((r) => r.role),
+      auditCategorieen: (catData ?? []).filter((c) => c.user_id === p.id).map((c) => c.audit_categorie),
     }));
     // Sort by role priority: Beheer → Tekenaar → Auditor → geen rol, then alphabetically
     combined.sort((a, b) => {
@@ -105,9 +108,11 @@ export default function Beheer() {
     // Load toewijsbare personen
     const { data: allProfiles } = await supabase.from("profiles").select("id, naam").eq("actief", true);
     const { data: allRoles } = await supabase.from("user_roles").select("user_id, role");
+    const { data: allCats } = await supabase.from("user_audit_categorieen").select("user_id, audit_categorie");
     const personen = (allProfiles ?? []).map(p => ({
       ...p,
       roles: (allRoles ?? []).filter(r => r.user_id === p.id).map(r => r.role),
+      auditCategorieen: (allCats ?? []).filter(c => c.user_id === p.id).map(c => c.audit_categorie),
     })).filter(p => p.roles.includes("tekenaar") || p.roles.includes("auditor"));
     setToewijsbarePersonen(personen);
   };
@@ -180,6 +185,21 @@ export default function Beheer() {
       toast({ title: hasIt ? "Rol verwijderd" : "Rol toegevoegd" });
     } catch (err: any) {
       toast({ title: "Fout bij rolwijziging", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const toggleAuditCategorie = async (userId: string, cat: Enums<"audit_categorie">, hasIt: boolean) => {
+    try {
+      if (hasIt) {
+        const { error } = await supabase.from("user_audit_categorieen").delete().eq("user_id", userId).eq("audit_categorie", cat as any);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("user_audit_categorieen").insert({ user_id: userId, audit_categorie: cat } as any);
+        if (error) throw error;
+      }
+      loadUsers();
+    } catch (err: any) {
+      toast({ title: "Fout bij categoriewijziging", description: err.message, variant: "destructive" });
     }
   };
 
@@ -290,8 +310,14 @@ export default function Beheer() {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
+      // Save audit categories for the new user
+      if (data?.user_id && memberForm.auditCategorieen.length > 0) {
+        await supabase.from("user_audit_categorieen").insert(
+          memberForm.auditCategorieen.map((cat) => ({ user_id: data.user_id, audit_categorie: cat })) as any
+        );
+      }
       setAddingMember(false);
-      setMemberForm({ naam: "", email: "", password: "", roles: [] });
+      setMemberForm({ naam: "", email: "", password: "", roles: [], auditCategorieen: [] });
       setShowPassword(false);
       loadUsers();
       toast({ title: "Medewerker toegevoegd" });
@@ -371,6 +397,9 @@ export default function Beheer() {
                    <th colSpan={3} className="text-center px-2 py-2 text-xs font-bold uppercase tracking-wider text-accent border-l border-r">
                      Projectrollen
                    </th>
+                   <th colSpan={6} className="text-center px-2 py-2 text-xs font-bold uppercase tracking-wider text-accent border-r">
+                     Checklistbevoegdheden
+                   </th>
                    <th className="text-center px-2 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">Wachtwoord</th>
                    <th />
                  </tr>
@@ -381,6 +410,11 @@ export default function Beheer() {
                   {PROJECT_ROLES.map((r) => (
                     <th key={r} className={`text-center px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground ${r === "beheer" ? "border-l" : ""} ${r === "auditor" ? "border-r" : ""}`}>
                       {ROLE_LABELS[r]}
+                    </th>
+                  ))}
+                  {AUDIT_CATEGORIEEN.map((cat, ci) => (
+                    <th key={cat} className={`text-center px-2 py-2.5 font-semibold text-[10px] uppercase tracking-wider text-muted-foreground ${ci === AUDIT_CATEGORIEEN.length - 1 ? "border-r" : ""}`}>
+                      {cat}
                     </th>
                   ))}
                    <th className="text-center px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-16">Actief</th>
@@ -410,6 +444,29 @@ export default function Beheer() {
                         />
                       </td>
                     ))}
+                    {AUDIT_CATEGORIEEN.map((cat, ci) => {
+                      const hasTekenaarOrAuditor = memberForm.roles.includes("tekenaar") || memberForm.roles.includes("auditor");
+                      return (
+                        <td key={cat} className={`text-center px-2 py-2.5 ${ci === AUDIT_CATEGORIEEN.length - 1 ? "border-r" : ""}`}>
+                          {hasTekenaarOrAuditor ? (
+                            <Checkbox
+                              checked={memberForm.auditCategorieen.includes(cat)}
+                              onCheckedChange={(checked) => {
+                                setMemberForm({
+                                  ...memberForm,
+                                  auditCategorieen: checked
+                                    ? [...memberForm.auditCategorieen, cat]
+                                    : memberForm.auditCategorieen.filter((c) => c !== cat),
+                                });
+                              }}
+                              className="mx-auto"
+                            />
+                          ) : (
+                            <span className="text-muted-foreground/30">—</span>
+                          )}
+                        </td>
+                      );
+                    })}
                     <td className="px-3 py-2.5">
                       <div className="relative">
                         <Input
@@ -427,7 +484,7 @@ export default function Beheer() {
                     <td className="px-3 py-2.5">
                       <div className="flex gap-1">
                         <Button size="icon" variant="ghost" className="h-7 w-7" onClick={addMember} disabled={submittingMember}><Check className="h-4 w-4" /></Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setAddingMember(false); setMemberForm({ naam: "", email: "", password: "", roles: [] }); setShowPassword(false); }}><X className="h-4 w-4" /></Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setAddingMember(false); setMemberForm({ naam: "", email: "", password: "", roles: [], auditCategorieen: [] }); setShowPassword(false); }}><X className="h-4 w-4" /></Button>
                       </div>
                     </td>
                   </tr>
@@ -448,6 +505,23 @@ export default function Beheer() {
                             onCheckedChange={() => toggleRole(p.id, role, has)}
                             className="mx-auto"
                           />
+                        </td>
+                      );
+                    })}
+                    {AUDIT_CATEGORIEEN.map((cat, ci) => {
+                      const hasCat = p.auditCategorieen.includes(cat);
+                      const isRelevant = p.roles.includes("tekenaar") || p.roles.includes("auditor");
+                      return (
+                        <td key={cat} className={`text-center px-2 py-2.5 ${ci === AUDIT_CATEGORIEEN.length - 1 ? "border-r" : ""}`}>
+                          {isRelevant ? (
+                            <Checkbox
+                              checked={hasCat}
+                              onCheckedChange={() => toggleAuditCategorie(p.id, cat, hasCat)}
+                              className="mx-auto"
+                            />
+                          ) : (
+                            <span className="text-muted-foreground/30">—</span>
+                          )}
                         </td>
                       );
                     })}
@@ -619,8 +693,14 @@ export default function Beheer() {
                               const isTekenaarFase = ["nog_niet_begonnen", "deel1_bezig"].includes(p.status);
                               const isAuditorFase = ["deel1_afgerond", "deel2_bezig"].includes(p.status);
                               const gefilterd = toewijsbarePersonen.filter(pp => {
-                                if (isTekenaarFase) return pp.roles.includes("tekenaar");
-                                if (isAuditorFase) return pp.roles.includes("auditor");
+                                if (isTekenaarFase && !pp.roles.includes("tekenaar")) return false;
+                                if (isAuditorFase && !pp.roles.includes("auditor")) return false;
+                                // Filter by audit category
+                                if (pp.auditCategorieen && pp.auditCategorieen.length > 0) {
+                                  if (!pp.auditCategorieen.includes(p.audit_categorie)) return false;
+                                } else if (pp.auditCategorieen && pp.auditCategorieen.length === 0) {
+                                  return false;
+                                }
                                 return true;
                               });
                               return (

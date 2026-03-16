@@ -297,6 +297,32 @@ export type Database = {
           },
         ]
       }
+      user_audit_categorieen: {
+        Row: {
+          audit_categorie: Database["public"]["Enums"]["audit_categorie"]
+          id: string
+          user_id: string
+        }
+        Insert: {
+          audit_categorie: Database["public"]["Enums"]["audit_categorie"]
+          id?: string
+          user_id: string
+        }
+        Update: {
+          audit_categorie?: Database["public"]["Enums"]["audit_categorie"]
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_audit_categorieen_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
