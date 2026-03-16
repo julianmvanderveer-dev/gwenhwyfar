@@ -309,7 +309,7 @@ export default function Beheer() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setAddingMember(false);
-      setMemberForm({ naam: "", email: "", password: "", roles: [] });
+      setMemberForm({ naam: "", email: "", password: "", roles: [], auditCategorieen: [] });
       setShowPassword(false);
       loadUsers();
       toast({ title: "Medewerker toegevoegd" });
