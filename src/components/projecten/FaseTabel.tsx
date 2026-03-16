@@ -60,13 +60,20 @@ export default function FaseTabel({
 
   const canReassign = showToewijzing && toewijsbarePersonen && onReassign && onReturnToPool;
 
-  const getFilteredPersonen = (status: string) => {
+  const getFilteredPersonen = (project: { status: string; audit_categorie: string }) => {
     if (!toewijsbarePersonen) return [];
-    const isTekenaarFase = ["nog_niet_begonnen", "deel1_bezig"].includes(status);
-    const isAuditorFase = ["deel1_afgerond", "deel2_bezig"].includes(status);
+    const isTekenaarFase = ["nog_niet_begonnen", "deel1_bezig"].includes(project.status);
+    const isAuditorFase = ["deel1_afgerond", "deel2_bezig"].includes(project.status);
     return toewijsbarePersonen.filter(pp => {
-      if (isTekenaarFase) return pp.roles.includes("tekenaar");
-      if (isAuditorFase) return pp.roles.includes("auditor");
+      if (isTekenaarFase && !pp.roles.includes("tekenaar")) return false;
+      if (isAuditorFase && !pp.roles.includes("auditor")) return false;
+      // Filter by audit category permissions
+      if (pp.auditCategorieen && pp.auditCategorieen.length > 0) {
+        if (!pp.auditCategorieen.includes(project.audit_categorie)) return false;
+      } else if (pp.auditCategorieen && pp.auditCategorieen.length === 0) {
+        // No categories assigned = no permissions
+        return false;
+      }
       return true;
     });
   };
