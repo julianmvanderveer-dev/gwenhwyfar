@@ -186,6 +186,21 @@ export default function Beheer() {
     }
   };
 
+  const toggleAuditCategorie = async (userId: string, cat: Enums<"audit_categorie">, hasIt: boolean) => {
+    try {
+      if (hasIt) {
+        const { error } = await supabase.from("user_audit_categorieen").delete().eq("user_id", userId).eq("audit_categorie", cat as any);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("user_audit_categorieen").insert({ user_id: userId, audit_categorie: cat } as any);
+        if (error) throw error;
+      }
+      loadUsers();
+    } catch (err: any) {
+      toast({ title: "Fout bij categoriewijziging", description: err.message, variant: "destructive" });
+    }
+  };
+
   const toggleActief = async (userId: string, currentActief: boolean) => {
     const { error } = await supabase.from("profiles").update({ actief: !currentActief }).eq("id", userId);
     if (error) {
