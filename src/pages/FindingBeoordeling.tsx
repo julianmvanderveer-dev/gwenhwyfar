@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { Mic, MicOff } from "lucide-react";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Finding = Tables<"findings">;
@@ -20,6 +21,7 @@ export default function FindingBeoordeling() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [opmerking, setOpmerking] = useState("");
+  const [uploadVereist, setUploadVereist] = useState(false);
 
   const handleSpeech = useCallback((transcript: string) => {
     setOpmerking((prev) => (prev ? prev + " " + transcript : transcript));
@@ -56,7 +58,7 @@ export default function FindingBeoordeling() {
 
   const nietAkkoord = async () => {
     setLoading(true);
-    await supabase.from("findings").update({ status: "open" as any }).eq("id", id!);
+    await supabase.from("findings").update({ status: "open" as any, upload_vereist: uploadVereist }).eq("id", id!);
     toast({ title: "Niet akkoord", description: "Finding opnieuw geopend voor de adviseur" });
 
     // Notify EP-adviseur via e-mail
@@ -128,6 +130,16 @@ export default function FindingBeoordeling() {
                 </Button>
               )}
             </div>
+          </div>
+          <div className="flex items-center gap-2 mb-2">
+            <Checkbox
+              id="uploadVereist"
+              checked={uploadVereist}
+              onCheckedChange={(v) => setUploadVereist(v === true)}
+            />
+            <label htmlFor="uploadVereist" className="text-sm cursor-pointer">
+              Eis dat EP-adviseur extra documentatie uploadt
+            </label>
           </div>
           <div className="flex gap-2">
             <Button onClick={akkoord} disabled={loading}>Akkoord</Button>
