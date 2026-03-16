@@ -435,6 +435,7 @@ export default function Beheer() {
                           className="mx-auto"
                         />
                       </td>
+                    ))}
                     {AUDIT_CATEGORIEEN.map((cat, ci) => {
                       const hasTekenaarOrAuditor = memberForm.roles.includes("tekenaar") || memberForm.roles.includes("auditor");
                       return (
