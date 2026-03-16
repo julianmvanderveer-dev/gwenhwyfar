@@ -11,7 +11,8 @@ import FindingToelichting from "@/components/FindingToelichting";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { statusBadge, beoordelingBadge, afwijkingBadge } from "@/lib/badges";
-import { ArrowLeft, CheckCircle2, ClipboardCheck, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ClipboardCheck, ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { generateAuditReport } from "@/lib/generateAuditReport";
 import AandachtspuntenAdviseur from "@/components/projecten/AandachtspuntenAdviseur";
 
 type Project = Tables<"projects">;
