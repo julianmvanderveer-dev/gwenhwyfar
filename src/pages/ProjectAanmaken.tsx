@@ -190,7 +190,7 @@ export default function ProjectAanmaken() {
             <RadioGroup value={toewijzing} onValueChange={(v) => { setToewijzing(v as any); setToegewezenAan(""); }}>
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="pool" id="pool" />
-                <Label htmlFor="pool" className="font-normal">Algemene pool — zichtbaar voor alle tekenaars/auditors</Label>
+                <Label htmlFor="pool" className="font-normal">Algemene pool — zichtbaar voor alle tekenaars</Label>
               </div>
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="specifiek" id="specifiek" />
