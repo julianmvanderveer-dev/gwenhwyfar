@@ -1,53 +1,38 @@
 
 
-## Plan: Projectstatus-workflow herziening
+## Plan: EPU-B en EPU-D checklists toevoegen
 
-### Huidige situatie
-De `project_status` enum heeft: `geselecteerd`, `deel1_bezig`, `wacht_op_deel2`, `afgerond`, `reactie_open`, `gesloten`.
-
-### Gewenste statussen
-1. **nog_niet_begonnen** — Tekenaar heeft project nog niet geopend (vervangt `geselecteerd`)
-2. **deel1_bezig** — Tekenaar is ermee bezig (blijft)
-3. **deel1_afgerond** — Tekenaar klaar, auditor moet deel 2 doen (vervangt `wacht_op_deel2`)
-4. **deel2_bezig** — Auditor is bezig (nieuw)
-5. **afgerond** — Geen KT/NK, ter info naar EP-adviseur, na 1 week archiveren (blijft, maar andere betekenis)
-6. **wacht_op_reactie** — Wacht op reactie EP-adviseur, met deadline (vervangt `reactie_open`)
-7. **gesloten** — Gearchiveerd (blijft)
+### Overzicht
+Twee nieuwe checklist-databestanden aanmaken (EPU-B gebaseerd op EPW-B, EPU-D gebaseerd op EPW-D), beide uitgebreid met 4 extra controlepunten. Daarnaast de database vullen met templates en de UI's updaten zodat EPU-B/D overal ondersteund worden.
 
 ### Wijzigingen
 
-#### 1. Database migratie
-- Voeg nieuwe enum-waarden toe: `nog_niet_begonnen`, `deel1_afgerond`, `deel2_bezig`, `wacht_op_reactie`
-- Migreer bestaande data: `geselecteerd` → `nog_niet_begonnen`, `wacht_op_deel2` → `deel1_afgerond`, `reactie_open` → `wacht_op_reactie`
-- Verwijder oude waarden (via recreatie van enum, want PostgreSQL kan geen waarden verwijderen)
-- Voeg `reactie_deadline` kolom toe aan `projects` (timestamptz, nullable)
-- Voeg `gearchiveerd_op` kolom toe aan `projects` (timestamptz, nullable) — voor de 1-week logica
+#### 1. Nieuwe databestanden
+- **`src/data/epub-checklist.ts`** — Kopie van EPW-B, plus:
+  - `3h`: "Is er een duidelijke tekening met functie-indeling aanwezig?" (deel 2)
+  - `3i`: "Zijn de hulpfuncties juist toebedeeld aan gebruiksfuncties?" (deel 2)
+  - `5j`: "Verlichting - correct vermogen?" (deel 2)
+  - `5k`: "Verlichting - correcte schakeling?" (deel 2)
 
-#### 2. `src/lib/badges.tsx` — statusBadge updaten
-- Nieuwe labels en kleuren voor alle statussen
-- `wacht_op_reactie` met oranje (NK) of rode (KT) codering afhankelijk van de ergste finding
+- **`src/data/epud-checklist.ts`** — Kopie van EPW-D, plus dezelfde 4 extra items (3h, 3i, 5j, 5k)
 
-#### 3. `src/pages/Beheer.tsx` — Projecten-tab updaten
-- Toon `reactie_deadline` kolom bij `wacht_op_reactie`
-- Kleurcodering KT (rood) en NK (oranje) bij wacht_op_reactie status
+#### 2. Database migratie
+- INSERT alle EPU-B en EPU-D rijen in `checklist_templates` tabel, zodat ze via ChecklistBeheer bewerkbaar zijn
 
-#### 4. `src/pages/ProjectDetail.tsx` — Statuslabels en workflow updaten
-- Update `statusLabel` map
-- `canDeel1` check: `nog_niet_begonnen` of `deel1_bezig`
-- `canDeel2` check: `deel1_afgerond` of `deel2_bezig`
-- `deel1Afronden`: status → `deel1_afgerond`
-- `auditAfronden`: check of er KT/NK findings zijn. Zo niet → `afgerond` + `gearchiveerd_op = now()`. Zo ja → `wacht_op_reactie` + bereken `reactie_deadline` (KT: 1 maand, NK: 3 maanden, neem de kortste)
-- Auto-set `deel1_bezig` of `deel2_bezig` wanneer tekenaar/auditor project opent en status nog `nog_niet_begonnen`/`deel1_afgerond`
+#### 3. `src/pages/ChecklistBeheer.tsx`
+- Tabs uitbreiden met EPU-B en EPU-D (naast bestaande EPW-B/EPW-D)
 
-#### 5. `src/pages/Inbox.tsx` — Statuslabels updaten
-- Update `statusLabel` map
-- Filter: toon `afgerond` projecten alleen als `gearchiveerd_op` < 1 week geleden
+#### 4. `src/pages/ProjectAanmaken.tsx`
+- Importeer EPU-B/D checklists als fallback
+- Breid de template-query uit zodat EPU-B/D ook uit `checklist_templates` geladen worden (momenteel alleen EPW-B/D)
 
-#### 6. Archivering na 1 week
-- In de Inbox/Beheer query: projecten met status `afgerond` en `gearchiveerd_op` ouder dan 7 dagen worden als `gesloten` getoond of gefilterd. Implementeer dit client-side bij laden, of via een simpele check die status naar `gesloten` zet.
+### Bestanden
 
-### Deadline-logica bij `wacht_op_reactie`
-- Kijk naar ergste finding-type: als er minstens 1 KT is → deadline = 1 maand. Anders (alleen NK) → deadline = 3 maanden.
-- Sla op in `projects.reactie_deadline`.
-- Toon in Beheer met kleurcodering: rood als KT-findings, oranje als alleen NK-findings.
+| Bestand | Wijziging |
+|---------|-----------|
+| `src/data/epub-checklist.ts` | Nieuw: EPU-B checklist data |
+| `src/data/epud-checklist.ts` | Nieuw: EPU-D checklist data |
+| Database migratie | INSERT EPU-B en EPU-D rijen in checklist_templates |
+| `src/pages/ChecklistBeheer.tsx` | Tabs toevoegen voor EPU-B en EPU-D |
+| `src/pages/ProjectAanmaken.tsx` | Fallback en template-query uitbreiden voor EPU-B/D |
 
