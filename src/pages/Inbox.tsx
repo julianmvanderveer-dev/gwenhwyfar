@@ -431,6 +431,9 @@ export default function Inbox() {
                 onDelete={deleteProject}
                 defaultOpen={projectenPerFase[fase].length > 0}
                 showToewijzing={isBeheer}
+                toewijsbarePersonen={toewijsbarePersonen}
+                onReassign={hertoewijzen}
+                onReturnToPool={terugNaarPool}
               />
             ))}
           </div>
