@@ -693,8 +693,14 @@ export default function Beheer() {
                               const isTekenaarFase = ["nog_niet_begonnen", "deel1_bezig"].includes(p.status);
                               const isAuditorFase = ["deel1_afgerond", "deel2_bezig"].includes(p.status);
                               const gefilterd = toewijsbarePersonen.filter(pp => {
-                                if (isTekenaarFase) return pp.roles.includes("tekenaar");
-                                if (isAuditorFase) return pp.roles.includes("auditor");
+                                if (isTekenaarFase && !pp.roles.includes("tekenaar")) return false;
+                                if (isAuditorFase && !pp.roles.includes("auditor")) return false;
+                                // Filter by audit category
+                                if (pp.auditCategorieen && pp.auditCategorieen.length > 0) {
+                                  if (!pp.auditCategorieen.includes(p.audit_categorie)) return false;
+                                } else if (pp.auditCategorieen && pp.auditCategorieen.length === 0) {
+                                  return false;
+                                }
                                 return true;
                               });
                               return (
