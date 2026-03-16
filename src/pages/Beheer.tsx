@@ -476,7 +476,7 @@ export default function Beheer() {
                     <td className="px-3 py-2.5">
                       <div className="flex gap-1">
                         <Button size="icon" variant="ghost" className="h-7 w-7" onClick={addMember} disabled={submittingMember}><Check className="h-4 w-4" /></Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setAddingMember(false); setMemberForm({ naam: "", email: "", password: "", roles: [] }); setShowPassword(false); }}><X className="h-4 w-4" /></Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setAddingMember(false); setMemberForm({ naam: "", email: "", password: "", roles: [], auditCategorieen: [] }); setShowPassword(false); }}><X className="h-4 w-4" /></Button>
                       </div>
                     </td>
                   </tr>
