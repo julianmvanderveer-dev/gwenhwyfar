@@ -131,6 +131,16 @@ export default function FindingBeoordeling() {
               )}
             </div>
           </div>
+          <div className="flex items-center gap-2 mb-2">
+            <Checkbox
+              id="uploadVereist"
+              checked={uploadVereist}
+              onCheckedChange={(v) => setUploadVereist(v === true)}
+            />
+            <label htmlFor="uploadVereist" className="text-sm cursor-pointer">
+              Eis dat EP-adviseur extra documentatie uploadt
+            </label>
+          </div>
           <div className="flex gap-2">
             <Button onClick={akkoord} disabled={loading}>Akkoord</Button>
             <Button variant="outline" onClick={nietAkkoord} disabled={loading}>Niet akkoord</Button>

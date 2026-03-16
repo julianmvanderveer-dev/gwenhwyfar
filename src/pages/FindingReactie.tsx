@@ -295,7 +295,7 @@ export default function FindingReactie() {
               </div>
 
               <div className="flex gap-2">
-                <Button onClick={nietAkkoord} disabled={loading || !bericht.trim()}>
+                <Button onClick={nietAkkoord} disabled={loading || !bericht.trim() || ((finding as any).upload_vereist && !bestand)}>
                   Reactie verzenden
                 </Button>
                 <Button variant="ghost" onClick={() => { setModus("keuze"); setBericht(""); setBestand(null); }}>
