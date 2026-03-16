@@ -44,7 +44,7 @@ export default function Beheer() {
 
   // Team member add state
   const [addingMember, setAddingMember] = useState(false);
-  const [memberForm, setMemberForm] = useState({ naam: "", email: "", password: "", roles: [] as Enums<"app_role">[] });
+  const [memberForm, setMemberForm] = useState({ naam: "", email: "", password: "", roles: [] as Enums<"app_role">[], auditCategorieen: [] as Enums<"audit_categorie">[] });
   const [showPassword, setShowPassword] = useState(false);
   const [submittingMember, setSubmittingMember] = useState(false);
 
