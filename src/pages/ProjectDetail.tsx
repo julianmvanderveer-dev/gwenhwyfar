@@ -11,7 +11,8 @@ import FindingToelichting from "@/components/FindingToelichting";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { statusBadge, beoordelingBadge, afwijkingBadge } from "@/lib/badges";
-import { ArrowLeft, CheckCircle2, ClipboardCheck, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ClipboardCheck, ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { generateAuditReport } from "@/lib/generateAuditReport";
 import AandachtspuntenAdviseur from "@/components/projecten/AandachtspuntenAdviseur";
 
 type Project = Tables<"projects">;
@@ -336,7 +337,30 @@ export default function ProjectDetail() {
             {project.prioriteit && " · Prioriteit"}
           </p>
         </div>
-        <div className="ml-auto shrink-0">
+        <div className="ml-auto shrink-0 flex items-center gap-2">
+          {(hasRole("beheer") || hasRole("ep_adviseur")) &&
+            ["afgerond", "gesloten", "wacht_op_reactie"].includes(project.status) && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={async () => {
+                  let adviseurNaam: string | undefined;
+                  if (project.adviseur_id) {
+                    const { data } = await supabase
+                      .from("adviseurs")
+                      .select("naam")
+                      .eq("id", project.adviseur_id)
+                      .single();
+                    adviseurNaam = data?.naam;
+                  }
+                  generateAuditReport({ project, findings, adviseurNaam, templates });
+                }}
+              >
+                <Download className="h-4 w-4" />
+                Download rapport
+              </Button>
+            )}
           {statusBadge(project.status)}
         </div>
       </div>
