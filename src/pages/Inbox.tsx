@@ -37,6 +37,7 @@ export default function Inbox() {
   const loadData = async () => {
     if (hasRole("ep_adviseur")) await loadAdviseurData();
     if (hasRole("tekenaar") || hasRole("auditor") || hasRole("beheer")) await loadInternalData();
+    if (hasRole("beheer")) await loadToewijsbarePersonen();
   };
 
   const loadInternalData = async () => {
