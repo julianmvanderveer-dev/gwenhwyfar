@@ -35,7 +35,7 @@ type ToewijzingProject = Tables<"projects"> & {
 
 export default function Beheer() {
   const { hasRole, user } = useAuth();
-  const [profiles, setProfiles] = useState<(Profile & { roles: Enums<"app_role">[] })[]>([]);
+  const [profiles, setProfiles] = useState<(Profile & { roles: Enums<"app_role">[]; auditCategorieen: Enums<"audit_categorie">[] })[]>([]);
   const [adviseurs, setAdviseurs] = useState<Adviseur[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ nummer: 0, naam: "", email: "" });
