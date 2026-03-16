@@ -25,7 +25,9 @@ export default function Inbox() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectFindings, setProjectFindings] = useState<Record<string, Finding[]>>({});
   const [findings, setFindings] = useState<Finding[]>([]);
-  const [adviseurProjects, setAdviseurProjects] = useState<(Tables<"projects"> & { findings: Finding[] })[]>([]);
+  const [adviseurFindings, setAdviseurFindings] = useState<Finding[]>([]);
+  const [adviseurFilterProject, setAdviseurFilterProject] = useState<string>("alle");
+  const [adviseurFilterStatus, setAdviseurFilterStatus] = useState<string>("alle");
   const [zoekterm, setZoekterm] = useState("");
 
   useEffect(() => {
