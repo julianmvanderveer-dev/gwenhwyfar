@@ -96,37 +96,67 @@ export default function Inbox() {
       .single();
 
     if (!adviseurRecord) {
-      setAdviseurProjects([]);
+      setAdviseurFindings([]);
       return;
     }
 
     const { data: projectData } = await supabase
       .from("projects")
-      .select("*")
-      .eq("adviseur_id", adviseurRecord.id)
-      .neq("status", "gesloten")
-      .order("datum_aangemaakt", { ascending: false });
+      .select("id, projectnaam")
+      .eq("adviseur_id", adviseurRecord.id);
 
     if (!projectData || projectData.length === 0) {
-      setAdviseurProjects([]);
+      setAdviseurFindings([]);
       return;
     }
 
     const projectIds = projectData.map((p) => p.id);
+    const projectMap = new Map(projectData.map((p) => [p.id, p.projectnaam]));
+
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
     const { data: findingData } = await supabase
       .from("findings")
       .select("*")
       .in("project_id", projectIds)
-      .neq("status", "gesloten")
+      .in("status", ["open", "reactie_ontvangen", "reactie_goedgekeurd"] as any)
       .eq("zichtbaar_voor_adviseur", true)
       .order("created_at");
 
-    const grouped = projectData.map((p) => ({
-      ...p,
-      findings: (findingData ?? []).filter((f) => f.project_id === p.id),
+    // Filter out reactie_goedgekeurd older than 7 days
+    const filtered = (findingData ?? []).filter((f) => {
+      if (f.status === "reactie_goedgekeurd") {
+        const goedOp = (f as any).goedgekeurd_op;
+        if (goedOp && new Date(goedOp) < new Date(sevenDaysAgo)) return false;
+      }
+      return true;
+    });
+
+    // Load latest message per finding for reactie column
+    const findingIds = filtered.map((f) => f.id);
+    let messageMap: Record<string, { bericht: string; bijlage_pad: string | null }> = {};
+    if (findingIds.length > 0) {
+      const { data: msgs } = await supabase
+        .from("messages")
+        .select("finding_id, bericht, bijlage_pad, datum")
+        .in("finding_id", findingIds)
+        .order("datum", { ascending: false });
+      // Keep only latest per finding
+      (msgs ?? []).forEach((m) => {
+        if (!messageMap[m.finding_id]) {
+          messageMap[m.finding_id] = { bericht: m.bericht, bijlage_pad: m.bijlage_pad };
+        }
+      });
+    }
+
+    const enriched: Finding[] = filtered.map((f) => ({
+      ...f,
+      projectnaam: projectMap.get(f.project_id) ?? "—",
+      laatste_reactie: messageMap[f.id]?.bericht ?? "",
+      laatste_bijlage: messageMap[f.id]?.bijlage_pad ?? null,
     }));
 
-    setAdviseurProjects(grouped);
+    setAdviseurFindings(enriched);
   };
 
   const deleteProject = async (id: string) => {
