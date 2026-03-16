@@ -210,7 +210,9 @@ export default function ProjectAanmaken() {
                   required
                 >
                   <option value="">— Selecteer persoon —</option>
-                  {toewijsbarePersonen.map((p) => (
+                  {toewijsbarePersonen
+                    .filter((p) => p.auditCategorieen.length === 0 || p.auditCategorieen.includes(auditCategorie))
+                    .map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.naam} ({p.roles.filter(r => r !== "beheer").join(", ")})
                     </option>
