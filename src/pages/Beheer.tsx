@@ -435,7 +435,29 @@ export default function Beheer() {
                           className="mx-auto"
                         />
                       </td>
-                    ))}
+                    {AUDIT_CATEGORIEEN.map((cat, ci) => {
+                      const hasTekenaarOrAuditor = memberForm.roles.includes("tekenaar") || memberForm.roles.includes("auditor");
+                      return (
+                        <td key={cat} className={`text-center px-2 py-2.5 ${ci === AUDIT_CATEGORIEEN.length - 1 ? "border-r" : ""}`}>
+                          {hasTekenaarOrAuditor ? (
+                            <Checkbox
+                              checked={memberForm.auditCategorieen.includes(cat)}
+                              onCheckedChange={(checked) => {
+                                setMemberForm({
+                                  ...memberForm,
+                                  auditCategorieen: checked
+                                    ? [...memberForm.auditCategorieen, cat]
+                                    : memberForm.auditCategorieen.filter((c) => c !== cat),
+                                });
+                              }}
+                              className="mx-auto"
+                            />
+                          ) : (
+                            <span className="text-muted-foreground/30">—</span>
+                          )}
+                        </td>
+                      );
+                    })}
                     <td className="px-3 py-2.5">
                       <div className="relative">
                         <Input
