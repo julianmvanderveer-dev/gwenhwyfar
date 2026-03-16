@@ -198,7 +198,34 @@ export default function Inbox() {
   const totalVisible = orderedFases.reduce((sum, f) => sum + (projectenPerFase[f]?.length ?? 0), 0);
   const isBeheer = hasRole("beheer");
   const isMedewerker = hasRole("tekenaar") || hasRole("auditor");
-  const isInternal = isMedewerker || isBeheer;
+  const adviseurStatusBadge = (status: string) => {
+    const map: Record<string, { label: string; className: string }> = {
+      open: { label: "Open", className: "bg-orange-100 text-orange-700" },
+      reactie_ontvangen: { label: "Reactie ingediend", className: "bg-blue-100 text-blue-700" },
+      reactie_goedgekeurd: { label: "Reactie goedgekeurd", className: "bg-green-100 text-green-700" },
+    };
+    const s = map[status] ?? { label: status, className: "bg-muted text-muted-foreground" };
+    return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${s.className}`}>{s.label}</span>;
+  };
+
+  const adviseurProjectNames = useMemo(() => {
+    const names = new Set(adviseurFindings.map((f) => f.projectnaam).filter(Boolean));
+    return Array.from(names).sort();
+  }, [adviseurFindings]);
+
+  const filteredAdviseurFindings = useMemo(() => {
+    return adviseurFindings.filter((f) => {
+      if (adviseurFilterProject !== "alle" && f.projectnaam !== adviseurFilterProject) return false;
+      if (adviseurFilterStatus !== "alle" && f.status !== adviseurFilterStatus) return false;
+      return true;
+    });
+  }, [adviseurFindings, adviseurFilterProject, adviseurFilterStatus]);
+
+  const handleDownload = async (path: string) => {
+    const { data, error } = await supabase.storage.from("finding-documents").createSignedUrl(path, 3600);
+    if (error || !data?.signedUrl) return;
+    window.open(data.signedUrl, "_blank");
+  };
 
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
