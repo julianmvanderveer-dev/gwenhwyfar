@@ -11,6 +11,8 @@ import { toast } from "@/hooks/use-toast";
 import type { Enums } from "@/integrations/supabase/types";
 import { EPW_D_CHECKLIST } from "@/data/epwd-checklist";
 import { EPW_B_CHECKLIST } from "@/data/epwb-checklist";
+import { EPU_B_CHECKLIST } from "@/data/epub-checklist";
+import { EPU_D_CHECKLIST } from "@/data/epud-checklist";
 
 type Adviseur = { id: string; nummer: number; naam: string; email: string | null; actief: boolean };
 type ToewijsbaarPersoon = { id: string; naam: string; email: string; roles: Enums<"app_role">[] };
