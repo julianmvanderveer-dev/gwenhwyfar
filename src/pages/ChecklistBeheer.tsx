@@ -23,7 +23,7 @@ export default function ChecklistBeheer() {
   const [changed, setChanged] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<"EPW-B" | "EPW-D">("EPW-B");
+  const [activeTab, setActiveTab] = useState<"EPW-B" | "EPW-D" | "EPU-B" | "EPU-D">("EPW-B");
 
   useEffect(() => {
     supabase
