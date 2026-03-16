@@ -219,13 +219,21 @@ export default function FindingReactie() {
 
       {finding.status !== "gesloten" && finding.status !== "reactie_ontvangen" && (
         <div>
+          {(finding as any).upload_vereist && (
+            <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded p-3 mb-3 text-sm">
+              ⚠️ De beoordelaar vereist dat je een document uploadt bij je reactie.
+            </div>
+          )}
+
           {modus === "keuze" && (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">Kies je reactie op deze afwijking:</p>
               <div className="flex gap-2">
-                <Button onClick={accepteren} disabled={loading} className="gap-1">
-                  <Check className="h-4 w-4" /> Accepteren
-                </Button>
+                {!(finding as any).upload_vereist && (
+                  <Button onClick={accepteren} disabled={loading} className="gap-1">
+                    <Check className="h-4 w-4" /> Accepteren
+                  </Button>
+                )}
                 <Button variant="outline" onClick={() => setModus("niet_akkoord")} disabled={loading} className="gap-1">
                   <X className="h-4 w-4" /> Niet akkoord
                 </Button>
