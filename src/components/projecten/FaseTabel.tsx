@@ -14,6 +14,7 @@ export interface ToewijsbarePersoon {
   id: string;
   naam: string;
   roles: string[];
+  auditCategorieen?: string[];
 }
 
 interface FaseTabelProps {
