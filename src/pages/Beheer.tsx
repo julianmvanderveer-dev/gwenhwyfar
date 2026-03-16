@@ -63,9 +63,11 @@ export default function Beheer() {
   const loadUsers = async () => {
     const { data: profileData } = await supabase.from("profiles").select("*").order("naam");
     const { data: roleData } = await supabase.from("user_roles").select("*");
+    const { data: catData } = await supabase.from("user_audit_categorieen").select("*");
     const combined = (profileData ?? []).map((p) => ({
       ...p,
       roles: (roleData ?? []).filter((r) => r.user_id === p.id).map((r) => r.role),
+      auditCategorieen: (catData ?? []).filter((c) => c.user_id === p.id).map((c) => c.audit_categorie),
     }));
     // Sort by role priority: Beheer → Tekenaar → Auditor → geen rol, then alphabetically
     combined.sort((a, b) => {
