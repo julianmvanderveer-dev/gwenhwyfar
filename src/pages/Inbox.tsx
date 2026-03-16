@@ -386,7 +386,7 @@ export default function Inbox() {
         </>
       )}
 
-      {projects.length === 0 && findings.length === 0 && adviseurProjects.length === 0 && (
+      {projects.length === 0 && findings.length === 0 && adviseurFindings.length === 0 && (
         <p className="text-muted-foreground text-center py-12">Geen openstaande items.</p>
       )}
     </div>
