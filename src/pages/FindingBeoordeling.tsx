@@ -58,7 +58,7 @@ export default function FindingBeoordeling() {
 
   const nietAkkoord = async () => {
     setLoading(true);
-    await supabase.from("findings").update({ status: "open" as any }).eq("id", id!);
+    await supabase.from("findings").update({ status: "open" as any, upload_vereist: uploadVereist }).eq("id", id!);
     toast({ title: "Niet akkoord", description: "Finding opnieuw geopend voor de adviseur" });
 
     // Notify EP-adviseur via e-mail
