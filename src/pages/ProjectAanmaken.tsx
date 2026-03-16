@@ -52,7 +52,10 @@ export default function ProjectAanmaken() {
     setToewijsbarePersonen(personen);
   };
 
-  if (!hasRole("beheer")) {
+  const isBeheer = hasRole("beheer");
+  const magAanmaken = isBeheer || hasRole("tekenaar") || hasRole("auditor");
+
+  if (!magAanmaken) {
     return <div className="p-4">Geen toegang.</div>;
   }
 
