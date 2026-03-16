@@ -17,6 +17,7 @@ type Adviseur = Tables<"adviseurs">;
 const ALL_ROLES: Enums<"app_role">[] = ["beheer", "tekenaar", "auditor", "ep_adviseur"];
 const PROJECT_ROLES: Enums<"app_role">[] = ["beheer", "tekenaar", "auditor"];
 const EP_ROLES: Enums<"app_role">[] = ["ep_adviseur"];
+const AUDIT_CATEGORIEEN: Enums<"audit_categorie">[] = ["EPW-B", "EPW-D", "EPU-B", "EPU-D", "MWA-B", "MWA-U"];
 
 const ROLE_PRIORITY: Record<string, number> = { beheer: 1, tekenaar: 2, auditor: 3 };
 
