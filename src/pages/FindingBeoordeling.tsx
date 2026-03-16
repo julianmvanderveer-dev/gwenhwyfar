@@ -21,6 +21,7 @@ export default function FindingBeoordeling() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [opmerking, setOpmerking] = useState("");
+  const [uploadVereist, setUploadVereist] = useState(false);
 
   const handleSpeech = useCallback((transcript: string) => {
     setOpmerking((prev) => (prev ? prev + " " + transcript : transcript));
