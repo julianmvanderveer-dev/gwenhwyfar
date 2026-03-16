@@ -49,7 +49,7 @@ export default function ProjectAanmaken() {
     const personen: ToewijsbaarPersoon[] = profiles.map((p) => ({
       ...p,
       roles: roles.filter((r) => r.user_id === p.id).map((r) => r.role),
-    })).filter((p) => p.roles.includes("tekenaar") || p.roles.includes("auditor"));
+    })).filter((p) => p.roles.includes("tekenaar"));
 
     setToewijsbarePersonen(personen);
   };
