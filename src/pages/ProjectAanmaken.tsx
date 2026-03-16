@@ -44,11 +44,13 @@ export default function ProjectAanmaken() {
   const loadToewijsbarePersonen = async () => {
     const { data: profiles } = await supabase.from("profiles").select("id, naam, email").eq("actief", true);
     const { data: roles } = await supabase.from("user_roles").select("user_id, role");
+    const { data: cats } = await supabase.from("user_audit_categorieen").select("user_id, audit_categorie");
     if (!profiles || !roles) return;
 
     const personen: ToewijsbaarPersoon[] = profiles.map((p) => ({
       ...p,
       roles: roles.filter((r) => r.user_id === p.id).map((r) => r.role),
+      auditCategorieen: (cats ?? []).filter((c) => c.user_id === p.id).map((c) => c.audit_categorie),
     })).filter((p) => p.roles.includes("tekenaar"));
 
     setToewijsbarePersonen(personen);
