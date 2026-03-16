@@ -52,7 +52,10 @@ export default function ProjectAanmaken() {
     setToewijsbarePersonen(personen);
   };
 
-  if (!hasRole("beheer")) {
+  const isBeheer = hasRole("beheer");
+  const magAanmaken = isBeheer || hasRole("tekenaar") || hasRole("auditor");
+
+  if (!magAanmaken) {
     return <div className="p-4">Geen toegang.</div>;
   }
 
@@ -72,7 +75,12 @@ export default function ProjectAanmaken() {
       toewijzing,
     };
 
-    if (toewijzing === "specifiek" && toegewezenAan) {
+    if (!isBeheer) {
+      // Tekenaar/auditor: altijd aan zichzelf toewijzen
+      insertData.toegewezen_aan = user.id;
+      insertData.toewijzing = "specifiek";
+      insertData.toegewezen_op = new Date().toISOString();
+    } else if (toewijzing === "specifiek" && toegewezenAan) {
       insertData.toegewezen_aan = toegewezenAan;
       insertData.toegewezen_op = new Date().toISOString();
     }
@@ -167,39 +175,41 @@ export default function ProjectAanmaken() {
           <Label htmlFor="prioriteit">Prioriteit</Label>
         </div>
 
-        {/* Toewijzing */}
-        <div className="space-y-3 border rounded-lg p-4 bg-card">
-          <Label className="font-semibold">Toewijzing</Label>
-          <RadioGroup value={toewijzing} onValueChange={(v) => { setToewijzing(v as any); setToegewezenAan(""); }}>
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="pool" id="pool" />
-              <Label htmlFor="pool" className="font-normal">Algemene pool — zichtbaar voor alle tekenaars/auditors</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="specifiek" id="specifiek" />
-              <Label htmlFor="specifiek" className="font-normal">Specifieke toewijzing — alleen zichtbaar voor gekozen persoon</Label>
-            </div>
-          </RadioGroup>
+        {/* Toewijzing — alleen voor beheer */}
+        {isBeheer && (
+          <div className="space-y-3 border rounded-lg p-4 bg-card">
+            <Label className="font-semibold">Toewijzing</Label>
+            <RadioGroup value={toewijzing} onValueChange={(v) => { setToewijzing(v as any); setToegewezenAan(""); }}>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="pool" id="pool" />
+                <Label htmlFor="pool" className="font-normal">Algemene pool — zichtbaar voor alle tekenaars/auditors</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="specifiek" id="specifiek" />
+                <Label htmlFor="specifiek" className="font-normal">Specifieke toewijzing — alleen zichtbaar voor gekozen persoon</Label>
+              </div>
+            </RadioGroup>
 
-          {toewijzing === "specifiek" && (
-            <div>
-              <Label>Toewijzen aan</Label>
-              <select
-                className="border rounded px-2 py-1 w-full text-sm"
-                value={toegewezenAan}
-                onChange={(e) => setToegewezenAan(e.target.value)}
-                required
-              >
-                <option value="">— Selecteer persoon —</option>
-                {toewijsbarePersonen.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.naam} ({p.roles.filter(r => r !== "beheer").join(", ")})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
+            {toewijzing === "specifiek" && (
+              <div>
+                <Label>Toewijzen aan</Label>
+                <select
+                  className="border rounded px-2 py-1 w-full text-sm"
+                  value={toegewezenAan}
+                  onChange={(e) => setToegewezenAan(e.target.value)}
+                  required
+                >
+                  <option value="">— Selecteer persoon —</option>
+                  {toewijsbarePersonen.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.naam} ({p.roles.filter(r => r !== "beheer").join(", ")})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        )}
 
         <Button type="submit" disabled={loading}>Aanmaken</Button>
       </form>

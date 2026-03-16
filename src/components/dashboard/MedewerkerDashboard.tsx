@@ -237,6 +237,14 @@ export default function MedewerkerDashboard() {
 
       {/* ─── Mijn projecten ─── */}
       <TabsContent value="projecten" className="space-y-6">
+        <div className="flex justify-end">
+          <Link to="/project/nieuw">
+            <Button size="sm" className="gap-2">
+              <FolderOpen className="h-4 w-4" />
+              Nieuw project
+            </Button>
+          </Link>
+        </div>
         {(() => {
           const ACTIVE_STATUSES = ["deel1_bezig", "deel1_afgerond", "deel2_bezig", "wacht_op_reactie"];
           const assigned = projecten.filter(
