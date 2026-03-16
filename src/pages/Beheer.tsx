@@ -50,7 +50,7 @@ export default function Beheer() {
 
   // Toewijzingen state
   const [toewijzingProjecten, setToewijzingProjecten] = useState<ToewijzingProject[]>([]);
-  const [toewijsbarePersonen, setToewijsbarePersonen] = useState<{ id: string; naam: string; roles: string[] }[]>([]);
+  const [toewijsbarePersonen, setToewijsbarePersonen] = useState<{ id: string; naam: string; roles: string[]; auditCategorieen: string[] }[]>([]);
   const [hertoewijzingProjectId, setHertoewijzingProjectId] = useState<string | null>(null);
   const [hertoewijzingAan, setHertoewijzingAan] = useState("");
 
