@@ -200,7 +200,7 @@ export default function ProjectAanmaken() {
 
             {toewijzing === "specifiek" && (
               <div>
-                <Label>Toewijzen aan</Label>
+                <Label>Toewijzen aan tekenaar</Label>
                 <select
                   className="border rounded px-2 py-1 w-full text-sm"
                   value={toegewezenAan}
