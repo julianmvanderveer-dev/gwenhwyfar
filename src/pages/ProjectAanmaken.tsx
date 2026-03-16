@@ -11,6 +11,8 @@ import { toast } from "@/hooks/use-toast";
 import type { Enums } from "@/integrations/supabase/types";
 import { EPW_D_CHECKLIST } from "@/data/epwd-checklist";
 import { EPW_B_CHECKLIST } from "@/data/epwb-checklist";
+import { EPU_B_CHECKLIST } from "@/data/epub-checklist";
+import { EPU_D_CHECKLIST } from "@/data/epud-checklist";
 
 type Adviseur = { id: string; nummer: number; naam: string; email: string | null; actief: boolean };
 type ToewijsbaarPersoon = { id: string; naam: string; email: string; roles: Enums<"app_role">[] };
@@ -94,16 +96,22 @@ export default function ProjectAanmaken() {
     }
 
     // Auto-insert checklist findings from DB templates (fallback to hardcoded)
-    if (auditCategorie === "EPW-D" || auditCategorie === "EPW-B") {
+    if (["EPW-B", "EPW-D", "EPU-B", "EPU-D"].includes(auditCategorie)) {
       const { data: templates } = await supabase
         .from("checklist_templates")
         .select("code, onderdeel, controlepunt, deel")
         .eq("audit_categorie", auditCategorie)
         .order("code");
 
+      const fallbackMap: Record<string, typeof EPW_B_CHECKLIST> = {
+        "EPW-B": EPW_B_CHECKLIST,
+        "EPW-D": EPW_D_CHECKLIST,
+        "EPU-B": EPU_B_CHECKLIST,
+        "EPU-D": EPU_D_CHECKLIST,
+      };
       const checklist = templates && templates.length > 0
         ? templates
-        : auditCategorie === "EPW-D" ? EPW_D_CHECKLIST : EPW_B_CHECKLIST;
+        : fallbackMap[auditCategorie] ?? EPW_B_CHECKLIST;
 
       const findingsToInsert = checklist.map((item) => ({
         project_id: project.id,

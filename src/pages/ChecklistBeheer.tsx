@@ -23,7 +23,7 @@ export default function ChecklistBeheer() {
   const [changed, setChanged] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<"EPW-B" | "EPW-D">("EPW-B");
+  const [activeTab, setActiveTab] = useState<"EPW-B" | "EPW-D" | "EPU-B" | "EPU-D">("EPW-B");
 
   useEffect(() => {
     supabase
@@ -188,13 +188,17 @@ export default function ChecklistBeheer() {
           {saving ? "Opslaan..." : `Opslaan (${changed.size})`}
         </Button>
       </div>
-      <Tabs defaultValue="EPW-B" onValueChange={(v) => setActiveTab(v as "EPW-B" | "EPW-D")}>
+      <Tabs defaultValue="EPW-B" onValueChange={(v) => setActiveTab(v as "EPW-B" | "EPW-D" | "EPU-B" | "EPU-D")}>
         <TabsList>
           <TabsTrigger value="EPW-B">EPW-B</TabsTrigger>
           <TabsTrigger value="EPW-D">EPW-D</TabsTrigger>
+          <TabsTrigger value="EPU-B">EPU-B</TabsTrigger>
+          <TabsTrigger value="EPU-D">EPU-D</TabsTrigger>
         </TabsList>
         <TabsContent value="EPW-B">{renderTable("EPW-B")}</TabsContent>
         <TabsContent value="EPW-D">{renderTable("EPW-D")}</TabsContent>
+        <TabsContent value="EPU-B">{renderTable("EPU-B")}</TabsContent>
+        <TabsContent value="EPU-D">{renderTable("EPU-D")}</TabsContent>
       </Tabs>
     </div>
   );
