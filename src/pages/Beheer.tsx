@@ -108,9 +108,11 @@ export default function Beheer() {
     // Load toewijsbare personen
     const { data: allProfiles } = await supabase.from("profiles").select("id, naam").eq("actief", true);
     const { data: allRoles } = await supabase.from("user_roles").select("user_id, role");
+    const { data: allCats } = await supabase.from("user_audit_categorieen").select("user_id, audit_categorie");
     const personen = (allProfiles ?? []).map(p => ({
       ...p,
       roles: (allRoles ?? []).filter(r => r.user_id === p.id).map(r => r.role),
+      auditCategorieen: (allCats ?? []).filter(c => c.user_id === p.id).map(c => c.audit_categorie),
     })).filter(p => p.roles.includes("tekenaar") || p.roles.includes("auditor"));
     setToewijsbarePersonen(personen);
   };
