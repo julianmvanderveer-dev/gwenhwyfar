@@ -84,6 +84,7 @@ export type Database = {
           status: Database["public"]["Enums"]["finding_status"]
           toelichting: string | null
           type_afwijking: Database["public"]["Enums"]["afwijking_type"] | null
+          upload_vereist: boolean
           zichtbaar_voor_adviseur: boolean
         }
         Insert: {
@@ -101,6 +102,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["finding_status"]
           toelichting?: string | null
           type_afwijking?: Database["public"]["Enums"]["afwijking_type"] | null
+          upload_vereist?: boolean
           zichtbaar_voor_adviseur?: boolean
         }
         Update: {
@@ -118,6 +120,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["finding_status"]
           toelichting?: string | null
           type_afwijking?: Database["public"]["Enums"]["afwijking_type"] | null
+          upload_vereist?: boolean
           zichtbaar_voor_adviseur?: boolean
         }
         Relationships: [
