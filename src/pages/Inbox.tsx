@@ -9,14 +9,16 @@ import { Input } from "@/components/ui/input";
 import { Plus, Search, LayoutDashboard } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
-import { beoordelingBadge, afwijkingBadge } from "@/lib/badges";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { beoordelingBadge, afwijkingBadge, statusBadge } from "@/lib/badges";
 import { orderedFases, faseConfig, getProjectFase, type FaseKey } from "@/components/projecten/faseConfig";
 import FaseTabel from "@/components/projecten/FaseTabel";
 import ExportFilter from "@/components/projecten/ExportFilter";
 import MedewerkerDashboard from "@/components/dashboard/MedewerkerDashboard";
+import { Download, FileText } from "lucide-react";
 
 type Project = Tables<"projects"> & { adviseurs: { naam: string } | null; toegewezen_profiel?: { naam: string } | null };
-type Finding = Tables<"findings">;
+type Finding = Tables<"findings"> & { projectnaam?: string; laatste_reactie?: string; laatste_bijlage?: string | null };
 
 export default function Inbox() {
   const { user, roles, hasRole } = useAuth();
