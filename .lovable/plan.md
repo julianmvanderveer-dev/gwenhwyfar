@@ -1,34 +1,53 @@
 
 
-## Plan: Toewijzing beperken tot tekenaars bij aanmaken, auditor apart toewijzen
+## Plan: Projectstatus-workflow herziening
 
-### Probleem
-1. Bij project aanmaken kunnen zowel tekenaars als auditors worden geselecteerd — maar elk project moet **eerst via een tekenaar** (deel 1).
-2. In het Beheer toewijzingenscherm worden ook auditors getoond bij hertoewijzing, zonder onderscheid naar projectfase.
+### Huidige situatie
+De `project_status` enum heeft: `geselecteerd`, `deel1_bezig`, `wacht_op_deel2`, `afgerond`, `reactie_open`, `gesloten`.
 
-### Gewenste situatie
-- **Nieuw project**: kan alleen aan een **tekenaar** worden toegewezen (of in de pool voor tekenaars).
-- **Na deel 1 afgerond**: beheerder kan een **auditor** toewijzen voor deel 2.
-- Hertoewijzing in Beheer toont de juiste rolgroep afhankelijk van de projectstatus.
+### Gewenste statussen
+1. **nog_niet_begonnen** — Tekenaar heeft project nog niet geopend (vervangt `geselecteerd`)
+2. **deel1_bezig** — Tekenaar is ermee bezig (blijft)
+3. **deel1_afgerond** — Tekenaar klaar, auditor moet deel 2 doen (vervangt `wacht_op_deel2`)
+4. **deel2_bezig** — Auditor is bezig (nieuw)
+5. **afgerond** — Geen KT/NK, ter info naar EP-adviseur, na 1 week archiveren (blijft, maar andere betekenis)
+6. **wacht_op_reactie** — Wacht op reactie EP-adviseur, met deadline (vervangt `reactie_open`)
+7. **gesloten** — Gearchiveerd (blijft)
 
 ### Wijzigingen
 
-#### 1. `src/pages/ProjectAanmaken.tsx`
-- Filter `toewijsbarePersonen` zodat alleen personen met rol **tekenaar** getoond worden (niet auditors).
-- Pas label aan: "Toewijzen aan tekenaar".
+#### 1. Database migratie
+- Voeg nieuwe enum-waarden toe: `nog_niet_begonnen`, `deel1_afgerond`, `deel2_bezig`, `wacht_op_reactie`
+- Migreer bestaande data: `geselecteerd` → `nog_niet_begonnen`, `wacht_op_deel2` → `deel1_afgerond`, `reactie_open` → `wacht_op_reactie`
+- Verwijder oude waarden (via recreatie van enum, want PostgreSQL kan geen waarden verwijderen)
+- Voeg `reactie_deadline` kolom toe aan `projects` (timestamptz, nullable)
+- Voeg `gearchiveerd_op` kolom toe aan `projects` (timestamptz, nullable) — voor de 1-week logica
 
-#### 2. `src/pages/Beheer.tsx` — Toewijzingen tab
-- Bij hertoewijzing: toon **tekenaars** als status `nog_niet_begonnen` of `deel1_bezig`. Toon **auditors** als status `deel1_afgerond` of `deel2_bezig`.
-- Bij statussen daarna (`wacht_op_reactie`, `afgerond`): hertoewijzing niet nodig of beide rollen tonen.
+#### 2. `src/lib/badges.tsx` — statusBadge updaten
+- Nieuwe labels en kleuren voor alle statussen
+- `wacht_op_reactie` met oranje (NK) of rode (KT) codering afhankelijk van de ergste finding
 
-#### 3. Pool-logica verduidelijken
-- Pool-projecten (status `nog_niet_begonnen`) worden alleen door tekenaars opgepakt. Dit is al zo via `claim_project`, maar de UI-labels moeten dit verduidelijken: "Zichtbaar voor alle tekenaars".
-- Na `deel1_afgerond` moet beheerder een auditor toewijzen (of het project in een "auditor pool" plaatsen). Dit vereist een extra stap in de workflow.
+#### 3. `src/pages/Beheer.tsx` — Projecten-tab updaten
+- Toon `reactie_deadline` kolom bij `wacht_op_reactie`
+- Kleurcodering KT (rood) en NK (oranje) bij wacht_op_reactie status
 
-### Bestanden
+#### 4. `src/pages/ProjectDetail.tsx` — Statuslabels en workflow updaten
+- Update `statusLabel` map
+- `canDeel1` check: `nog_niet_begonnen` of `deel1_bezig`
+- `canDeel2` check: `deel1_afgerond` of `deel2_bezig`
+- `deel1Afronden`: status → `deel1_afgerond`
+- `auditAfronden`: check of er KT/NK findings zijn. Zo niet → `afgerond` + `gearchiveerd_op = now()`. Zo ja → `wacht_op_reactie` + bereken `reactie_deadline` (KT: 1 maand, NK: 3 maanden, neem de kortste)
+- Auto-set `deel1_bezig` of `deel2_bezig` wanneer tekenaar/auditor project opent en status nog `nog_niet_begonnen`/`deel1_afgerond`
 
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/pages/ProjectAanmaken.tsx` | Filter dropdown op alleen tekenaars |
-| `src/pages/Beheer.tsx` | Hertoewijzing-dropdown filteren op basis van projectstatus |
+#### 5. `src/pages/Inbox.tsx` — Statuslabels updaten
+- Update `statusLabel` map
+- Filter: toon `afgerond` projecten alleen als `gearchiveerd_op` < 1 week geleden
+
+#### 6. Archivering na 1 week
+- In de Inbox/Beheer query: projecten met status `afgerond` en `gearchiveerd_op` ouder dan 7 dagen worden als `gesloten` getoond of gefilterd. Implementeer dit client-side bij laden, of via een simpele check die status naar `gesloten` zet.
+
+### Deadline-logica bij `wacht_op_reactie`
+- Kijk naar ergste finding-type: als er minstens 1 KT is → deadline = 1 maand. Anders (alleen NK) → deadline = 3 maanden.
+- Sla op in `projects.reactie_deadline`.
+- Toon in Beheer met kleurcodering: rood als KT-findings, oranje als alleen NK-findings.
 

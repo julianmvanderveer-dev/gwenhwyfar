@@ -49,7 +49,7 @@ export default function ProjectAanmaken() {
     const personen: ToewijsbaarPersoon[] = profiles.map((p) => ({
       ...p,
       roles: roles.filter((r) => r.user_id === p.id).map((r) => r.role),
-    })).filter((p) => p.roles.includes("tekenaar") || p.roles.includes("auditor"));
+    })).filter((p) => p.roles.includes("tekenaar"));
 
     setToewijsbarePersonen(personen);
   };
@@ -190,7 +190,7 @@ export default function ProjectAanmaken() {
             <RadioGroup value={toewijzing} onValueChange={(v) => { setToewijzing(v as any); setToegewezenAan(""); }}>
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="pool" id="pool" />
-                <Label htmlFor="pool" className="font-normal">Algemene pool — zichtbaar voor alle tekenaars/auditors</Label>
+                <Label htmlFor="pool" className="font-normal">Algemene pool — zichtbaar voor alle tekenaars</Label>
               </div>
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="specifiek" id="specifiek" />
@@ -200,7 +200,7 @@ export default function ProjectAanmaken() {
 
             {toewijzing === "specifiek" && (
               <div>
-                <Label>Toewijzen aan</Label>
+                <Label>Toewijzen aan tekenaar</Label>
                 <select
                   className="border rounded px-2 py-1 w-full text-sm"
                   value={toegewezenAan}
