@@ -476,6 +476,22 @@ export default function Beheer() {
                           />
                         </td>
                       );
+                    {AUDIT_CATEGORIEEN.map((cat, ci) => {
+                      const hasCat = p.auditCategorieen.includes(cat);
+                      const isRelevant = p.roles.includes("tekenaar") || p.roles.includes("auditor");
+                      return (
+                        <td key={cat} className={`text-center px-2 py-2.5 ${ci === AUDIT_CATEGORIEEN.length - 1 ? "border-r" : ""}`}>
+                          {isRelevant ? (
+                            <Checkbox
+                              checked={hasCat}
+                              onCheckedChange={() => toggleAuditCategorie(p.id, cat, hasCat)}
+                              className="mx-auto"
+                            />
+                          ) : (
+                            <span className="text-muted-foreground/30">—</span>
+                          )}
+                        </td>
+                      );
                     })}
                      <td className="text-center px-3 py-2.5">
                        <button
