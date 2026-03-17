@@ -62,7 +62,31 @@ export default function Beheer() {
     loadUsers();
     loadAdviseurs();
     loadToewijzingen();
+    loadFeedback();
   }, []);
+
+  const loadFeedback = async () => {
+    setFeedbackLoading(true);
+    const { data } = await supabase
+      .from("feedback" as any)
+      .select("*")
+      .order("created_at", { ascending: false });
+    // Enrich with profile names
+    const items = (data ?? []) as any[];
+    const userIds = [...new Set(items.map((f: any) => f.user_id))];
+    let nameMap = new Map<string, string>();
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase.from("profiles").select("id, naam, email").in("id", userIds);
+      nameMap = new Map((profiles ?? []).map((p) => [p.id, `${p.naam} (${p.email})`]));
+    }
+    setFeedbackItems(items.map((f: any) => ({ ...f, gebruiker: nameMap.get(f.user_id) ?? f.user_id })));
+    setFeedbackLoading(false);
+  };
+
+  const deleteFeedback = async (id: string) => {
+    await supabase.from("feedback" as any).delete().eq("id", id);
+    loadFeedback();
+  };
 
   const loadUsers = async () => {
     const { data: profileData } = await supabase.from("profiles").select("*").order("naam");
