@@ -54,6 +54,10 @@ export default function Beheer() {
   const [hertoewijzingProjectId, setHertoewijzingProjectId] = useState<string | null>(null);
   const [hertoewijzingAan, setHertoewijzingAan] = useState("");
 
+  // Feedback state
+  const [feedbackItems, setFeedbackItems] = useState<any[]>([]);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+
   useEffect(() => {
     loadUsers();
     loadAdviseurs();
