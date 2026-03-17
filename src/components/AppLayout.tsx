@@ -40,6 +40,7 @@ export default function AppLayout() {
         </div>
       </nav>
       <Outlet />
+      <FeedbackKnop />
     </div>
   );
 }
