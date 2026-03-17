@@ -779,6 +779,48 @@ export default function Beheer() {
             </table>
           </div>
         </TabsContent>
+
+        {/* TAB: Feedback */}
+        <TabsContent value="feedback" className="space-y-4">
+          <div className="border rounded-lg overflow-hidden shadow-sm bg-card">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-secondary/40">
+                  <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Datum</th>
+                  <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Gebruiker</th>
+                  <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Pagina</th>
+                  <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Type</th>
+                  <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Bericht</th>
+                  <th className="w-12" />
+                </tr>
+              </thead>
+              <tbody>
+                {feedbackLoading ? (
+                  <tr><td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">Laden...</td></tr>
+                ) : feedbackItems.length === 0 ? (
+                  <tr><td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">Nog geen feedback ontvangen.</td></tr>
+                ) : feedbackItems.map((f: any) => (
+                  <tr key={f.id} className="border-b hover:bg-muted/50">
+                    <td className="px-4 py-2.5 whitespace-nowrap">{new Date(f.created_at).toLocaleString("nl-NL", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
+                    <td className="px-4 py-2.5 text-xs">{f.gebruiker}</td>
+                    <td className="px-4 py-2.5 font-mono text-xs">{f.pagina}</td>
+                    <td className="px-4 py-2.5">
+                      <Badge variant={f.type === "probleem" ? "destructive" : f.type === "tip" ? "default" : "secondary"}>
+                        {f.type === "probleem" ? "🐛 Probleem" : f.type === "tip" ? "💡 Tip" : "💬 Opmerking"}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-2.5 max-w-xs truncate">{f.bericht}</td>
+                    <td className="px-2 py-2.5">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteFeedback(f.id)}>
+                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </TabsContent>
       </Tabs>
     </div>
   );
