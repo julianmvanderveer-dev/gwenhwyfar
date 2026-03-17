@@ -403,6 +403,13 @@ export default function Beheer() {
             <ArrowRightLeft className="h-3.5 w-3.5" />
             Toewijzingen
           </TabsTrigger>
+          <TabsTrigger value="feedback" className="gap-1.5">
+            <MessageSquare className="h-3.5 w-3.5" />
+            Feedback
+            {feedbackItems.length > 0 && (
+              <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0">{feedbackItems.length}</Badge>
+            )}
+          </TabsTrigger>
         </TabsList>
 
         {/* TAB: Projectteam */}
