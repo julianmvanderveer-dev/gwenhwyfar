@@ -51,7 +51,7 @@ export default function MedewerkerDashboard() {
     const { data: findingData } = await supabase
       .from("findings")
       .select("id, controlepunt, onderdeel, project_id")
-      .eq("eigenaar_beoordeling", eigenaarRol as any)
+      .eq("toegewezen_beoordelaar", user!.id)
       .eq("status", "reactie_ontvangen");
 
     if (!findingData || findingData.length === 0) {

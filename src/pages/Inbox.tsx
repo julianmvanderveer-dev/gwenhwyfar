@@ -78,11 +78,10 @@ export default function Inbox() {
     }
 
     if (hasRole("tekenaar") || hasRole("auditor")) {
-      const eigenaar = hasRole("tekenaar") ? "tekenaar" : "auditor";
       const { data: findingData } = await supabase
         .from("findings")
         .select("*")
-        .eq("eigenaar_beoordeling", eigenaar as any)
+        .eq("toegewezen_beoordelaar", user!.id)
         .eq("status", "reactie_ontvangen");
       setFindings(findingData ?? []);
     }

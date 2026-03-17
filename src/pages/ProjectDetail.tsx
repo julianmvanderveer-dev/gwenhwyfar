@@ -138,8 +138,10 @@ export default function ProjectDetail() {
     if (beoordeling === "niet_goed") {
       update.type_afwijking = "niet_kritiek";
       update.eigenaar_beoordeling = hasRole("tekenaar") ? "tekenaar" : "auditor";
+      update.toegewezen_beoordelaar = user!.id;
     } else if (beoordeling === "opmerking") {
       update.eigenaar_beoordeling = hasRole("tekenaar") ? "tekenaar" : "auditor";
+      update.toegewezen_beoordelaar = user!.id;
     }
     await supabase.from("findings").update(update).eq("id", findingId);
     loadFindings();
