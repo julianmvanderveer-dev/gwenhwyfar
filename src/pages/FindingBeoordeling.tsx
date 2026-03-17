@@ -8,6 +8,7 @@ import { toast } from "@/hooks/use-toast";
 import { Mic, MicOff } from "lucide-react";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Finding = Tables<"findings">;
@@ -15,13 +16,14 @@ type Message = Tables<"messages">;
 
 export default function FindingBeoordeling() {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
   const navigate = useNavigate();
   const [finding, setFinding] = useState<Finding | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [opmerking, setOpmerking] = useState("");
   const [uploadVereist, setUploadVereist] = useState(false);
+  const [medewerkers, setMedewerkers] = useState<{ id: string; naam: string }[]>([]);
 
   const handleSpeech = useCallback((transcript: string) => {
     setOpmerking((prev) => (prev ? prev + " " + transcript : transcript));
