@@ -2,6 +2,7 @@ import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import NotificatieBel from "@/components/NotificatieBel";
+import FeedbackKnop from "@/components/FeedbackKnop";
 
 export default function AppLayout() {
   const { user, roles, signOut, hasRole } = useAuth();
@@ -39,6 +40,7 @@ export default function AppLayout() {
         </div>
       </nav>
       <Outlet />
+      <FeedbackKnop />
     </div>
   );
 }

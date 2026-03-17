@@ -68,6 +68,33 @@ export type Database = {
         }
         Relationships: []
       }
+      feedback: {
+        Row: {
+          bericht: string
+          created_at: string
+          id: string
+          pagina: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          bericht: string
+          created_at?: string
+          id?: string
+          pagina: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          bericht?: string
+          created_at?: string
+          id?: string
+          pagina?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       findings: {
         Row: {
           beoordeling: Database["public"]["Enums"]["beoordeling_type"] | null

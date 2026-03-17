@@ -8,7 +8,7 @@ import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { downloadCsv } from "@/lib/csv";
 import type { Tables, Enums } from "@/integrations/supabase/types";
-import { Download, Plus, Pencil, Check, X, Trash2, Settings, Users, Eye, EyeOff, ArrowRightLeft, RotateCcw } from "lucide-react";
+import { Download, Plus, Pencil, Check, X, Trash2, Settings, Users, Eye, EyeOff, ArrowRightLeft, RotateCcw, MessageSquare } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type Profile = Tables<"profiles">;
@@ -54,11 +54,39 @@ export default function Beheer() {
   const [hertoewijzingProjectId, setHertoewijzingProjectId] = useState<string | null>(null);
   const [hertoewijzingAan, setHertoewijzingAan] = useState("");
 
+  // Feedback state
+  const [feedbackItems, setFeedbackItems] = useState<any[]>([]);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+
   useEffect(() => {
     loadUsers();
     loadAdviseurs();
     loadToewijzingen();
+    loadFeedback();
   }, []);
+
+  const loadFeedback = async () => {
+    setFeedbackLoading(true);
+    const { data } = await supabase
+      .from("feedback" as any)
+      .select("*")
+      .order("created_at", { ascending: false });
+    // Enrich with profile names
+    const items = (data ?? []) as any[];
+    const userIds = [...new Set(items.map((f: any) => f.user_id))];
+    let nameMap = new Map<string, string>();
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase.from("profiles").select("id, naam, email").in("id", userIds);
+      nameMap = new Map((profiles ?? []).map((p) => [p.id, `${p.naam} (${p.email})`]));
+    }
+    setFeedbackItems(items.map((f: any) => ({ ...f, gebruiker: nameMap.get(f.user_id) ?? f.user_id })));
+    setFeedbackLoading(false);
+  };
+
+  const deleteFeedback = async (id: string) => {
+    await supabase.from("feedback" as any).delete().eq("id", id);
+    loadFeedback();
+  };
 
   const loadUsers = async () => {
     const { data: profileData } = await supabase.from("profiles").select("*").order("naam");
@@ -374,6 +402,13 @@ export default function Beheer() {
           <TabsTrigger value="toewijzingen" className="gap-1.5">
             <ArrowRightLeft className="h-3.5 w-3.5" />
             Toewijzingen
+          </TabsTrigger>
+          <TabsTrigger value="feedback" className="gap-1.5">
+            <MessageSquare className="h-3.5 w-3.5" />
+            Feedback
+            {feedbackItems.length > 0 && (
+              <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0">{feedbackItems.length}</Badge>
+            )}
           </TabsTrigger>
         </TabsList>
 
@@ -740,6 +775,48 @@ export default function Beheer() {
                     <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">Geen actieve projecten.</td>
                   </tr>
                 )}
+              </tbody>
+            </table>
+          </div>
+        </TabsContent>
+
+        {/* TAB: Feedback */}
+        <TabsContent value="feedback" className="space-y-4">
+          <div className="border rounded-lg overflow-hidden shadow-sm bg-card">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-secondary/40">
+                  <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Datum</th>
+                  <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Gebruiker</th>
+                  <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Pagina</th>
+                  <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Type</th>
+                  <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Bericht</th>
+                  <th className="w-12" />
+                </tr>
+              </thead>
+              <tbody>
+                {feedbackLoading ? (
+                  <tr><td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">Laden...</td></tr>
+                ) : feedbackItems.length === 0 ? (
+                  <tr><td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">Nog geen feedback ontvangen.</td></tr>
+                ) : feedbackItems.map((f: any) => (
+                  <tr key={f.id} className="border-b hover:bg-muted/50">
+                    <td className="px-4 py-2.5 whitespace-nowrap">{new Date(f.created_at).toLocaleString("nl-NL", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
+                    <td className="px-4 py-2.5 text-xs">{f.gebruiker}</td>
+                    <td className="px-4 py-2.5 font-mono text-xs">{f.pagina}</td>
+                    <td className="px-4 py-2.5">
+                      <Badge variant={f.type === "probleem" ? "destructive" : f.type === "tip" ? "default" : "secondary"}>
+                        {f.type === "probleem" ? "🐛 Probleem" : f.type === "tip" ? "💡 Tip" : "💬 Opmerking"}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-2.5 max-w-xs truncate">{f.bericht}</td>
+                    <td className="px-2 py-2.5">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteFeedback(f.id)}>
+                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
