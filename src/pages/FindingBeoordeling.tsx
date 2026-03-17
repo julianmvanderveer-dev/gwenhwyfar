@@ -8,6 +8,7 @@ import { toast } from "@/hooks/use-toast";
 import { Mic, MicOff } from "lucide-react";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Finding = Tables<"findings">;
@@ -15,13 +16,14 @@ type Message = Tables<"messages">;
 
 export default function FindingBeoordeling() {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
   const navigate = useNavigate();
   const [finding, setFinding] = useState<Finding | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [opmerking, setOpmerking] = useState("");
   const [uploadVereist, setUploadVereist] = useState(false);
+  const [medewerkers, setMedewerkers] = useState<{ id: string; naam: string }[]>([]);
 
   const handleSpeech = useCallback((transcript: string) => {
     setOpmerking((prev) => (prev ? prev + " " + transcript : transcript));
@@ -32,7 +34,23 @@ export default function FindingBeoordeling() {
     if (!id) return;
     loadFinding();
     loadMessages();
+    if (hasRole("beheer")) loadMedewerkers();
   }, [id]);
+
+  const loadMedewerkers = async () => {
+    const { data: profiles } = await supabase.from("profiles").select("id, naam").eq("actief", true);
+    const { data: roles } = await supabase.from("user_roles").select("user_id, role");
+    const relevantUsers = (profiles ?? []).filter((p) =>
+      (roles ?? []).some((r) => r.user_id === p.id && (r.role === "tekenaar" || r.role === "auditor"))
+    );
+    setMedewerkers(relevantUsers);
+  };
+
+  const hertoewijzen = async (nieuweUserId: string) => {
+    await supabase.from("findings").update({ toegewezen_beoordelaar: nieuweUserId } as any).eq("id", id!);
+    toast({ title: "Beoordelaar hertoegewezen" });
+    loadFinding();
+  };
 
   const loadFinding = async () => {
     const { data } = await supabase.from("findings").select("*").eq("id", id!).single();
@@ -88,6 +106,25 @@ export default function FindingBeoordeling() {
         <p><strong>Deadline:</strong> {finding.deadline ? new Date(finding.deadline).toLocaleDateString("nl-NL") : "—"}</p>
         <p><strong>Status:</strong> {finding.status}</p>
       </div>
+
+      {hasRole("beheer") && medewerkers.length > 0 && (
+        <div className="border rounded p-3 mb-4">
+          <label className="text-sm font-medium mb-1 block">Beoordelaar hertoewijzen</label>
+          <Select
+            value={(finding as any).toegewezen_beoordelaar ?? ""}
+            onValueChange={hertoewijzen}
+          >
+            <SelectTrigger className="h-9 text-sm">
+              <SelectValue placeholder="Selecteer medewerker" />
+            </SelectTrigger>
+            <SelectContent>
+              {medewerkers.map((m) => (
+                <SelectItem key={m.id} value={m.id}>{m.naam}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <div className="mb-4">
         <h2 className="font-semibold mb-2">Berichtenthread</h2>

@@ -110,6 +110,7 @@ export type Database = {
           onderdeel: string
           project_id: string
           status: Database["public"]["Enums"]["finding_status"]
+          toegewezen_beoordelaar: string | null
           toelichting: string | null
           type_afwijking: Database["public"]["Enums"]["afwijking_type"] | null
           upload_vereist: boolean
@@ -129,6 +130,7 @@ export type Database = {
           onderdeel: string
           project_id: string
           status?: Database["public"]["Enums"]["finding_status"]
+          toegewezen_beoordelaar?: string | null
           toelichting?: string | null
           type_afwijking?: Database["public"]["Enums"]["afwijking_type"] | null
           upload_vereist?: boolean
@@ -148,6 +150,7 @@ export type Database = {
           onderdeel?: string
           project_id?: string
           status?: Database["public"]["Enums"]["finding_status"]
+          toegewezen_beoordelaar?: string | null
           toelichting?: string | null
           type_afwijking?: Database["public"]["Enums"]["afwijking_type"] | null
           upload_vereist?: boolean
@@ -159,6 +162,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "findings_toegewezen_beoordelaar_fkey"
+            columns: ["toegewezen_beoordelaar"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

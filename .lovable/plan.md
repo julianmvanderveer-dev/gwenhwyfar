@@ -1,35 +1,53 @@
 
 
-## Plan: Finding toewijzen aan specifieke medewerker
+## Plan: Projectstatus-workflow herziening
 
-### Probleem
-Momenteel wordt `eigenaar_beoordeling` ingesteld als rol ("tekenaar" of "auditor"), waardoor **alle** tekenaars of auditors de reactie zien. De finding moet worden toegewezen aan de **specifieke persoon** die de afwijking heeft geconstateerd.
+### Huidige situatie
+De `project_status` enum heeft: `geselecteerd`, `deel1_bezig`, `wacht_op_deel2`, `afgerond`, `reactie_open`, `gesloten`.
 
-### Aanpak
-
-#### 1. Database: nieuw veld `toegewezen_beoordelaar` op `findings`
-```sql
-ALTER TABLE public.findings 
-  ADD COLUMN toegewezen_beoordelaar uuid REFERENCES profiles(id);
-```
-Dit veld bevat de user_id van de specifieke medewerker die de finding moet beoordelen.
-
-#### 2. Finding aanmaken/beoordelen: user_id meesturen
-In `src/pages/ProjectDetail.tsx` bij `updateBeoordeling`: naast `eigenaar_beoordeling` ook `toegewezen_beoordelaar: user.id` opslaan. Zo wordt de huidige ingelogde gebruiker (de tekenaar of auditor die de fout constateert) direct gekoppeld.
-
-#### 3. Inbox filteren op specifieke gebruiker
-In `src/pages/Inbox.tsx` en `src/components/dashboard/MedewerkerDashboard.tsx`: de query wijzigen van `.eq("eigenaar_beoordeling", eigenaar)` naar `.eq("toegewezen_beoordelaar", user.id)`. Zo ziet alleen de specifieke medewerker de reactie.
-
-#### 4. Beheer kan hertoewijzen (bestaande functionaliteit)
-Beheerders kunnen via de bestaande FindingBeoordeling-pagina of een klein extra veld de `toegewezen_beoordelaar` wijzigen naar een andere medewerker. Dit kan als een simpele hertoewijzing-optie op de beoordelingspagina.
+### Gewenste statussen
+1. **nog_niet_begonnen** — Tekenaar heeft project nog niet geopend (vervangt `geselecteerd`)
+2. **deel1_bezig** — Tekenaar is ermee bezig (blijft)
+3. **deel1_afgerond** — Tekenaar klaar, auditor moet deel 2 doen (vervangt `wacht_op_deel2`)
+4. **deel2_bezig** — Auditor is bezig (nieuw)
+5. **afgerond** — Geen KT/NK, ter info naar EP-adviseur, na 1 week archiveren (blijft, maar andere betekenis)
+6. **wacht_op_reactie** — Wacht op reactie EP-adviseur, met deadline (vervangt `reactie_open`)
+7. **gesloten** — Gearchiveerd (blijft)
 
 ### Wijzigingen
 
-| Bestand | Wijziging |
-|---------|-----------|
-| Database migratie | `toegewezen_beoordelaar uuid` kolom toevoegen aan `findings` |
-| `src/pages/ProjectDetail.tsx` | Bij beoordeling `toegewezen_beoordelaar: user.id` meesturen |
-| `src/pages/Inbox.tsx` | Filter findings op `toegewezen_beoordelaar = user.id` i.p.v. rol |
-| `src/components/dashboard/MedewerkerDashboard.tsx` | Idem: filter op `toegewezen_beoordelaar` |
-| `src/pages/FindingBeoordeling.tsx` | Optie voor beheer om beoordelaar te hertoewijzen |
+#### 1. Database migratie
+- Voeg nieuwe enum-waarden toe: `nog_niet_begonnen`, `deel1_afgerond`, `deel2_bezig`, `wacht_op_reactie`
+- Migreer bestaande data: `geselecteerd` → `nog_niet_begonnen`, `wacht_op_deel2` → `deel1_afgerond`, `reactie_open` → `wacht_op_reactie`
+- Verwijder oude waarden (via recreatie van enum, want PostgreSQL kan geen waarden verwijderen)
+- Voeg `reactie_deadline` kolom toe aan `projects` (timestamptz, nullable)
+- Voeg `gearchiveerd_op` kolom toe aan `projects` (timestamptz, nullable) — voor de 1-week logica
+
+#### 2. `src/lib/badges.tsx` — statusBadge updaten
+- Nieuwe labels en kleuren voor alle statussen
+- `wacht_op_reactie` met oranje (NK) of rode (KT) codering afhankelijk van de ergste finding
+
+#### 3. `src/pages/Beheer.tsx` — Projecten-tab updaten
+- Toon `reactie_deadline` kolom bij `wacht_op_reactie`
+- Kleurcodering KT (rood) en NK (oranje) bij wacht_op_reactie status
+
+#### 4. `src/pages/ProjectDetail.tsx` — Statuslabels en workflow updaten
+- Update `statusLabel` map
+- `canDeel1` check: `nog_niet_begonnen` of `deel1_bezig`
+- `canDeel2` check: `deel1_afgerond` of `deel2_bezig`
+- `deel1Afronden`: status → `deel1_afgerond`
+- `auditAfronden`: check of er KT/NK findings zijn. Zo niet → `afgerond` + `gearchiveerd_op = now()`. Zo ja → `wacht_op_reactie` + bereken `reactie_deadline` (KT: 1 maand, NK: 3 maanden, neem de kortste)
+- Auto-set `deel1_bezig` of `deel2_bezig` wanneer tekenaar/auditor project opent en status nog `nog_niet_begonnen`/`deel1_afgerond`
+
+#### 5. `src/pages/Inbox.tsx` — Statuslabels updaten
+- Update `statusLabel` map
+- Filter: toon `afgerond` projecten alleen als `gearchiveerd_op` < 1 week geleden
+
+#### 6. Archivering na 1 week
+- In de Inbox/Beheer query: projecten met status `afgerond` en `gearchiveerd_op` ouder dan 7 dagen worden als `gesloten` getoond of gefilterd. Implementeer dit client-side bij laden, of via een simpele check die status naar `gesloten` zet.
+
+### Deadline-logica bij `wacht_op_reactie`
+- Kijk naar ergste finding-type: als er minstens 1 KT is → deadline = 1 maand. Anders (alleen NK) → deadline = 3 maanden.
+- Sla op in `projects.reactie_deadline`.
+- Toon in Beheer met kleurcodering: rood als KT-findings, oranje als alleen NK-findings.
 
