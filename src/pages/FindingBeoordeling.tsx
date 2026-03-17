@@ -107,6 +107,25 @@ export default function FindingBeoordeling() {
         <p><strong>Status:</strong> {finding.status}</p>
       </div>
 
+      {hasRole("beheer") && medewerkers.length > 0 && (
+        <div className="border rounded p-3 mb-4">
+          <label className="text-sm font-medium mb-1 block">Beoordelaar hertoewijzen</label>
+          <Select
+            value={(finding as any).toegewezen_beoordelaar ?? ""}
+            onValueChange={hertoewijzen}
+          >
+            <SelectTrigger className="h-9 text-sm">
+              <SelectValue placeholder="Selecteer medewerker" />
+            </SelectTrigger>
+            <SelectContent>
+              {medewerkers.map((m) => (
+                <SelectItem key={m.id} value={m.id}>{m.naam}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       <div className="mb-4">
         <h2 className="font-semibold mb-2">Berichtenthread</h2>
         {messages.length > 0 ? (
