@@ -34,7 +34,23 @@ export default function FindingBeoordeling() {
     if (!id) return;
     loadFinding();
     loadMessages();
+    if (hasRole("beheer")) loadMedewerkers();
   }, [id]);
+
+  const loadMedewerkers = async () => {
+    const { data: profiles } = await supabase.from("profiles").select("id, naam").eq("actief", true);
+    const { data: roles } = await supabase.from("user_roles").select("user_id, role");
+    const relevantUsers = (profiles ?? []).filter((p) =>
+      (roles ?? []).some((r) => r.user_id === p.id && (r.role === "tekenaar" || r.role === "auditor"))
+    );
+    setMedewerkers(relevantUsers);
+  };
+
+  const hertoewijzen = async (nieuweUserId: string) => {
+    await supabase.from("findings").update({ toegewezen_beoordelaar: nieuweUserId } as any).eq("id", id!);
+    toast({ title: "Beoordelaar hertoegewezen" });
+    loadFinding();
+  };
 
   const loadFinding = async () => {
     const { data } = await supabase.from("findings").select("*").eq("id", id!).single();
