@@ -49,6 +49,7 @@ export type Database = {
           deel: number
           id: string
           onderdeel: string
+          sector_id: string | null
         }
         Insert: {
           audit_categorie: Database["public"]["Enums"]["audit_categorie"]
@@ -57,6 +58,7 @@ export type Database = {
           deel?: number
           id?: string
           onderdeel: string
+          sector_id?: string | null
         }
         Update: {
           audit_categorie?: Database["public"]["Enums"]["audit_categorie"]
@@ -65,8 +67,68 @@ export type Database = {
           deel?: number
           id?: string
           onderdeel?: string
+          sector_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "checklist_templates_sector_id_fkey"
+            columns: ["sector_id"]
+            isOneToOne: false
+            referencedRelation: "sectoren"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      externe_rapportages: {
+        Row: {
+          bestand_pad: string | null
+          bestandsnaam: string
+          bron: string | null
+          created_at: string
+          geimporteerd_door: string | null
+          id: string
+          metadata: Json | null
+          project_id: string
+          status: string
+        }
+        Insert: {
+          bestand_pad?: string | null
+          bestandsnaam: string
+          bron?: string | null
+          created_at?: string
+          geimporteerd_door?: string | null
+          id?: string
+          metadata?: Json | null
+          project_id: string
+          status?: string
+        }
+        Update: {
+          bestand_pad?: string | null
+          bestandsnaam?: string
+          bron?: string | null
+          created_at?: string
+          geimporteerd_door?: string | null
+          id?: string
+          metadata?: Json | null
+          project_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "externe_rapportages_geimporteerd_door_fkey"
+            columns: ["geimporteerd_door"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "externe_rapportages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       feedback: {
         Row: {
@@ -208,6 +270,33 @@ export type Database = {
           },
         ]
       }
+      modules: {
+        Row: {
+          actief: boolean
+          beschrijving: string | null
+          code: string
+          created_at: string
+          id: string
+          naam: string
+        }
+        Insert: {
+          actief?: boolean
+          beschrijving?: string | null
+          code: string
+          created_at?: string
+          id?: string
+          naam: string
+        }
+        Update: {
+          actief?: boolean
+          beschrijving?: string | null
+          code?: string
+          created_at?: string
+          id?: string
+          naam?: string
+        }
+        Relationships: []
+      }
       notificaties: {
         Row: {
           bericht: string
@@ -333,6 +422,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sectoren: {
+        Row: {
+          actief: boolean
+          code: string
+          created_at: string
+          id: string
+          naam: string
+        }
+        Insert: {
+          actief?: boolean
+          code: string
+          created_at?: string
+          id?: string
+          naam: string
+        }
+        Update: {
+          actief?: boolean
+          code?: string
+          created_at?: string
+          id?: string
+          naam?: string
+        }
+        Relationships: []
       }
       user_audit_categorieen: {
         Row: {
