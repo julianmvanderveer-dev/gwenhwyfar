@@ -43,6 +43,7 @@ interface FaseTabelProps {
   defaultOpen?: boolean;
   showToewijzing?: boolean;
   showSubstatus?: boolean;
+  inlineToewijzing?: boolean;
   toewijsbarePersonen?: ToewijsbarePersoon[];
   onReassign?: (projectId: string, userId: string) => void;
   onReturnToPool?: (projectId: string) => void;
@@ -69,7 +70,8 @@ function formatDate(date: string) {
 
 export default function FaseTabel({
   fase, faseIndex, projecten, canDelete, onDelete, defaultOpen = true,
-  showToewijzing = false, showSubstatus = false, toewijsbarePersonen, onReassign, onReturnToPool,
+  showToewijzing = false, showSubstatus = false, inlineToewijzing = false,
+  toewijsbarePersonen, onReassign, onReturnToPool,
   titel, icon, accentClass, badge,
 }: FaseTabelProps) {
   const [open, setOpen] = useState(defaultOpen);
@@ -81,7 +83,8 @@ export default function FaseTabel({
   const displayAccent = accentClass ?? config.accentClass;
   const displayBadge = badge ?? projecten.length;
 
-  const canReassign = showToewijzing && toewijsbarePersonen && onReassign && onReturnToPool;
+  const canReassign = showToewijzing && !inlineToewijzing && toewijsbarePersonen && onReassign && onReturnToPool;
+  const canInlineReassign = inlineToewijzing && toewijsbarePersonen && onReassign;
 
   const getFilteredPersonen = (project: { status: string; audit_categorie: string }) => {
     if (!toewijsbarePersonen) return [];
@@ -167,10 +170,57 @@ export default function FaseTabel({
                       <td className="px-4 py-2.5 text-muted-foreground">{p.adviseurs?.naam ?? "—"}</td>
                       {showToewijzing && (
                         <td className="px-4 py-2.5">
-                          {p.toegewezen_aan ? (
-                            <span className="text-foreground">{p.toegewezen_profiel?.naam ?? "Onbekend"}</span>
+                          {canInlineReassign ? (
+                            // Inline mode: clickable name for reassignment
+                            isEditing ? (
+                              <div className="flex items-center gap-1.5">
+                                <select
+                                  className="border rounded px-2 py-1 text-xs flex-1 bg-background"
+                                  value={hertoewijzingAan}
+                                  onChange={(e) => setHertoewijzingAan(e.target.value)}
+                                >
+                                  <option value="">— {isTekenaarFase ? "Tekenaar" : isAuditorFase ? "Auditor" : "Persoon"} —</option>
+                                  {gefilterd.map((pp) => (
+                                    <option key={pp.id} value={pp.id}>{pp.naam} ({pp.roles.filter(r => r !== "beheer").join(", ")})</option>
+                                  ))}
+                                </select>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7"
+                                  disabled={!hertoewijzingAan}
+                                  onClick={() => {
+                                    onReassign!(p.id, hertoewijzingAan);
+                                    setHertoewijzingId(null);
+                                    setHertoewijzingAan("");
+                                  }}
+                                >
+                                  <Check className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7"
+                                  onClick={() => { setHertoewijzingId(null); setHertoewijzingAan(""); }}
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setHertoewijzingId(p.id)}
+                                className="text-foreground hover:text-accent hover:underline cursor-pointer transition-colors"
+                              >
+                                {p.toegewezen_profiel?.naam ?? p.toegewezen_aan ?? "—"}
+                              </button>
+                            )
                           ) : (
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">Pool</Badge>
+                            // Default mode: static display
+                            p.toegewezen_aan ? (
+                              <span className="text-foreground">{p.toegewezen_profiel?.naam ?? "Onbekend"}</span>
+                            ) : (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0">Pool</Badge>
+                            )
                           )}
                         </td>
                       )}

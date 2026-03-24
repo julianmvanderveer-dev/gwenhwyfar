@@ -478,6 +478,7 @@ export default function Inbox() {
                 defaultOpen={hoofdgroepen.bezig.length > 0}
                 showToewijzing={isBeheer}
                 showSubstatus
+                inlineToewijzing
                 toewijsbarePersonen={toewijsbarePersonen}
                 onReassign={hertoewijzen}
                 onReturnToPool={terugNaarPool}
