@@ -125,10 +125,13 @@ export default function FaseTabel({
                   {showToewijzing && (
                     <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Toegewezen aan</th>
                   )}
-                  <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Aangemaakt</th>
-                  {fase === "wacht_op_reactie_ep" && (
-                    <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Deadline</th>
-                  )}
+                   <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Aangemaakt</th>
+                   {showSubstatus && (
+                     <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Substatus</th>
+                   )}
+                   {(fase === "wacht_op_reactie_ep" || (showSubstatus && projecten.some(p => p.reactie_deadline))) && (
+                     <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Deadline</th>
+                   )}
                   <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-24">Labels</th>
                   {canReassign && <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-56">Toewijzing</th>}
                   {canDelete && <th className="w-10" />}
