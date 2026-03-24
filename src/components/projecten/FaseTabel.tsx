@@ -43,6 +43,7 @@ interface FaseTabelProps {
   defaultOpen?: boolean;
   showToewijzing?: boolean;
   showSubstatus?: boolean;
+  inlineToewijzing?: boolean;
   toewijsbarePersonen?: ToewijsbarePersoon[];
   onReassign?: (projectId: string, userId: string) => void;
   onReturnToPool?: (projectId: string) => void;
