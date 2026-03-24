@@ -6,13 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, LayoutDashboard, Download } from "lucide-react";
+import { Plus, Search, LayoutDashboard, Download, FolderKanban, Clock3, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import { beoordelingBadge, afwijkingBadge } from "@/lib/badges";
-import { orderedFases, faseConfig, getProjectFase, type FaseKey, bezigFases, type HoofdgroepKey } from "@/components/projecten/faseConfig";
+import { orderedFases, faseConfig, getProjectFase, type FaseKey, bezigFases } from "@/components/projecten/faseConfig";
 import FaseTabel, { type ToewijsbarePersoon, type ProjectRow } from "@/components/projecten/FaseTabel";
-import { FolderKanban, Clock3, CheckCircle2 } from "lucide-react";
 import ExportFilter from "@/components/projecten/ExportFilter";
 import MedewerkerDashboard from "@/components/dashboard/MedewerkerDashboard";
 
