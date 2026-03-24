@@ -1,43 +1,36 @@
 
 
-## Plan: Beheer projectoverzicht herstructureren naar 3 groepen
+## Plan: Vereenvoudig "Bezig" tabel — klikbare namen voor hertoewijzing
 
-### Huidige situatie
-De beheer-weergave toont 7 afzonderlijke fase-tabellen (nieuw, deel1_bezig, wacht_op_deel2, deel2_bezig, wacht_op_reactie_ep, afgerond, reactie_ontvangen) met een tellerstrip. Dit is onoverzichtelijk.
+### Probleem
+De "Bezig" tabel is te druk door een aparte "Toewijzing" kolom met knoppen (Hertoewijzen / Pool). De "Pool" badge is irrelevant voor projecten die al bezig zijn.
 
-### Nieuwe structuur
+### Oplossing
 
-Drie collapsible groepen:
+**`src/components/projecten/FaseTabel.tsx`**:
 
-```text
-1. Nieuw          → projecten met status "nog_niet_begonnen" (huidige fase "nieuw")
-2. Bezig          → alle tussenliggende statussen (deel1_bezig t/m reactie_ontvangen)
-3. Afgerond       → status "afgerond", max 14 dagen zichtbaar
-```
+1. **Kolom "Toegewezen aan" aanpassen**: Toon de naam van de tekenaar of auditor. Geen "Pool" badge in de Bezig-groep (pool geldt alleen voor Nieuw).
 
-**Groep "Bezig"** toont één tabel met alle projecten, maar met:
-- Een extra kolom **"Substatus"** die de specifieke fase toont (Deel 1 bezig, Wacht op deel 2, Deel 2 bezig, Reactie EP-adviseur gevraagd, Reactie ontvangen)
-- Een **dropdown-filter** boven de tabel om op substatus te filteren
+2. **Naam klikbaar maken**: Klik op de naam opent een inline dropdown (select) om direct te hertoewijzen. Bevestig met ✓, annuleer met ✗. Geen aparte "Toewijzing" kolom meer nodig.
 
-De tellerstrip wordt vereenvoudigd naar 3 tellers (Nieuw / Bezig / Afgerond).
+3. **Verwijder de aparte "Toewijzing" kolom** voor de Bezig-groep: de hertoewijzingsactie zit nu in de "Toegewezen aan" kolom zelf.
+
+**Gedrag per groep**:
+- **Nieuw**: Toont "Pool" of naam + hertoewijzingsknoppen (bestaand gedrag behouden)
+- **Bezig**: Toont naam (klikbaar voor hertoewijzing). Geen Pool-knop.
+- **Afgerond**: Toont naam (alleen-lezen)
 
 ### Wijzigingen
 
 | Bestand | Wijziging |
 |---------|-----------|
-| `src/pages/Inbox.tsx` | Beheer-sectie: vervang 7 FaseTabel-loops door 3 groepen. Groep "Bezig" krijgt een substatus-filter dropdown en toont een gecombineerde tabel met substatus-kolom. Tellerstrip naar 3 items. |
-| `src/components/projecten/FaseTabel.tsx` | Optioneel: substatuskolom toevoegen (of inline in Inbox.tsx oplossen met een aangepaste tabel voor "Bezig") |
-| `src/components/projecten/faseConfig.ts` | Groepering toevoegen: mapping van fases naar hoofdgroep (nieuw/bezig/afgerond) |
+| `src/components/projecten/FaseTabel.tsx` | "Toegewezen aan" kolom: naam wordt klikbare trigger voor hertoewijzing-dropdown. Aparte "Toewijzing" kolom verbergen wanneer `showSubstatus` actief is (Bezig-groep). |
+| `src/pages/Inbox.tsx` | Geen wijzigingen nodig — props blijven gelijk. |
 
-### Details groep "Bezig"
+### Technisch detail
 
-De substatus-filter boven de tabel biedt opties:
-- Alle
-- Deel 1 bezig
-- Wacht op deel 2
-- Deel 2 bezig
-- Reactie EP-adviseur gevraagd
-- Reactie ontvangen
-
-Elke rij in de "Bezig"-tabel toont een gekleurd badge met de substatus, zodat in één oogopslag duidelijk is waar elk project staat.
+In FaseTabel wordt de "Toegewezen aan" cel als volgt:
+- **Niet aan het bewerken**: `<button onClick={startEdit}>{naam}</button>` (cursor pointer, underline on hover)
+- **Aan het bewerken**: `<select>` + ✓/✗ knoppen (bestaande logica, verplaatst naar deze kolom)
+- De aparte `canReassign` kolom en header worden verwijderd voor de Bezig-groep (via een nieuwe prop `inlineToewijzing`)
 
