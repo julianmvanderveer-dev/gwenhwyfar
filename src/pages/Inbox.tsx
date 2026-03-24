@@ -6,12 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, LayoutDashboard, Download } from "lucide-react";
+import { Plus, Search, LayoutDashboard, Download, FolderKanban, Clock3, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import { beoordelingBadge, afwijkingBadge } from "@/lib/badges";
-import { orderedFases, faseConfig, getProjectFase, type FaseKey } from "@/components/projecten/faseConfig";
-import FaseTabel, { type ToewijsbarePersoon } from "@/components/projecten/FaseTabel";
+import { orderedFases, faseConfig, getProjectFase, type FaseKey, bezigFases } from "@/components/projecten/faseConfig";
+import FaseTabel, { type ToewijsbarePersoon, type ProjectRow } from "@/components/projecten/FaseTabel";
 import ExportFilter from "@/components/projecten/ExportFilter";
 import MedewerkerDashboard from "@/components/dashboard/MedewerkerDashboard";
 
@@ -224,6 +224,8 @@ export default function Inbox() {
     loadData();
   };
 
+  const [substatusFilter, setSubstatusFilter] = useState<string>("alle");
+
   const projectenPerFase = useMemo(() => {
     const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
     const needle = zoekterm.trim().toLowerCase();
@@ -237,20 +239,32 @@ export default function Inbox() {
       return true;
     });
 
-    const grouped: Record<FaseKey, Project[]> = {} as any;
+    const grouped: Record<FaseKey, ProjectRow[]> = {} as any;
     orderedFases.forEach((f) => (grouped[f] = []));
 
     visible.forEach((p) => {
       const pFindings = projectFindings[p.id] ?? [];
       const hasReactie = pFindings.some((f) => f.status === "reactie_ontvangen");
       const fase = getProjectFase(p.status, hasReactie);
-      grouped[fase].push(p);
+      grouped[fase].push({ ...p, _fase: fase } as ProjectRow);
     });
 
     return grouped;
   }, [projects, projectFindings, zoekterm]);
 
-  const totalVisible = orderedFases.reduce((sum, f) => sum + (projectenPerFase[f]?.length ?? 0), 0);
+  const hoofdgroepen = useMemo(() => {
+    const nieuw = projectenPerFase["nieuw"] ?? [];
+    const bezig = bezigFases.flatMap(f => projectenPerFase[f] ?? []);
+    const afgerond = projectenPerFase["afgerond"] ?? [];
+    return { nieuw, bezig, afgerond };
+  }, [projectenPerFase]);
+
+  const filteredBezig = useMemo(() => {
+    if (substatusFilter === "alle") return hoofdgroepen.bezig;
+    return hoofdgroepen.bezig.filter(p => p._fase === substatusFilter);
+  }, [hoofdgroepen.bezig, substatusFilter]);
+
+  const totalVisible = hoofdgroepen.nieuw.length + hoofdgroepen.bezig.length + hoofdgroepen.afgerond.length;
   const isBeheer = hasRole("beheer");
   const isMedewerker = hasRole("tekenaar") || hasRole("auditor");
   const adviseurStatusBadge = (status: string) => {
@@ -391,7 +405,7 @@ export default function Inbox() {
       {/* Medewerker dashboard (tekenaar/auditor) */}
       {isMedewerker && !isBeheer && <MedewerkerDashboard />}
 
-      {/* Beheer: full phase tables */}
+      {/* Beheer: 3 hoofdgroepen */}
       {isBeheer && (
         <>
           {/* Search */}
@@ -405,38 +419,91 @@ export default function Inbox() {
             />
           </div>
 
-          {/* Fase tellers strip */}
+          {/* Tellers strip: 3 groepen */}
           <div className="flex flex-wrap gap-1.5">
-            {orderedFases.map((fase, i) => {
-              const count = projectenPerFase[fase]?.length ?? 0;
-              const config = faseConfig[fase];
-              return (
-                <div key={fase} className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md bg-card border shadow-sm">
-                  <config.icon className={`h-3.5 w-3.5 ${config.accentClass}`} />
-                  <span className="text-muted-foreground">{i + 1}.</span>
-                  <span className="font-medium">{count}</span>
-                </div>
-              );
-            })}
+            {([
+              { key: "nieuw", label: "Nieuw", count: hoofdgroepen.nieuw.length, icon: FolderKanban, accent: "text-muted-foreground" },
+              { key: "bezig", label: "Bezig", count: hoofdgroepen.bezig.length, icon: Clock3, accent: "text-accent" },
+              { key: "afgerond", label: "Afgerond", count: hoofdgroepen.afgerond.length, icon: CheckCircle2, accent: "text-primary" },
+            ] as const).map((g, i) => (
+              <div key={g.key} className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md bg-card border shadow-sm">
+                <g.icon className={`h-3.5 w-3.5 ${g.accent}`} />
+                <span className="text-muted-foreground">{i + 1}.</span>
+                <span className="font-medium">{g.label}</span>
+                <Badge variant={g.count > 0 ? "default" : "secondary"} className="text-[10px] px-1.5 py-0 ml-1">{g.count}</Badge>
+              </div>
+            ))}
           </div>
 
-          {/* Collapsible tables per fase */}
+          {/* 3 collapsible groepen */}
           <div className="space-y-2">
-            {orderedFases.map((fase, i) => (
+            {/* 1. Nieuw */}
+            <FaseTabel
+              fase="nieuw"
+              faseIndex={0}
+              projecten={hoofdgroepen.nieuw}
+              canDelete={isBeheer}
+              onDelete={deleteProject}
+              defaultOpen={hoofdgroepen.nieuw.length > 0}
+              showToewijzing={isBeheer}
+              toewijsbarePersonen={toewijsbarePersonen}
+              onReassign={hertoewijzen}
+              onReturnToPool={terugNaarPool}
+              titel="Nieuw"
+              icon={FolderKanban}
+              accentClass="text-muted-foreground"
+            />
+
+            {/* 2. Bezig (met substatus filter) */}
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 pl-1">
+                <Select value={substatusFilter} onValueChange={setSubstatusFilter}>
+                  <SelectTrigger className="w-[220px] h-8 text-xs">
+                    <SelectValue placeholder="Filter substatus" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="alle">Alle substatussen</SelectItem>
+                    {bezigFases.map(f => (
+                      <SelectItem key={f} value={f}>{faseConfig[f].titel}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <FaseTabel
-                key={fase}
-                fase={fase}
-                faseIndex={i}
-                projecten={projectenPerFase[fase]}
+                fase="deel1_bezig"
+                faseIndex={1}
+                projecten={filteredBezig}
                 canDelete={isBeheer}
                 onDelete={deleteProject}
-                defaultOpen={projectenPerFase[fase].length > 0}
+                defaultOpen={hoofdgroepen.bezig.length > 0}
                 showToewijzing={isBeheer}
+                showSubstatus
                 toewijsbarePersonen={toewijsbarePersonen}
                 onReassign={hertoewijzen}
                 onReturnToPool={terugNaarPool}
+                titel="Bezig"
+                icon={Clock3}
+                accentClass="text-accent"
+                badge={hoofdgroepen.bezig.length}
               />
-            ))}
+            </div>
+
+            {/* 3. Afgerond */}
+            <FaseTabel
+              fase="afgerond"
+              faseIndex={2}
+              projecten={hoofdgroepen.afgerond}
+              canDelete={isBeheer}
+              onDelete={deleteProject}
+              defaultOpen={hoofdgroepen.afgerond.length > 0}
+              showToewijzing={isBeheer}
+              toewijsbarePersonen={toewijsbarePersonen}
+              onReassign={hertoewijzen}
+              onReturnToPool={terugNaarPool}
+              titel="Afgerond"
+              icon={CheckCircle2}
+              accentClass="text-primary"
+            />
           </div>
 
           {/* Export */}

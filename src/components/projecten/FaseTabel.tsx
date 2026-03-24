@@ -17,31 +17,50 @@ export interface ToewijsbarePersoon {
   auditCategorieen?: string[];
 }
 
+export interface ProjectRow {
+  id: string;
+  projectnaam: string;
+  audit_categorie: string;
+  audit_soort: string;
+  prioriteit: boolean;
+  toelatingsaudit: boolean;
+  datum_aangemaakt: string;
+  reactie_deadline: string | null;
+  status: string;
+  adviseurs?: { naam: string } | null;
+  toewijzing?: string;
+  toegewezen_aan?: string | null;
+  toegewezen_profiel?: { naam: string } | null;
+  _fase?: FaseKey;
+}
+
 interface FaseTabelProps {
   fase: FaseKey;
   faseIndex: number;
-  projecten: Array<{
-    id: string;
-    projectnaam: string;
-    audit_categorie: string;
-    audit_soort: string;
-    prioriteit: boolean;
-    toelatingsaudit: boolean;
-    datum_aangemaakt: string;
-    reactie_deadline: string | null;
-    status: string;
-    adviseurs?: { naam: string } | null;
-    toewijzing?: string;
-    toegewezen_aan?: string | null;
-    toegewezen_profiel?: { naam: string } | null;
-  }>;
+  projecten: ProjectRow[];
   canDelete: boolean;
   onDelete: (id: string) => void;
   defaultOpen?: boolean;
   showToewijzing?: boolean;
+  showSubstatus?: boolean;
   toewijsbarePersonen?: ToewijsbarePersoon[];
   onReassign?: (projectId: string, userId: string) => void;
   onReturnToPool?: (projectId: string) => void;
+  titel?: string;
+  icon?: typeof import("lucide-react").FolderKanban;
+  accentClass?: string;
+  badge?: number;
+}
+
+function substatusBadgeClass(fase: FaseKey): string {
+  const map: Record<string, string> = {
+    deel1_bezig: "bg-blue-100 text-blue-700",
+    wacht_op_deel2: "bg-amber-100 text-amber-700",
+    deel2_bezig: "bg-indigo-100 text-indigo-700",
+    wacht_op_reactie_ep: "bg-orange-100 text-orange-700",
+    reactie_ontvangen: "bg-purple-100 text-purple-700",
+  };
+  return map[fase] ?? "bg-muted text-muted-foreground";
 }
 
 function formatDate(date: string) {
@@ -50,13 +69,17 @@ function formatDate(date: string) {
 
 export default function FaseTabel({
   fase, faseIndex, projecten, canDelete, onDelete, defaultOpen = true,
-  showToewijzing = false, toewijsbarePersonen, onReassign, onReturnToPool,
+  showToewijzing = false, showSubstatus = false, toewijsbarePersonen, onReassign, onReturnToPool,
+  titel, icon, accentClass, badge,
 }: FaseTabelProps) {
   const [open, setOpen] = useState(defaultOpen);
   const [hertoewijzingId, setHertoewijzingId] = useState<string | null>(null);
   const [hertoewijzingAan, setHertoewijzingAan] = useState("");
   const config = faseConfig[fase];
-  const Icon = config.icon;
+  const Icon = icon ?? config.icon;
+  const displayTitel = titel ?? config.titel;
+  const displayAccent = accentClass ?? config.accentClass;
+  const displayBadge = badge ?? projecten.length;
 
   const canReassign = showToewijzing && toewijsbarePersonen && onReassign && onReturnToPool;
 
@@ -85,15 +108,15 @@ export default function FaseTabel({
           <span className="text-muted-foreground group-hover:text-foreground transition-colors">
             {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </span>
-          <Icon className={`h-5 w-5 ${config.accentClass}`} />
+          <Icon className={`h-5 w-5 ${displayAccent}`} />
           <span className="font-semibold text-sm">
-            {faseIndex + 1}. {config.titel}
+            {faseIndex + 1}. {displayTitel}
           </span>
           <Badge
-            variant={projecten.length > 0 ? "default" : "secondary"}
+            variant={displayBadge > 0 ? "default" : "secondary"}
             className="ml-auto text-xs"
           >
-            {projecten.length}
+            {displayBadge}
           </Badge>
         </button>
       </CollapsibleTrigger>
@@ -113,10 +136,13 @@ export default function FaseTabel({
                   {showToewijzing && (
                     <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Toegewezen aan</th>
                   )}
-                  <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Aangemaakt</th>
-                  {fase === "wacht_op_reactie_ep" && (
-                    <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Deadline</th>
-                  )}
+                   <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Aangemaakt</th>
+                   {showSubstatus && (
+                     <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Substatus</th>
+                   )}
+                   {(fase === "wacht_op_reactie_ep" || (showSubstatus && projecten.some(p => p.reactie_deadline))) && (
+                     <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Deadline</th>
+                   )}
                   <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-24">Labels</th>
                   {canReassign && <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-56">Toewijzing</th>}
                   {canDelete && <th className="w-10" />}
@@ -149,7 +175,16 @@ export default function FaseTabel({
                         </td>
                       )}
                       <td className="px-4 py-2.5 text-muted-foreground">{formatDate(p.datum_aangemaakt)}</td>
-                      {fase === "wacht_op_reactie_ep" && (
+                      {showSubstatus && (
+                        <td className="px-4 py-2.5">
+                          {p._fase ? (
+                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${substatusBadgeClass(p._fase)}`}>
+                              {faseConfig[p._fase].titel}
+                            </span>
+                          ) : "—"}
+                        </td>
+                      )}
+                      {(fase === "wacht_op_reactie_ep" || (showSubstatus && projecten.some(pp => pp.reactie_deadline))) && (
                         <td className="px-4 py-2.5">
                           {p.reactie_deadline ? (
                             <span className="text-destructive font-medium">{formatDate(p.reactie_deadline)}</span>
