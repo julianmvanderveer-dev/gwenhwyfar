@@ -1,53 +1,60 @@
 
 
-## Plan: Projectstatus-workflow herziening
+## Plan: Projectuitdraai upload met bewerkbare AI-extractie
 
-### Huidige situatie
-De `project_status` enum heeft: `geselecteerd`, `deel1_bezig`, `wacht_op_deel2`, `afgerond`, `reactie_open`, `gesloten`.
+### Overzicht
+Upload een projectuitdraai (PDF/afbeelding) bij een project. AI extraheert per checklistcode de relevante waarde. De geëxtraheerde tekst is **bewerkbaar** per controlepunt, zichtbaar voor EP-adviseurs, en opgenomen in het auditrapport.
 
-### Gewenste statussen
-1. **nog_niet_begonnen** — Tekenaar heeft project nog niet geopend (vervangt `geselecteerd`)
-2. **deel1_bezig** — Tekenaar is ermee bezig (blijft)
-3. **deel1_afgerond** — Tekenaar klaar, auditor moet deel 2 doen (vervangt `wacht_op_deel2`)
-4. **deel2_bezig** — Auditor is bezig (nieuw)
-5. **afgerond** — Geen KT/NK, ter info naar EP-adviseur, na 1 week archiveren (blijft, maar andere betekenis)
-6. **wacht_op_reactie** — Wacht op reactie EP-adviseur, met deadline (vervangt `reactie_open`)
-7. **gesloten** — Gearchiveerd (blijft)
+### Stappen
+
+#### 1. Database: tabel `project_uitdraai`
+```sql
+CREATE TABLE public.project_uitdraai (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id uuid NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
+  bestandsnaam text NOT NULL,
+  bestand_pad text,
+  status text NOT NULL DEFAULT 'uploading',
+  extracted_data jsonb DEFAULT '{}',
+  uploaded_by uuid REFERENCES public.profiles(id),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+```
+RLS: beheer/tekenaar/auditor mogen CRUD. EP-adviseur mag lezen.
+
+#### 2. Storage bucket: `project-documents`
+Private bucket voor ge-uploade uitdraai-bestanden.
+
+#### 3. Edge function: `extract-uitdraai`
+- Ontvangt `project_id` en `bestand_pad`
+- Haalt checklist-templates op voor de audit-categorie
+- Downloadt bestand via signed URL, stuurt als base64 naar Lovable AI (Gemini 2.5 Pro)
+- Prompt vraagt per checklistcode de relevante waarde te extraheren
+- Slaat resultaat op als JSON in `extracted_data`
+
+#### 4. Frontend: upload + bewerkbare uitdraai-kolom
+In `ProjectDetail.tsx`:
+- Uploadknop boven de tabs
+- Status-indicator ("AI leest document uit...")
+- Nieuwe kolom **"Uitdraai"** in de checklisttabel
+- Tekst is bewerkbaar via een `<Input>` veld voor tekenaar/auditor
+- Wijzigingen worden per veld opgeslagen naar `extracted_data` JSONB (debounced)
+- EP-adviseur ziet de tekst als alleen-lezen
+
+#### 5. Auditrapport: uitdraai-kolom
+In `generateAuditReport.ts`: extra kolom "Uitdraai" met de waarde per controlepunt.
 
 ### Wijzigingen
 
-#### 1. Database migratie
-- Voeg nieuwe enum-waarden toe: `nog_niet_begonnen`, `deel1_afgerond`, `deel2_bezig`, `wacht_op_reactie`
-- Migreer bestaande data: `geselecteerd` → `nog_niet_begonnen`, `wacht_op_deel2` → `deel1_afgerond`, `reactie_open` → `wacht_op_reactie`
-- Verwijder oude waarden (via recreatie van enum, want PostgreSQL kan geen waarden verwijderen)
-- Voeg `reactie_deadline` kolom toe aan `projects` (timestamptz, nullable)
-- Voeg `gearchiveerd_op` kolom toe aan `projects` (timestamptz, nullable) — voor de 1-week logica
+| Bestand | Wijziging |
+|---------|-----------|
+| Database migratie | Tabel `project_uitdraai`, bucket, RLS |
+| `supabase/functions/extract-uitdraai/index.ts` | AI-extractie edge function |
+| `src/pages/ProjectDetail.tsx` | Upload-component, bewerkbare "Uitdraai" kolom, data laden/opslaan |
+| `src/lib/generateAuditReport.ts` | Extra kolom "Uitdraai" in rapport |
 
-#### 2. `src/lib/badges.tsx` — statusBadge updaten
-- Nieuwe labels en kleuren voor alle statussen
-- `wacht_op_reactie` met oranje (NK) of rode (KT) codering afhankelijk van de ergste finding
-
-#### 3. `src/pages/Beheer.tsx` — Projecten-tab updaten
-- Toon `reactie_deadline` kolom bij `wacht_op_reactie`
-- Kleurcodering KT (rood) en NK (oranje) bij wacht_op_reactie status
-
-#### 4. `src/pages/ProjectDetail.tsx` — Statuslabels en workflow updaten
-- Update `statusLabel` map
-- `canDeel1` check: `nog_niet_begonnen` of `deel1_bezig`
-- `canDeel2` check: `deel1_afgerond` of `deel2_bezig`
-- `deel1Afronden`: status → `deel1_afgerond`
-- `auditAfronden`: check of er KT/NK findings zijn. Zo niet → `afgerond` + `gearchiveerd_op = now()`. Zo ja → `wacht_op_reactie` + bereken `reactie_deadline` (KT: 1 maand, NK: 3 maanden, neem de kortste)
-- Auto-set `deel1_bezig` of `deel2_bezig` wanneer tekenaar/auditor project opent en status nog `nog_niet_begonnen`/`deel1_afgerond`
-
-#### 5. `src/pages/Inbox.tsx` — Statuslabels updaten
-- Update `statusLabel` map
-- Filter: toon `afgerond` projecten alleen als `gearchiveerd_op` < 1 week geleden
-
-#### 6. Archivering na 1 week
-- In de Inbox/Beheer query: projecten met status `afgerond` en `gearchiveerd_op` ouder dan 7 dagen worden als `gesloten` getoond of gefilterd. Implementeer dit client-side bij laden, of via een simpele check die status naar `gesloten` zet.
-
-### Deadline-logica bij `wacht_op_reactie`
-- Kijk naar ergste finding-type: als er minstens 1 KT is → deadline = 1 maand. Anders (alleen NK) → deadline = 3 maanden.
-- Sla op in `projects.reactie_deadline`.
-- Toon in Beheer met kleurcodering: rood als KT-findings, oranje als alleen NK-findings.
+### Impact op huidige weergave
+- Extra kolom "Uitdraai" in de checklisttabel (alleen gevuld als er een uitdraai is geüpload)
+- Uploadknop boven de tabs
+- Extra kolom in het PDF-rapport
 
