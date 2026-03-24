@@ -164,7 +164,16 @@ export default function FaseTabel({
                         </td>
                       )}
                       <td className="px-4 py-2.5 text-muted-foreground">{formatDate(p.datum_aangemaakt)}</td>
-                      {fase === "wacht_op_reactie_ep" && (
+                      {showSubstatus && (
+                        <td className="px-4 py-2.5">
+                          {p._fase ? (
+                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${substatusBadgeClass(p._fase)}`}>
+                              {faseConfig[p._fase].titel}
+                            </span>
+                          ) : "—"}
+                        </td>
+                      )}
+                      {(fase === "wacht_op_reactie_ep" || (showSubstatus && projecten.some(pp => pp.reactie_deadline))) && (
                         <td className="px-4 py-2.5">
                           {p.reactie_deadline ? (
                             <span className="text-destructive font-medium">{formatDate(p.reactie_deadline)}</span>
