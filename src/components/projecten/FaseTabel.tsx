@@ -70,7 +70,8 @@ function formatDate(date: string) {
 
 export default function FaseTabel({
   fase, faseIndex, projecten, canDelete, onDelete, defaultOpen = true,
-  showToewijzing = false, showSubstatus = false, toewijsbarePersonen, onReassign, onReturnToPool,
+  showToewijzing = false, showSubstatus = false, inlineToewijzing = false,
+  toewijsbarePersonen, onReassign, onReturnToPool,
   titel, icon, accentClass, badge,
 }: FaseTabelProps) {
   const [open, setOpen] = useState(defaultOpen);
