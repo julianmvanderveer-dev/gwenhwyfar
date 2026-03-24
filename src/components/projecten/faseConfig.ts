@@ -69,6 +69,28 @@ export const orderedFases: FaseKey[] = [
   "reactie_ontvangen",
 ];
 
+export type HoofdgroepKey = "nieuw" | "bezig" | "afgerond";
+
+export const hoofdgroepConfig: Record<HoofdgroepKey, { titel: string; omschrijving: string }> = {
+  nieuw: { titel: "Nieuw", omschrijving: "Nog niet opgepakt" },
+  bezig: { titel: "Bezig", omschrijving: "In behandeling" },
+  afgerond: { titel: "Afgerond", omschrijving: "Audit afgerond (14 dagen zichtbaar)" },
+};
+
+export const bezigFases: FaseKey[] = [
+  "deel1_bezig",
+  "wacht_op_deel2",
+  "deel2_bezig",
+  "wacht_op_reactie_ep",
+  "reactie_ontvangen",
+];
+
+export function getFaseHoofdgroep(fase: FaseKey): HoofdgroepKey {
+  if (fase === "nieuw") return "nieuw";
+  if (fase === "afgerond") return "afgerond";
+  return "bezig";
+}
+
 /** Map DB project_status to visual fase */
 export function getProjectFase(
   status: string,

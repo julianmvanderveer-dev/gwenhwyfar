@@ -17,31 +17,39 @@ export interface ToewijsbarePersoon {
   auditCategorieen?: string[];
 }
 
+export interface ProjectRow {
+  id: string;
+  projectnaam: string;
+  audit_categorie: string;
+  audit_soort: string;
+  prioriteit: boolean;
+  toelatingsaudit: boolean;
+  datum_aangemaakt: string;
+  reactie_deadline: string | null;
+  status: string;
+  adviseurs?: { naam: string } | null;
+  toewijzing?: string;
+  toegewezen_aan?: string | null;
+  toegewezen_profiel?: { naam: string } | null;
+  _fase?: FaseKey;
+}
+
 interface FaseTabelProps {
   fase: FaseKey;
   faseIndex: number;
-  projecten: Array<{
-    id: string;
-    projectnaam: string;
-    audit_categorie: string;
-    audit_soort: string;
-    prioriteit: boolean;
-    toelatingsaudit: boolean;
-    datum_aangemaakt: string;
-    reactie_deadline: string | null;
-    status: string;
-    adviseurs?: { naam: string } | null;
-    toewijzing?: string;
-    toegewezen_aan?: string | null;
-    toegewezen_profiel?: { naam: string } | null;
-  }>;
+  projecten: ProjectRow[];
   canDelete: boolean;
   onDelete: (id: string) => void;
   defaultOpen?: boolean;
   showToewijzing?: boolean;
+  showSubstatus?: boolean;
   toewijsbarePersonen?: ToewijsbarePersoon[];
   onReassign?: (projectId: string, userId: string) => void;
   onReturnToPool?: (projectId: string) => void;
+  titel?: string;
+  icon?: typeof import("lucide-react").FolderKanban;
+  accentClass?: string;
+  badge?: number;
 }
 
 function formatDate(date: string) {
