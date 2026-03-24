@@ -225,6 +225,8 @@ export default function Inbox() {
     loadData();
   };
 
+  const [substatusFilter, setSubstatusFilter] = useState<string>("alle");
+
   const projectenPerFase = useMemo(() => {
     const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
     const needle = zoekterm.trim().toLowerCase();
@@ -238,20 +240,32 @@ export default function Inbox() {
       return true;
     });
 
-    const grouped: Record<FaseKey, Project[]> = {} as any;
+    const grouped: Record<FaseKey, ProjectRow[]> = {} as any;
     orderedFases.forEach((f) => (grouped[f] = []));
 
     visible.forEach((p) => {
       const pFindings = projectFindings[p.id] ?? [];
       const hasReactie = pFindings.some((f) => f.status === "reactie_ontvangen");
       const fase = getProjectFase(p.status, hasReactie);
-      grouped[fase].push(p);
+      grouped[fase].push({ ...p, _fase: fase } as ProjectRow);
     });
 
     return grouped;
   }, [projects, projectFindings, zoekterm]);
 
-  const totalVisible = orderedFases.reduce((sum, f) => sum + (projectenPerFase[f]?.length ?? 0), 0);
+  const hoofdgroepen = useMemo(() => {
+    const nieuw = projectenPerFase["nieuw"] ?? [];
+    const bezig = bezigFases.flatMap(f => projectenPerFase[f] ?? []);
+    const afgerond = projectenPerFase["afgerond"] ?? [];
+    return { nieuw, bezig, afgerond };
+  }, [projectenPerFase]);
+
+  const filteredBezig = useMemo(() => {
+    if (substatusFilter === "alle") return hoofdgroepen.bezig;
+    return hoofdgroepen.bezig.filter(p => p._fase === substatusFilter);
+  }, [hoofdgroepen.bezig, substatusFilter]);
+
+  const totalVisible = hoofdgroepen.nieuw.length + hoofdgroepen.bezig.length + hoofdgroepen.afgerond.length;
   const isBeheer = hasRole("beheer");
   const isMedewerker = hasRole("tekenaar") || hasRole("auditor");
   const adviseurStatusBadge = (status: string) => {
