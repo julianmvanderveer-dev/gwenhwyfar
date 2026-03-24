@@ -52,6 +52,17 @@ interface FaseTabelProps {
   badge?: number;
 }
 
+function substatusBadgeClass(fase: FaseKey): string {
+  const map: Record<string, string> = {
+    deel1_bezig: "bg-blue-100 text-blue-700",
+    wacht_op_deel2: "bg-amber-100 text-amber-700",
+    deel2_bezig: "bg-indigo-100 text-indigo-700",
+    wacht_op_reactie_ep: "bg-orange-100 text-orange-700",
+    reactie_ontvangen: "bg-purple-100 text-purple-700",
+  };
+  return map[fase] ?? "bg-muted text-muted-foreground";
+}
+
 function formatDate(date: string) {
   return new Date(date).toLocaleDateString("nl-NL");
 }
