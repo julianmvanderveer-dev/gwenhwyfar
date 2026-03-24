@@ -58,13 +58,17 @@ function formatDate(date: string) {
 
 export default function FaseTabel({
   fase, faseIndex, projecten, canDelete, onDelete, defaultOpen = true,
-  showToewijzing = false, toewijsbarePersonen, onReassign, onReturnToPool,
+  showToewijzing = false, showSubstatus = false, toewijsbarePersonen, onReassign, onReturnToPool,
+  titel, icon, accentClass, badge,
 }: FaseTabelProps) {
   const [open, setOpen] = useState(defaultOpen);
   const [hertoewijzingId, setHertoewijzingId] = useState<string | null>(null);
   const [hertoewijzingAan, setHertoewijzingAan] = useState("");
   const config = faseConfig[fase];
-  const Icon = config.icon;
+  const Icon = icon ?? config.icon;
+  const displayTitel = titel ?? config.titel;
+  const displayAccent = accentClass ?? config.accentClass;
+  const displayBadge = badge ?? projecten.length;
 
   const canReassign = showToewijzing && toewijsbarePersonen && onReassign && onReturnToPool;
 
