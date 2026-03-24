@@ -83,7 +83,8 @@ export default function FaseTabel({
   const displayAccent = accentClass ?? config.accentClass;
   const displayBadge = badge ?? projecten.length;
 
-  const canReassign = showToewijzing && toewijsbarePersonen && onReassign && onReturnToPool;
+  const canReassign = showToewijzing && !inlineToewijzing && toewijsbarePersonen && onReassign && onReturnToPool;
+  const canInlineReassign = inlineToewijzing && toewijsbarePersonen && onReassign;
 
   const getFilteredPersonen = (project: { status: string; audit_categorie: string }) => {
     if (!toewijsbarePersonen) return [];
