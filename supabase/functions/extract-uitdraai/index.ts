@@ -55,8 +55,14 @@ serve(async (req) => {
     // Download file as base64
     const fileResp = await fetch(signedData.signedUrl);
     if (!fileResp.ok) throw new Error("Could not download file");
-    const fileBuffer = await fileResp.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(fileBuffer)));
+    const fileBuffer = new Uint8Array(await fileResp.arrayBuffer());
+    // Chunk to avoid stack overflow with spread operator
+    let binary = "";
+    const chunkSize = 8192;
+    for (let i = 0; i < fileBuffer.length; i += chunkSize) {
+      binary += String.fromCharCode(...fileBuffer.subarray(i, i + chunkSize));
+    }
+    const base64 = btoa(binary);
 
     // Determine mime type from extension
     const ext = bestand_pad.split(".").pop()?.toLowerCase() ?? "";
