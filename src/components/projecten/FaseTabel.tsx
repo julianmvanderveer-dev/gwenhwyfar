@@ -97,15 +97,15 @@ export default function FaseTabel({
           <span className="text-muted-foreground group-hover:text-foreground transition-colors">
             {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </span>
-          <Icon className={`h-5 w-5 ${config.accentClass}`} />
+          <Icon className={`h-5 w-5 ${displayAccent}`} />
           <span className="font-semibold text-sm">
-            {faseIndex + 1}. {config.titel}
+            {faseIndex + 1}. {displayTitel}
           </span>
           <Badge
-            variant={projecten.length > 0 ? "default" : "secondary"}
+            variant={displayBadge > 0 ? "default" : "secondary"}
             className="ml-auto text-xs"
           >
-            {projecten.length}
+            {displayBadge}
           </Badge>
         </button>
       </CollapsibleTrigger>
