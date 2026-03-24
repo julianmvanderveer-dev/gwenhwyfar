@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.create-team-member]
 verify_jwt = false
+
+[functions.extract-uitdraai]
+verify_jwt = false

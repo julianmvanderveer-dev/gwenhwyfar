@@ -345,6 +345,54 @@ export type Database = {
         }
         Relationships: []
       }
+      project_uitdraai: {
+        Row: {
+          bestand_pad: string | null
+          bestandsnaam: string
+          created_at: string
+          extracted_data: Json | null
+          id: string
+          project_id: string
+          status: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          bestand_pad?: string | null
+          bestandsnaam: string
+          created_at?: string
+          extracted_data?: Json | null
+          id?: string
+          project_id: string
+          status?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          bestand_pad?: string | null
+          bestandsnaam?: string
+          created_at?: string
+          extracted_data?: Json | null
+          id?: string
+          project_id?: string
+          status?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_uitdraai_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_uitdraai_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           aangemaakt_door: string

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,7 +11,7 @@ import FindingToelichting from "@/components/FindingToelichting";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { statusBadge, beoordelingBadge, afwijkingBadge } from "@/lib/badges";
-import { ArrowLeft, CheckCircle2, ClipboardCheck, ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ClipboardCheck, ChevronLeft, ChevronRight, Download, Upload, Loader2, FileText } from "lucide-react";
 import { generateAuditReport } from "@/lib/generateAuditReport";
 import AandachtspuntenAdviseur from "@/components/projecten/AandachtspuntenAdviseur";
 
@@ -21,6 +21,17 @@ type Template = { id: string; code: string; onderdeel: string; controlepunt: str
 
 // A merged row: template + optional existing finding
 type MergedRow = Template & { finding?: Finding };
+
+type Uitdraai = {
+  id: string;
+  project_id: string;
+  bestandsnaam: string;
+  bestand_pad: string | null;
+  status: string;
+  extracted_data: Record<string, string> | null;
+  uploaded_by: string | null;
+  created_at: string;
+};
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -34,6 +45,12 @@ export default function ProjectDetail() {
   const [ep2Beoordeling, setEp2Beoordeling] = useState<string>("");
   const [activeTab, setActiveTab] = useState<string>("");
 
+  // Uitdraai state
+  const [uitdraai, setUitdraai] = useState<Uitdraai | null>(null);
+  const [uitdraaiUploading, setUitdraaiUploading] = useState(false);
+  const [localUitdraaiData, setLocalUitdraaiData] = useState<Record<string, string>>({});
+  const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
   useEffect(() => {
     if (!id) return;
     loadProject().then((p) => {
@@ -43,6 +60,7 @@ export default function ProjectDetail() {
       }
     });
     loadFindings();
+    loadUitdraai();
   }, [id]);
 
   useEffect(() => {
@@ -53,6 +71,34 @@ export default function ProjectDetail() {
     }
   }, [project]);
 
+  useEffect(() => {
+    if (uitdraai?.extracted_data) {
+      setLocalUitdraaiData(uitdraai.extracted_data);
+    }
+  }, [uitdraai]);
+
+  // Poll for uitdraai status when extracting
+  useEffect(() => {
+    if (!uitdraai || uitdraai.status !== "extracting") return;
+    const interval = setInterval(async () => {
+      const { data } = await supabase
+        .from("project_uitdraai")
+        .select("*")
+        .eq("id", uitdraai.id)
+        .single();
+      if (data && (data as any).status !== "extracting") {
+        setUitdraai(data as any);
+        clearInterval(interval);
+        if ((data as any).status === "klaar") {
+          toast({ title: "Uitdraai verwerkt", description: "De AI-extractie is voltooid." });
+        } else if ((data as any).status === "fout") {
+          toast({ title: "Fout bij extractie", description: "De AI kon het document niet verwerken.", variant: "destructive" });
+        }
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [uitdraai?.id, uitdraai?.status]);
+
   const loadProject = async () => {
     const { data } = await supabase.from("projects").select("*").eq("id", id!).single();
     setProject(data);
@@ -61,7 +107,6 @@ export default function ProjectDetail() {
 
   const autoSetStatus = async (currentStatus: string) => {
     if (hasRole("tekenaar") && currentStatus === "nog_niet_begonnen") {
-      // Probeer atomisch te claimen bij pool-projecten
       const { data: proj } = await supabase.from("projects").select("toewijzing, toegewezen_aan").eq("id", id!).single();
       if (proj?.toewijzing === "pool" && !proj.toegewezen_aan) {
         const { data: claimed } = await supabase.rpc("claim_project", { _project_id: id!, _user_id: user!.id });
@@ -74,7 +119,6 @@ export default function ProjectDetail() {
       await supabase.from("projects").update({ status: "deel1_bezig" as any }).eq("id", id!);
       loadProject();
     } else if (hasRole("auditor") && currentStatus === "deel1_afgerond") {
-      // Probeer atomisch te claimen bij pool-projecten
       const { data: proj } = await supabase.from("projects").select("toewijzing, toegewezen_aan").eq("id", id!).single();
       if (proj?.toewijzing === "pool" && !proj.toegewezen_aan) {
         const { data: claimed } = await supabase.rpc("claim_project", { _project_id: id!, _user_id: user!.id });
@@ -108,9 +152,99 @@ export default function ProjectDetail() {
     setFindings((data as Finding[]) ?? []);
   };
 
+  const loadUitdraai = async () => {
+    const { data } = await supabase
+      .from("project_uitdraai")
+      .select("*")
+      .eq("project_id", id!)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setUitdraai(data as Uitdraai | null);
+  };
+
+  const handleUitdraaiUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !id || !user) return;
+
+    const allowedTypes = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      toast({ title: "Ongeldig bestandstype", description: "Upload een PDF of afbeelding (JPG, PNG, WebP).", variant: "destructive" });
+      return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      toast({ title: "Bestand te groot", description: "Maximaal 20MB.", variant: "destructive" });
+      return;
+    }
+
+    setUitdraaiUploading(true);
+    try {
+      const ext = file.name.split(".").pop() ?? "pdf";
+      const storagePath = `${id}/${Date.now()}.${ext}`;
+
+      // Upload to storage
+      const { error: uploadErr } = await supabase.storage
+        .from("project-documents")
+        .upload(storagePath, file);
+      if (uploadErr) throw uploadErr;
+
+      // Create record
+      const { data: record, error: recErr } = await supabase
+        .from("project_uitdraai")
+        .insert({
+          project_id: id,
+          bestandsnaam: file.name,
+          bestand_pad: storagePath,
+          status: "uploading",
+          uploaded_by: user.id,
+        } as any)
+        .select("*")
+        .single();
+      if (recErr) throw recErr;
+
+      setUitdraai(record as any);
+
+      // Trigger edge function
+      const { error: fnErr } = await supabase.functions.invoke("extract-uitdraai", {
+        body: {
+          project_id: id,
+          bestand_pad: storagePath,
+          uitdraai_id: (record as any).id,
+        },
+      });
+      if (fnErr) {
+        console.error("Extract function error:", fnErr);
+        toast({ title: "Fout bij verwerking", description: "De AI-extractie kon niet worden gestart.", variant: "destructive" });
+      } else {
+        // Reload to get updated status
+        loadUitdraai();
+      }
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      toast({ title: "Upload mislukt", description: err.message ?? "Onbekende fout", variant: "destructive" });
+    } finally {
+      setUitdraaiUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleUitdraaiEdit = useCallback((code: string, value: string) => {
+    setLocalUitdraaiData((prev) => ({ ...prev, [code]: value }));
+
+    // Debounce save
+    if (debounceTimers.current[code]) clearTimeout(debounceTimers.current[code]);
+    debounceTimers.current[code] = setTimeout(async () => {
+      if (!uitdraai) return;
+      const newData = { ...localUitdraaiData, [code]: value };
+      await supabase
+        .from("project_uitdraai")
+        .update({ extracted_data: newData } as any)
+        .eq("id", uitdraai.id);
+    }, 800);
+  }, [uitdraai, localUitdraaiData]);
+
   // Create a finding on-the-fly when a user sets a beoordeling on a template row without an existing finding
   const ensureFinding = async (template: Template): Promise<string> => {
-    // Check if finding already exists
     const existing = findings.find(
       (f) => f.onderdeel === template.onderdeel && f.controlepunt === template.controlepunt && f.deel === template.deel
     );
@@ -151,7 +285,6 @@ export default function ProjectDetail() {
     try {
       const fId = row.finding?.id ?? (await ensureFinding(row));
       if (!beoordeling) {
-        // Clear beoordeling
         await supabase.from("findings").update({ beoordeling: null, type_afwijking: null } as any).eq("id", fId);
         loadFindings();
       } else {
@@ -168,7 +301,6 @@ export default function ProjectDetail() {
   };
 
   const allesGoedkeuren = async (onderdeel: string) => {
-    // First ensure all template rows for this onderdeel have findings
     const onderdeelTemplates = templates.filter((t) => t.onderdeel === onderdeel);
     for (const t of onderdeelTemplates) {
       const existing = findings.find(
@@ -179,7 +311,6 @@ export default function ProjectDetail() {
       }
     }
     await loadFindings();
-    // Now update all to goed
     const { data: currentFindings } = await supabase
       .from("findings")
       .select("id, onderdeel, deel, beoordeling")
@@ -215,13 +346,11 @@ export default function ProjectDetail() {
         zichtbaar_voor_adviseur: true,
         status: "open" as any,
       }).in("id", kritiekIds),
-
       nietKritiekIds.length > 0 && supabase.from("findings").update({
         deadline: addMonths(now, 3).toISOString(),
         zichtbaar_voor_adviseur: true,
         status: "open" as any,
       }).in("id", nietKritiekIds),
-
       opmerkingFindings.length > 0 && supabase.from("findings").update({
         zichtbaar_voor_adviseur: true,
       }).in("id", opmerkingFindings.map(f => f.id)),
@@ -321,6 +450,8 @@ export default function ProjectDetail() {
   const afwijkingAbs = !isNaN(startVal) && !isNaN(eindVal) ? eindVal - startVal : null;
   const afwijkingPct = afwijkingAbs !== null && startVal !== 0 ? (afwijkingAbs / startVal) * 100 : null;
 
+  const hasUitdraaiData = uitdraai?.status === "klaar" && uitdraai.extracted_data && Object.keys(uitdraai.extracted_data).length > 0;
+
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
       {/* Header */}
@@ -356,7 +487,13 @@ export default function ProjectDetail() {
                       .single();
                     adviseurNaam = data?.naam;
                   }
-                  generateAuditReport({ project, findings, adviseurNaam, templates });
+                  generateAuditReport({
+                    project,
+                    findings,
+                    adviseurNaam,
+                    templates,
+                    uitdraaiData: hasUitdraaiData ? localUitdraaiData : undefined,
+                  });
                 }}
               >
                 <Download className="h-4 w-4" />
@@ -370,6 +507,74 @@ export default function ProjectDetail() {
       {/* Aandachtspunten adviseur */}
       {project.adviseur_id && (
         <AandachtspuntenAdviseur adviseurId={project.adviseur_id} projectId={project.id} />
+      )}
+
+      {/* Uitdraai upload */}
+      {canEditAny && (
+        <div className="border rounded-lg bg-card p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <FileText className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <h3 className="text-sm font-semibold">Projectuitdraai</h3>
+                <p className="text-xs text-muted-foreground">
+                  {uitdraai
+                    ? uitdraai.status === "klaar"
+                      ? `${uitdraai.bestandsnaam} — verwerkt`
+                      : uitdraai.status === "extracting"
+                      ? "AI leest document uit..."
+                      : uitdraai.status === "fout"
+                      ? `${uitdraai.bestandsnaam} — fout bij verwerking`
+                      : "Bezig met uploaden..."
+                    : "Upload een uitdraai om waarden automatisch te laten invullen"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {uitdraai?.status === "extracting" && (
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              )}
+              <label>
+                <input
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,.webp"
+                  className="hidden"
+                  onChange={handleUitdraaiUpload}
+                  disabled={uitdraaiUploading || uitdraai?.status === "extracting"}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 cursor-pointer"
+                  asChild
+                  disabled={uitdraaiUploading || uitdraai?.status === "extracting"}
+                >
+                  <span>
+                    {uitdraaiUploading ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Upload className="h-3.5 w-3.5" />
+                    )}
+                    {uitdraai ? "Nieuw bestand" : "Upload"}
+                  </span>
+                </Button>
+              </label>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Read-only uitdraai info for EP-adviseur */}
+      {!canEditAny && uitdraai?.status === "klaar" && (
+        <div className="border rounded-lg bg-card p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <FileText className="h-5 w-5 text-muted-foreground" />
+            <div>
+              <h3 className="text-sm font-semibold">Projectuitdraai</h3>
+              <p className="text-xs text-muted-foreground">{uitdraai.bestandsnaam} — verwerkt</p>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Tabs */}
@@ -399,106 +604,127 @@ export default function ProjectDetail() {
                 </div>
               )}
               <div className="border rounded-lg overflow-hidden shadow-sm bg-card">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b bg-secondary/60">
-                      <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Code</th>
-                      <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Controlepunt</th>
-                      <th className="text-center px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-16">Deel</th>
-                      <th className="text-left px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Beoordeling</th>
-                      <th className="text-left px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Type</th>
-                      <th className="text-left px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Deadline</th>
-                      <th className="text-left px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row, i) => {
-                      const f = row.finding;
-                      const editable = canEditTemplate(row);
-                      return (
-                        <React.Fragment key={row.id}>
-                          <tr className={`border-b last:border-0 hover:bg-muted/50 transition-colors ${i % 2 !== 0 ? 'bg-muted/20' : ''}`}>
-                            <td className="px-4 py-2.5 text-muted-foreground font-mono text-xs">{row.code}</td>
-                            <td className="px-4 py-2.5 font-medium">{row.controlepunt}</td>
-                            <td className="px-3 py-2.5 text-center">
-                              <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${row.deel === 1 ? "bg-accent/10 text-accent" : "bg-primary/10 text-primary"}`}>
-                                {row.deel}
-                              </span>
-                            </td>
-                            <td className="px-3 py-2.5">
-                              {editable ? (
-                                <select
-                                  className="border border-input rounded-md px-2 py-1 text-sm bg-background"
-                                  value={f?.beoordeling ?? ""}
-                                  onChange={(e) => handleBeoordeling(row, e.target.value)}
-                                >
-                                  <option value="">—</option>
-                                  <option value="goed">Goed</option>
-                                  <option value="niet_goed">Niet goed</option>
-                                  <option value="opmerking">Opmerking</option>
-                                </select>
-                              ) : (
-                                f?.beoordeling ? beoordelingBadge(f.beoordeling) : <span className="text-muted-foreground">—</span>
-                              )}
-                            </td>
-                            <td className="px-3 py-2.5">
-                              {f && editable && f.beoordeling === "niet_goed" ? (
-                                <select
-                                  className="border border-input rounded-md px-2 py-1 text-sm bg-background"
-                                  value={f.type_afwijking ?? ""}
-                                  onChange={(e) => updateAfwijkingType(f.id, e.target.value as any)}
-                                >
-                                  <option value="kritiek">Kritiek</option>
-                                  <option value="niet_kritiek">Niet kritiek</option>
-                                </select>
-                              ) : (
-                                f?.type_afwijking ? afwijkingBadge(f.type_afwijking) : <span className="text-muted-foreground">—</span>
-                              )}
-                            </td>
-                            <td className="px-3 py-2.5 text-muted-foreground text-xs">
-                              {f?.deadline ? new Date(f.deadline).toLocaleDateString("nl-NL") : "—"}
-                            </td>
-                            <td className="px-3 py-2.5 text-xs">
-                              {f ? statusBadge(f.status) : <span className="text-muted-foreground">—</span>}
-                            </td>
-                          </tr>
-                          {f && ((editable && (f.beoordeling === "niet_goed" || f.beoordeling === "opmerking")) || f.toelichting) && (
-                            <tr className="border-b bg-muted/30">
-                              <td colSpan={7} className="px-4 pb-2 pt-1">
-                                <FindingToelichting
-                                  findingId={f.id}
-                                  initialValue={f.toelichting}
-                                  editable={editable}
-                                />
-                                {editable && f.beoordeling === "niet_goed" && (
-                                  <label className="flex items-center gap-2 mt-2 cursor-pointer text-xs text-muted-foreground">
-                                    <Checkbox
-                                      checked={f.upload_vereist}
-                                      onCheckedChange={async (checked) => {
-                                        const { error } = await supabase
-                                          .from("findings")
-                                          .update({ upload_vereist: !!checked })
-                                          .eq("id", f.id);
-                                        if (error) {
-                                          toast({ title: "Fout", description: "Kon upload-eis niet opslaan", variant: "destructive" });
-                                        } else {
-                                          setFindings((prev) =>
-                                            prev.map((fin) => fin.id === f.id ? { ...fin, upload_vereist: !!checked } : fin)
-                                          );
-                                        }
-                                      }}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-secondary/60">
+                        <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Code</th>
+                        <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Controlepunt</th>
+                        {hasUitdraaiData && (
+                          <th className="text-left px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground min-w-[160px]">Uitdraai</th>
+                        )}
+                        <th className="text-center px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-16">Deel</th>
+                        <th className="text-left px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Beoordeling</th>
+                        <th className="text-left px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Type</th>
+                        <th className="text-left px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Deadline</th>
+                        <th className="text-left px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((row, i) => {
+                        const f = row.finding;
+                        const editable = canEditTemplate(row);
+                        const uitdraaiValue = localUitdraaiData[row.code] ?? "";
+                        const colSpan = hasUitdraaiData ? 8 : 7;
+                        return (
+                          <React.Fragment key={row.id}>
+                            <tr className={`border-b last:border-0 hover:bg-muted/50 transition-colors ${i % 2 !== 0 ? 'bg-muted/20' : ''}`}>
+                              <td className="px-4 py-2.5 text-muted-foreground font-mono text-xs">{row.code}</td>
+                              <td className="px-4 py-2.5 font-medium">{row.controlepunt}</td>
+                              {hasUitdraaiData && (
+                                <td className="px-3 py-2.5">
+                                  {canEditAny ? (
+                                    <Input
+                                      className="h-7 text-xs bg-muted/30"
+                                      value={uitdraaiValue}
+                                      onChange={(e) => handleUitdraaiEdit(row.code, e.target.value)}
+                                      placeholder="—"
                                     />
-                                    Upload vereist voor EP-adviseur
-                                  </label>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">{uitdraaiValue || "—"}</span>
+                                  )}
+                                </td>
+                              )}
+                              <td className="px-3 py-2.5 text-center">
+                                <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${row.deel === 1 ? "bg-accent/10 text-accent" : "bg-primary/10 text-primary"}`}>
+                                  {row.deel}
+                                </span>
+                              </td>
+                              <td className="px-3 py-2.5">
+                                {editable ? (
+                                  <select
+                                    className="border border-input rounded-md px-2 py-1 text-sm bg-background"
+                                    value={f?.beoordeling ?? ""}
+                                    onChange={(e) => handleBeoordeling(row, e.target.value)}
+                                  >
+                                    <option value="">—</option>
+                                    <option value="goed">Goed</option>
+                                    <option value="niet_goed">Niet goed</option>
+                                    <option value="opmerking">Opmerking</option>
+                                  </select>
+                                ) : (
+                                  f?.beoordeling ? beoordelingBadge(f.beoordeling) : <span className="text-muted-foreground">—</span>
                                 )}
                               </td>
+                              <td className="px-3 py-2.5">
+                                {f && editable && f.beoordeling === "niet_goed" ? (
+                                  <select
+                                    className="border border-input rounded-md px-2 py-1 text-sm bg-background"
+                                    value={f.type_afwijking ?? ""}
+                                    onChange={(e) => updateAfwijkingType(f.id, e.target.value as any)}
+                                  >
+                                    <option value="kritiek">Kritiek</option>
+                                    <option value="niet_kritiek">Niet kritiek</option>
+                                  </select>
+                                ) : (
+                                  f?.type_afwijking ? afwijkingBadge(f.type_afwijking) : <span className="text-muted-foreground">—</span>
+                                )}
+                              </td>
+                              <td className="px-3 py-2.5 text-muted-foreground text-xs">
+                                {f?.deadline ? new Date(f.deadline).toLocaleDateString("nl-NL") : "—"}
+                              </td>
+                              <td className="px-3 py-2.5 text-xs">
+                                {f ? statusBadge(f.status) : <span className="text-muted-foreground">—</span>}
+                              </td>
                             </tr>
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                            {f && ((editable && (f.beoordeling === "niet_goed" || f.beoordeling === "opmerking")) || f.toelichting) && (
+                              <tr className="border-b bg-muted/30">
+                                <td colSpan={colSpan} className="px-4 pb-2 pt-1">
+                                  <FindingToelichting
+                                    findingId={f.id}
+                                    initialValue={f.toelichting}
+                                    editable={editable}
+                                  />
+                                  {editable && f.beoordeling === "niet_goed" && (
+                                    <label className="flex items-center gap-2 mt-2 cursor-pointer text-xs text-muted-foreground">
+                                      <Checkbox
+                                        checked={f.upload_vereist}
+                                        onCheckedChange={async (checked) => {
+                                          const { error } = await supabase
+                                            .from("findings")
+                                            .update({ upload_vereist: !!checked })
+                                            .eq("id", f.id);
+                                          if (error) {
+                                            toast({ title: "Fout", description: "Kon upload-eis niet opslaan", variant: "destructive" });
+                                          } else {
+                                            setFindings((prev) =>
+                                              prev.map((fin) => fin.id === f.id ? { ...fin, upload_vereist: !!checked } : fin)
+                                            );
+                                          }
+                                        }}
+                                      />
+                                      Upload vereist voor EP-adviseur
+                                    </label>
+                                  )}
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
               {/* Navigation */}
               <div className="flex justify-between">

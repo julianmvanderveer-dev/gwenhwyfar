@@ -8,6 +8,7 @@ interface ReportData {
   findings: Finding[];
   adviseurNaam?: string;
   templates: { code: string; onderdeel: string; controlepunt: string; deel: number }[];
+  uitdraaiData?: Record<string, string>;
 }
 
 const beoordelingLabel: Record<string, string> = {
@@ -38,7 +39,10 @@ const projectStatusLabel: Record<string, string> = {
   gesloten: "Gesloten",
 };
 
-export function generateAuditReport({ project, findings, adviseurNaam, templates }: ReportData) {
+export function generateAuditReport({ project, findings, adviseurNaam, templates, uitdraaiData }: ReportData) {
+  const hasUitdraai = uitdraaiData && Object.keys(uitdraaiData).length > 0;
+  const colCount = hasUitdraai ? 8 : 7;
+
   // Build merged rows: all templates with their findings
   const mergedRows = templates.map((t) => {
     const finding = findings.find(
@@ -74,15 +78,25 @@ export function generateAuditReport({ project, findings, adviseurNaam, templates
 
   const aanmaakDatum = new Date(project.datum_aangemaakt).toLocaleDateString("nl-NL");
 
+  const uitdraaiHeader = hasUitdraai
+    ? `<th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Uitdraai</th>`
+    : "";
+
   const onderdeelSections = onderdelen
     .map((onderdeel) => {
       const rows = mergedRows.filter((r) => r.onderdeel === onderdeel);
       const rowsHtml = rows
         .map(
-          (r, i) => `
+          (r, i) => {
+            const uitdraaiCell = hasUitdraai
+              ? `<td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#374151;">${escapeHtml(uitdraaiData![r.code] || "—")}</td>`
+              : "";
+
+            return `
         <tr style="${i % 2 !== 0 ? "background:#f8f9fa;" : ""}">
           <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;font-family:monospace;font-size:11px;color:#6b7280;">${r.code}</td>
           <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;">${r.controlepunt}</td>
+          ${uitdraaiCell}
           <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;text-align:center;">${r.deel}</td>
           <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;">
             ${r.finding?.beoordeling ? `<span style="display:inline-block;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;${
@@ -107,8 +121,9 @@ export function generateAuditReport({ project, findings, adviseurNaam, templates
             ${r.finding ? (statusLabel[r.finding.status] ?? r.finding.status) : "—"}
           </td>
         </tr>
-        ${r.finding?.toelichting ? `<tr style="background:#f3f4f6;"><td colspan="7" style="padding:4px 10px 8px 30px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#374151;font-style:italic;">📝 ${escapeHtml(r.finding.toelichting)}</td></tr>` : ""}
-      `
+        ${r.finding?.toelichting ? `<tr style="background:#f3f4f6;"><td colspan="${colCount}" style="padding:4px 10px 8px 30px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#374151;font-style:italic;">📝 ${escapeHtml(r.finding.toelichting)}</td></tr>` : ""}
+      `;
+          }
         )
         .join("");
 
@@ -119,6 +134,7 @@ export function generateAuditReport({ project, findings, adviseurNaam, templates
           <tr style="background:#0e4a8a;color:#fff;">
             <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Code</th>
             <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Controlepunt</th>
+            ${uitdraaiHeader}
             <th style="padding:8px 10px;text-align:center;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;width:50px;">Deel</th>
             <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Beoordeling</th>
             <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Type</th>
