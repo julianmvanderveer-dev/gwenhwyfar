@@ -349,7 +349,6 @@ export default function Inbox() {
           {/* EP-adviseur section (single role) */}
           {hasRole("ep_adviseur") && (
             <AdviseurSectie
-              adviseurFindings={adviseurFindings}
               filteredAdviseurFindings={filteredAdviseurFindings}
               adviseurFilterProject={adviseurFilterProject}
               setAdviseurFilterProject={setAdviseurFilterProject}
