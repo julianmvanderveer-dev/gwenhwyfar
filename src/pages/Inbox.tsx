@@ -330,7 +330,6 @@ export default function Inbox() {
           </TabsList>
           <TabsContent value="ep_adviseur">
             <AdviseurSectie
-              adviseurFindings={adviseurFindings}
               filteredAdviseurFindings={filteredAdviseurFindings}
               adviseurFilterProject={adviseurFilterProject}
               setAdviseurFilterProject={setAdviseurFilterProject}
