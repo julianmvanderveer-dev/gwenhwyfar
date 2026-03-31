@@ -268,6 +268,8 @@ export default function Inbox() {
   const totalVisible = hoofdgroepen.nieuw.length + hoofdgroepen.bezig.length + hoofdgroepen.afgerond.length;
   const isBeheer = hasRole("beheer");
   const isMedewerker = hasRole("tekenaar") || hasRole("auditor");
+  const heeftMeerdereWeergaven = hasRole("ep_adviseur") && isMedewerker && !isBeheer;
+  const medewerkerTabLabel = hasRole("auditor") ? "Auditor" : "Tekenaar";
   const adviseurStatusBadge = (status: string) => {
     const map: Record<string, { label: string; className: string }> = {
       open: { label: "Open", className: "bg-orange-100 text-orange-700" },
