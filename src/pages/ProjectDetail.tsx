@@ -332,6 +332,10 @@ export default function ProjectDetail() {
   };
 
   const auditAfronden = async () => {
+    if (!hasRole("auditor")) {
+      toast({ title: "Geen toegang", description: "Alleen een auditor kan de audit afronden.", variant: "destructive" });
+      return;
+    }
     const now = new Date();
     const nietGoedFindings = findings.filter(f => f.beoordeling === "niet_goed");
     const opmerkingFindings = findings.filter(f => f.beoordeling === "opmerking");
@@ -355,6 +359,12 @@ export default function ProjectDetail() {
         zichtbaar_voor_adviseur: true,
       }).in("id", opmerkingFindings.map(f => f.id)),
     ].filter(Boolean));
+
+    // Punt 1: zet toegewezen_beoordelaar naar auditor voor alle zichtbare findings
+    const alleZichtbareIds = [...kritiekIds, ...nietKritiekIds, ...opmerkingFindings.map(f => f.id)];
+    if (alleZichtbareIds.length > 0) {
+      await supabase.from("findings").update({ toegewezen_beoordelaar: user!.id }).in("id", alleZichtbareIds);
+    }
 
     const hasNietGoed = nietGoedFindings.length > 0;
 
@@ -408,7 +418,7 @@ export default function ProjectDetail() {
 
   const canEditFindingByDeel = (deel: number) => {
     if (canDeel1 && deel === 1) return true;
-    if (canDeel2 && deel === 2) return true;
+    if (canDeel2) return true;  // auditor mag alles
     return false;
   };
 
@@ -755,7 +765,7 @@ export default function ProjectDetail() {
                 step="0.01"
                 value={ep2Start}
                 onChange={(e) => setEp2Start(e.target.value)}
-                disabled={!canDeel2}
+                disabled={!(canDeel1 || canDeel2)}
                 placeholder="bijv. 125.50"
               />
             </div>
@@ -800,7 +810,7 @@ export default function ProjectDetail() {
               </select>
             </div>
 
-            {canDeel2 && (
+            {(canDeel1 || canDeel2) && (
               <Button onClick={saveEp2} size="sm" className="shadow-sm">
                 EP2 opslaan
               </Button>

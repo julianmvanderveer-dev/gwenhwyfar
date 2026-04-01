@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
-import { Mic, MicOff } from "lucide-react";
+import { Mic, MicOff, Forward } from "lucide-react";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -24,17 +24,23 @@ export default function FindingBeoordeling() {
   const [opmerking, setOpmerking] = useState("");
   const [uploadVereist, setUploadVereist] = useState(false);
   const [medewerkers, setMedewerkers] = useState<{ id: string; naam: string }[]>([]);
+  const [tekenaars, setTekenaars] = useState<{ id: string; naam: string }[]>([]);
+  const [selectedTekenaar, setSelectedTekenaar] = useState("");
 
   const handleSpeech = useCallback((transcript: string) => {
     setOpmerking((prev) => (prev ? prev + " " + transcript : transcript));
   }, []);
   const { listening, toggle, supported } = useSpeechRecognition(handleSpeech);
 
+  const isAuditor = hasRole("auditor");
+  const isBeheer = hasRole("beheer");
+
   useEffect(() => {
     if (!id) return;
     loadFinding();
     loadMessages();
-    if (hasRole("beheer")) loadMedewerkers();
+    if (isBeheer) loadMedewerkers();
+    if (isAuditor) loadTekenaars();
   }, [id]);
 
   const loadMedewerkers = async () => {
@@ -46,10 +52,38 @@ export default function FindingBeoordeling() {
     setMedewerkers(relevantUsers);
   };
 
+  const loadTekenaars = async () => {
+    const { data: profiles } = await supabase.from("profiles").select("id, naam").eq("actief", true);
+    const { data: roles } = await supabase.from("user_roles").select("user_id, role");
+    const tekenaarUsers = (profiles ?? []).filter((p) =>
+      (roles ?? []).some((r) => r.user_id === p.id && r.role === "tekenaar")
+    );
+    setTekenaars(tekenaarUsers);
+  };
+
   const hertoewijzen = async (nieuweUserId: string) => {
     await supabase.from("findings").update({ toegewezen_beoordelaar: nieuweUserId } as any).eq("id", id!);
     toast({ title: "Beoordelaar hertoegewezen" });
     loadFinding();
+  };
+
+  const doorzettenNaarTekenaar = async () => {
+    if (!selectedTekenaar || !finding) return;
+    setLoading(true);
+    await supabase.from("findings").update({
+      toegewezen_beoordelaar: selectedTekenaar,
+    } as any).eq("id", id!);
+
+    // Notificatie aanmaken voor de tekenaar
+    await supabase.from("notificaties").insert({
+      user_id: selectedTekenaar,
+      bericht: `Een finding is naar jou doorgezet: ${finding.controlepunt} (${finding.onderdeel})`,
+    } as any);
+
+    toast({ title: "Doorgezet naar tekenaar", description: "De finding is toegewezen aan de geselecteerde tekenaar." });
+    loadFinding();
+    setSelectedTekenaar("");
+    setLoading(false);
   };
 
   const loadFinding = async () => {
@@ -107,7 +141,7 @@ export default function FindingBeoordeling() {
         <p><strong>Status:</strong> {finding.status}</p>
       </div>
 
-      {hasRole("beheer") && medewerkers.length > 0 && (
+      {isBeheer && medewerkers.length > 0 && (
         <div className="border rounded p-3 mb-4">
           <label className="text-sm font-medium mb-1 block">Beoordelaar hertoewijzen</label>
           <Select
@@ -123,6 +157,35 @@ export default function FindingBeoordeling() {
               ))}
             </SelectContent>
           </Select>
+        </div>
+      )}
+
+      {/* Auditor: doorzetten naar tekenaar */}
+      {isAuditor && tekenaars.length > 0 && (
+        <div className="border rounded p-3 mb-4">
+          <label className="text-sm font-medium mb-1 block">Doorzetten naar tekenaar</label>
+          <div className="flex items-center gap-2">
+            <Select value={selectedTekenaar} onValueChange={setSelectedTekenaar}>
+              <SelectTrigger className="h-9 text-sm flex-1">
+                <SelectValue placeholder="Selecteer tekenaar" />
+              </SelectTrigger>
+              <SelectContent>
+                {tekenaars.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>{t.naam}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!selectedTekenaar || loading}
+              onClick={doorzettenNaarTekenaar}
+              className="gap-1.5 shrink-0"
+            >
+              <Forward className="h-4 w-4" />
+              Doorzetten
+            </Button>
+          </div>
         </div>
       )}
 
