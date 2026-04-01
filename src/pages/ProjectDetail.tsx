@@ -559,7 +559,7 @@ export default function ProjectDetail() {
       </div>
 
       {/* Aandachtspunten adviseur */}
-      {project.adviseur_id && (
+      {project.adviseur_id && hasAnyRole(["beheer", "tekenaar", "auditor"]) && (
         <AandachtspuntenAdviseur adviseurId={project.adviseur_id} projectId={project.id} />
       )}
 
