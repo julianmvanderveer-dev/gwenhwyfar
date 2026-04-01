@@ -101,16 +101,6 @@ export function generateAuditReport({ project, findings, adviseurNaam, templates
                 : "background:#dbeafe;color:#1d4ed8;"
             }">${beoordelingLabel[r.finding.beoordeling] ?? r.finding.beoordeling}</span>` : "—"}
           </td>
-          <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;">
-            ${r.finding?.type_afwijking ? `<span style="display:inline-block;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;${
-              r.finding.type_afwijking === "kritiek"
-                ? "background:#fee2e2;color:#b91c1c;"
-                : "background:#ffedd5;color:#c2410c;"
-            }">${afwijkingLabel[r.finding.type_afwijking] ?? r.finding.type_afwijking}</span>` : "—"}
-          </td>
-          <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#6b7280;">
-            ${r.finding?.deadline ? new Date(r.finding.deadline).toLocaleDateString("nl-NL") : "—"}
-          </td>
           <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;font-size:12px;">
             ${r.finding ? (statusLabel[r.finding.status] ?? r.finding.status) : "—"}
           </td>
