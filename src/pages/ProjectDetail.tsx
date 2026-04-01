@@ -665,23 +665,6 @@ export default function ProjectDetail() {
                                   f?.beoordeling ? beoordelingBadge(f.beoordeling) : <span className="text-muted-foreground">—</span>
                                 )}
                               </td>
-                              <td className="px-3 py-2.5">
-                                {f && editable && f.beoordeling === "niet_goed" ? (
-                                  <select
-                                    className="border border-input rounded-md px-2 py-1 text-sm bg-background"
-                                    value={f.type_afwijking ?? ""}
-                                    onChange={(e) => updateAfwijkingType(f.id, e.target.value as any)}
-                                  >
-                                    <option value="kritiek">Kritiek</option>
-                                    <option value="niet_kritiek">Niet kritiek</option>
-                                  </select>
-                                ) : (
-                                  f?.type_afwijking ? afwijkingBadge(f.type_afwijking) : <span className="text-muted-foreground">—</span>
-                                )}
-                              </td>
-                              <td className="px-3 py-2.5 text-muted-foreground text-xs">
-                                {f?.deadline ? new Date(f.deadline).toLocaleDateString("nl-NL") : "—"}
-                              </td>
                               <td className="px-3 py-2.5 text-xs">
                                 {f ? statusBadge(f.status) : <span className="text-muted-foreground">—</span>}
                               </td>
