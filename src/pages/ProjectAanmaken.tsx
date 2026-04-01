@@ -182,7 +182,42 @@ export default function ProjectAanmaken() {
             ))}
           </select>
         </div>
-        <div>
+        {/* Audit-overzicht adviseur */}
+        {adviseurId && (
+          <div className={`border rounded-lg p-3 text-sm ${adviseurProjecten.length > 0 ? "bg-yellow-50 border-yellow-300" : "bg-muted/30"}`}>
+            <p className="font-semibold mb-2">
+              Audits afgelopen jaar voor {adviseurs.find((a) => a.id === adviseurId)?.naam ?? "adviseur"}
+            </p>
+            {adviseurProjecten.length === 0 ? (
+              <p className="text-muted-foreground">Geen audits gevonden in het afgelopen jaar.</p>
+            ) : (
+              <div className="overflow-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-1 pr-2">Project</th>
+                      <th className="text-left py-1 pr-2">Cat.</th>
+                      <th className="text-left py-1 pr-2">Soort</th>
+                      <th className="text-left py-1 pr-2">Status</th>
+                      <th className="text-left py-1">Datum</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {adviseurProjecten.map((p, i) => (
+                      <tr key={i} className="border-b last:border-0">
+                        <td className="py-1 pr-2">{p.projectnaam}</td>
+                        <td className="py-1 pr-2">{p.audit_categorie}</td>
+                        <td className="py-1 pr-2">{p.audit_soort === "dossieraudit" ? "Dossier" : "Project"}</td>
+                        <td className="py-1 pr-2">{statusBadge(p.status)}</td>
+                        <td className="py-1">{format(new Date(p.datum_aangemaakt), "d MMM yyyy", { locale: nl })}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
           <Label>Audit categorie</Label>
           <select className="border rounded px-2 py-1 w-full text-sm" value={auditCategorie} onChange={(e) => setAuditCategorie(e.target.value as any)}>
             <option value="EPW-B">EPW-B</option>
