@@ -270,7 +270,6 @@ export default function ProjectDetail() {
   const updateBeoordeling = async (findingId: string, beoordeling: Enums<"beoordeling_type">) => {
     const update: any = { beoordeling };
     if (beoordeling === "niet_goed") {
-      update.type_afwijking = "niet_kritiek";
       update.eigenaar_beoordeling = hasRole("tekenaar") ? "tekenaar" : "auditor";
       update.toegewezen_beoordelaar = user!.id;
     } else if (beoordeling === "opmerking") {
