@@ -1,82 +1,40 @@
 
 
-# Restyling voorstel: BengCert huisstijl toepassen
+# Spraaktool verbeteren + visuele feedback
 
-## Analyse bengcert.nl
+## Problemen
 
-Uit de website blijken de volgende brandingkeuzes:
+1. **Geen visuele feedback** — De knop pulst alleen rood, maar er is geen geluidsgolf/volume-indicator die bevestigt dat audio daadwerkelijk wordt opgepikt.
+2. **Browser SpeechRecognition beperkingen** — De Web Speech API werkt alleen in Chromium-browsers, vereist een actieve internetverbinding, en kan stilzwijgend falen zonder foutmelding.
+3. **Geen foutmeldingen** — Als spraakherkenning faalt (geen microfoon-toestemming, niet-ondersteunde browser) ziet de gebruiker niets.
 
-```text
-Kleuren:
-- Donkerblauw (navy):  #1B2A4A (header, tekst, achtergronden)
-- Groen (primair):     #7AB929 (logo vinkje, accenten, CTA-knoppen)
-- Blauw gradient:      #1B3A6B → #2E7DD1 (hero-secties)
-- Wit:                 #FFFFFF (cards, achtergronden)
-- Goud/geel:           #F5A623 (iconen, accenten)
+## Oplossing
 
-Typografie:
-- Schreefloos, modern (lijkt op Poppins/Montserrat)
-- Duidelijke hiërarchie: vet/groot voor koppen, licht voor body
+### 1. Audio-visualisatie toevoegen
+Een nieuw component `AudioVisualizer` dat via de Web Audio API (`AudioContext` + `AnalyserNode`) de microfoon-input uitleest en realtime geluidsgolven toont als geanimeerde balkjes naast de microfoonknop. Dit geeft directe visuele bevestiging dat audio wordt opgepikt.
 
-Stijlkenmerken:
-- Clean, professioneel, corporate
-- Witte cards met subtiele schaduwen
-- Afgeronde knoppen met groene achtergrond
-- Blauwe gradiënt hero-secties
-- Gele/gouden iconen als visueel accent
-```
+### 2. Betere foutafhandeling
+- Toast-melding bij geen microfoon-toestemming
+- Toast bij niet-ondersteunde browser
+- Visuele status-indicator (idle / luistert / fout)
 
-## Huidige staat platform
+### 3. Interim-resultaten tonen
+`interimResults` op `true` zetten zodat de gebruiker live tekst ziet verschijnen terwijl hij praat — dit bevestigt dat de spraakherkenning werkt.
 
-De app gebruikt al een groen/blauw kleurenpalet, maar wijkt af:
-- Rolgebaseerde achtergrondkleuren (geel, blauw, groen per rol) — niet in lijn met bengcert
-- Navigatiebalk is kaal en minimaal
-- Login-pagina mist branding volledig
-- Geen logo, geen gradient hero, geen visuele identiteit
+## Bestanden
 
-## Voorstel wijzigingen
-
-### 1. CSS variabelen updaten (`src/index.css`)
-- `--primary` aanpassen naar bengcert-groen (#7AB929)
-- `--foreground` naar donkerblauw (#1B2A4A)
-- `--sidebar-background` naar bengcert navy
-- `--accent` naar bengcert blauw (#2E7DD1)
-- Nieuwe `--gradient-hero` voor blauwe gradiënt-secties
-
-### 2. Navigatiebalk restylen (`AppLayout.tsx`)
-- Donkerblauwe achtergrond met witte tekst (zoals bengcert.nl header)
-- Logo linksboven toevoegen (tekst-logo "bengcert" of SVG)
-- Navigatielinks met hover-effect in groen
-- "Contact" / actie-knop rechts met groene pill-stijl
-- Rolgebaseerde achtergrondkleuren verwijderen (altijd wit/lichtgrijs)
-
-### 3. Login-pagina redesign (`Login.tsx`)
-- Blauwe gradiënt-achtergrond (zoals bengcert hero)
-- Witte card gecentreerd met schaduw
-- Logo boven het formulier
-- Groene primaire knop
-
-### 4. Cards en tabellen
-- Cards: witte achtergrond, subtiele border, lichte schaduw (al grotendeels goed)
-- Knoppen: groene primaire kleur, afgerond
-- Badges: gouden/gele accenten voor waarschuwingen behouden
-
-### 5. Algemeen
-- Font wijzigen naar Poppins of Montserrat (dichter bij bengcert)
-- Consistente border-radius (8px, al ingesteld)
-
-## Bestanden die wijzigen
-
-| Bestand | Wat |
+| Bestand | Wijziging |
 |---|---|
-| `src/index.css` | CSS variabelen, font-import |
-| `src/components/AppLayout.tsx` | Navbar restyling, logo, rolkleuren weg |
-| `src/pages/Login.tsx` | Gradient achtergrond, card-layout, logo |
-| `tailwind.config.ts` | Eventuele gradient utilities |
-| `index.html` | Google Fonts link (Poppins) |
+| `src/components/AudioVisualizer.tsx` | **Nieuw** — Geanimeerde geluidsgolf-balkjes op basis van `AnalyserNode` |
+| `src/hooks/useSpeechRecognition.ts` | Microfoon-toestemming vragen + `AudioContext` opzetten voor visualisatie, `interimResults: true`, betere foutmeldingen |
+| `src/components/FindingToelichting.tsx` | `AudioVisualizer` tonen tijdens opname |
+| `src/pages/FindingBeoordeling.tsx` | Idem: visualizer toevoegen bij de spraakknop |
 
-## Wat niet wijzigt
+## Technisch
 
-- Functionaliteit, routes, database, componenten-logica
-- UI-componenten (shadcn) — alleen kleurvariabelen
+- `useSpeechRecognition` retourneert extra: `analyserNode` (voor visualizer) en `interimText` (live preview)
+- `AudioVisualizer` gebruikt `requestAnimationFrame` + `canvas` of CSS-balkjes om frequentiedata te tekenen
+- Bij toggle-start: `navigator.mediaDevices.getUserMedia({ audio: true })` → `AudioContext` → `createAnalyser()` → stream koppelen
+- Bij stop: stream tracks stoppen, context sluiten
+- Geen externe dependencies nodig
 
