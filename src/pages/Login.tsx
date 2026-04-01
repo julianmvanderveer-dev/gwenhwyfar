@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
-import { Shield } from "lucide-react";
+import BengCertLogo from "@/components/BengCertLogo";
 
 export default function Login() {
   const [email, setEmail] = useState("");
