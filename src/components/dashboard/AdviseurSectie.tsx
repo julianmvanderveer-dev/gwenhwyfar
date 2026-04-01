@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download } from "lucide-react";
+import { Download, ExternalLink } from "lucide-react";
 import { afwijkingBadge } from "@/lib/badges";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -16,6 +16,7 @@ interface AdviseurSectieProps {
   adviseurProjectNames: (string | undefined)[];
   adviseurStatusBadge: (status: string) => React.ReactNode;
   handleDownload: (path: string) => void;
+  adviseurProjecten?: { id: string; projectnaam: string }[];
 }
 
 export default function AdviseurSectie({
@@ -27,6 +28,7 @@ export default function AdviseurSectie({
   adviseurProjectNames,
   adviseurStatusBadge,
   handleDownload,
+  adviseurProjecten = [],
 }: AdviseurSectieProps) {
   return (
     <div className="bg-card rounded-lg border shadow-sm p-4">
@@ -76,7 +78,11 @@ export default function AdviseurSectie({
             <tbody>
               {filteredAdviseurFindings.map((f, i) => (
                 <tr key={f.id} className={`border-b last:border-0 ${i % 2 === 0 ? 'bg-card' : 'bg-background'}`}>
-                  <td className="px-4 py-2.5 font-medium">{f.projectnaam}</td>
+                  <td className="px-4 py-2.5 font-medium">
+                    <Link to={`/project/${f.project_id}`} className="text-accent hover:underline">
+                      {f.projectnaam}
+                    </Link>
+                  </td>
                   <td className="px-4 py-2.5">{f.controlepunt}</td>
                   <td className="px-4 py-2.5">{afwijkingBadge(f.type_afwijking)}</td>
                   <td className="px-4 py-2.5">{adviseurStatusBadge(f.status)}</td>
@@ -105,6 +111,24 @@ export default function AdviseurSectie({
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+      {/* Projectenlijst */}
+      {adviseurProjecten.length > 0 && (
+        <div className="mt-6 bg-card rounded-lg border shadow-sm p-4">
+          <h2 className="font-semibold mb-3 text-sm">Mijn projecten</h2>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {adviseurProjecten.map((p) => (
+              <Link
+                key={p.id}
+                to={`/project/${p.id}`}
+                className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-accent/10 transition-colors"
+              >
+                <ExternalLink className="h-3.5 w-3.5 text-accent shrink-0" />
+                <span className="truncate font-medium">{p.projectnaam}</span>
+              </Link>
+            ))}
+          </div>
         </div>
       )}
     </div>

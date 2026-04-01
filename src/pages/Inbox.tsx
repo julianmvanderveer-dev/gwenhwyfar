@@ -27,6 +27,7 @@ export default function Inbox() {
   const [adviseurFindings, setAdviseurFindings] = useState<Finding[]>([]);
   const [adviseurFilterProject, setAdviseurFilterProject] = useState<string>("alle");
   const [adviseurFilterStatus, setAdviseurFilterStatus] = useState<string>("alle");
+  const [adviseurProjecten, setAdviseurProjecten] = useState<{ id: string; projectnaam: string }[]>([]);
   const [zoekterm, setZoekterm] = useState("");
   const [toewijsbarePersonen, setToewijsbarePersonen] = useState<ToewijsbarePersoon[]>([]);
 
@@ -104,6 +105,8 @@ export default function Inbox() {
       .from("projects")
       .select("id, projectnaam")
       .eq("adviseur_id", adviseurRecord.id);
+
+    setAdviseurProjecten(projectData ?? []);
 
     if (!projectData || projectData.length === 0) {
       setAdviseurFindings([]);
@@ -338,6 +341,7 @@ export default function Inbox() {
               adviseurProjectNames={adviseurProjectNames}
               adviseurStatusBadge={adviseurStatusBadge}
               handleDownload={handleDownload}
+              adviseurProjecten={adviseurProjecten}
             />
           </TabsContent>
           <TabsContent value="medewerker">
@@ -357,6 +361,7 @@ export default function Inbox() {
               adviseurProjectNames={adviseurProjectNames}
               adviseurStatusBadge={adviseurStatusBadge}
               handleDownload={handleDownload}
+              adviseurProjecten={adviseurProjecten}
             />
           )}
 
