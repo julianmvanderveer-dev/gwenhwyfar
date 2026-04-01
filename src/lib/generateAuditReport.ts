@@ -37,7 +37,7 @@ const projectStatusLabel: Record<string, string> = {
 
 export function generateAuditReport({ project, findings, adviseurNaam, templates, uitdraaiData }: ReportData) {
   const hasUitdraai = uitdraaiData && Object.keys(uitdraaiData).length > 0;
-  const colCount = hasUitdraai ? 8 : 7;
+  const colCount = hasUitdraai ? 6 : 5;
 
   // Build merged rows: all templates with their findings
   const mergedRows = templates.map((t) => {
