@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import NotificatieBel from "@/components/NotificatieBel";
 import FeedbackKnop from "@/components/FeedbackKnop";
+import { Shield } from "lucide-react";
 
 export default function AppLayout() {
   const { user, roles, signOut, hasRole } = useAuth();
@@ -13,30 +14,51 @@ export default function AppLayout() {
     navigate("/login");
   };
 
-  const bgClass = hasRole("beheer")
-    ? ""
-    : hasRole("ep_adviseur")
-    ? "bg-yellow-50"
-    : hasRole("auditor")
-    ? "bg-blue-50"
-    : hasRole("tekenaar")
-    ? "bg-green-50"
-    : "";
-
   return (
-    <div className={`min-h-screen ${bgClass}`}>
-      <nav className="border-b p-2 flex gap-4 items-center text-sm">
-        <Link to="/inbox" className="font-semibold">Projecten</Link>
+    <div className="min-h-screen bg-background">
+      <nav className="bg-[hsl(220,42%,20%)] text-white px-6 py-3 flex items-center gap-6 text-sm shadow-md">
+        <Link to="/inbox" className="flex items-center gap-2 font-bold text-lg tracking-tight mr-4">
+          <Shield className="h-6 w-6 text-primary" />
+          <span>
+            beng<span className="text-primary">cert</span>
+          </span>
+        </Link>
+
+        <Link
+          to="/inbox"
+          className="font-medium hover:text-primary transition-colors"
+        >
+          Projecten
+        </Link>
+
         {hasRole("beheer") && (
-          <Link to="/beheer">Beheer</Link>
+          <Link
+            to="/beheer"
+            className="font-medium hover:text-primary transition-colors"
+          >
+            Beheer
+          </Link>
         )}
         {hasRole("beheer") && (
-          <Link to="/checklist-beheer">Checklists</Link>
+          <Link
+            to="/checklist-beheer"
+            className="font-medium hover:text-primary transition-colors"
+          >
+            Checklists
+          </Link>
         )}
-        <div className="ml-auto flex items-center gap-2">
+
+        <div className="ml-auto flex items-center gap-3">
           <NotificatieBel />
-          <span className="text-muted-foreground">{user?.email}</span>
-          <Button variant="ghost" size="sm" onClick={handleSignOut}>Uitloggen</Button>
+          <span className="text-white/70 text-xs">{user?.email}</span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSignOut}
+            className="border-white/20 text-white hover:bg-white/10 hover:text-white"
+          >
+            Uitloggen
+          </Button>
         </div>
       </nav>
       <Outlet />

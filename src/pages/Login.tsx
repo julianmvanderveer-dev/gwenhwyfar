@@ -3,8 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import { Shield } from "lucide-react";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -55,43 +57,55 @@ export default function Login() {
   const title = mode === "signup" ? "Registreren" : mode === "forgot" ? "Wachtwoord vergeten" : "Inloggen";
 
   return (
-    <div className="max-w-sm mx-auto mt-20 p-4">
-      <h1 className="text-xl font-bold mb-4">{title}</h1>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {mode === "signup" && (
-          <div>
-            <Label htmlFor="naam">Naam</Label>
-            <Input id="naam" value={naam} onChange={(e) => setNaam(e.target.value)} />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[hsl(220,42%,20%)] via-[hsl(212,65%,30%)] to-[hsl(212,65%,49%)]">
+      <Card className="w-full max-w-md shadow-2xl border-0">
+        <CardHeader className="text-center pb-2">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <Shield className="h-8 w-8 text-primary" />
+            <span className="text-2xl font-bold tracking-tight text-foreground">
+              beng<span className="text-primary">cert</span>
+            </span>
           </div>
-        )}
-        <div>
-          <Label htmlFor="email">E-mail</Label>
-          <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-        </div>
-        {mode !== "forgot" && (
-          <div>
-            <Label htmlFor="password">Wachtwoord</Label>
-            <Input id="password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
+          <CardTitle className="text-xl">{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {mode === "signup" && (
+              <div>
+                <Label htmlFor="naam">Naam</Label>
+                <Input id="naam" value={naam} onChange={(e) => setNaam(e.target.value)} />
+              </div>
+            )}
+            <div>
+              <Label htmlFor="email">E-mail</Label>
+              <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+            </div>
+            {mode !== "forgot" && (
+              <div>
+                <Label htmlFor="password">Wachtwoord</Label>
+                <Input id="password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
+              </div>
+            )}
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? "Laden..." : mode === "signup" ? "Registreren" : mode === "forgot" ? "Verstuur herstelmail" : "Inloggen"}
+            </Button>
+          </form>
+          <div className="mt-4 space-y-1 text-center">
+            {mode === "login" && (
+              <>
+                <button className="text-sm text-muted-foreground underline block mx-auto" onClick={() => setMode("forgot")}>Wachtwoord vergeten?</button>
+                <button className="text-sm text-muted-foreground underline block mx-auto" onClick={() => setMode("signup")}>Geen account? Registreren</button>
+              </>
+            )}
+            {mode === "signup" && (
+              <button className="text-sm text-muted-foreground underline" onClick={() => setMode("login")}>Al een account? Inloggen</button>
+            )}
+            {mode === "forgot" && (
+              <button className="text-sm text-muted-foreground underline" onClick={() => setMode("login")}>Terug naar inloggen</button>
+            )}
           </div>
-        )}
-        <Button type="submit" disabled={loading} className="w-full">
-          {loading ? "Laden..." : mode === "signup" ? "Registreren" : mode === "forgot" ? "Verstuur herstelmail" : "Inloggen"}
-        </Button>
-      </form>
-      <div className="mt-4 space-y-1">
-        {mode === "login" && (
-          <>
-            <button className="text-sm underline block" onClick={() => setMode("forgot")}>Wachtwoord vergeten?</button>
-            <button className="text-sm underline block" onClick={() => setMode("signup")}>Geen account? Registreren</button>
-          </>
-        )}
-        {mode === "signup" && (
-          <button className="text-sm underline" onClick={() => setMode("login")}>Al een account? Inloggen</button>
-        )}
-        {mode === "forgot" && (
-          <button className="text-sm underline" onClick={() => setMode("login")}>Terug naar inloggen</button>
-        )}
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
