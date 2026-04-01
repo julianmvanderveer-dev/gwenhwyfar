@@ -218,7 +218,7 @@ export default function ProjectAanmaken() {
             )}
           </div>
         )}
-        <div>
+          <Label>Audit categorie</Label>
           <select className="border rounded px-2 py-1 w-full text-sm" value={auditCategorie} onChange={(e) => setAuditCategorie(e.target.value as any)}>
             <option value="EPW-B">EPW-B</option>
             <option value="EPW-D">EPW-D</option>
