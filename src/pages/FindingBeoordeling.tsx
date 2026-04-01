@@ -24,7 +24,8 @@ export default function FindingBeoordeling() {
   const [loading, setLoading] = useState(false);
   const [opmerking, setOpmerking] = useState("");
   const [uploadVereist, setUploadVereist] = useState(false);
-  const [medewerkers, setMedewerkers] = useState<{ id: string; naam: string }[]>([]);
+  const [tekenaars, setTekenaars] = useState<{ id: string; naam: string }[]>([]);
+  const [selectedTekenaar, setSelectedTekenaar] = useState("");
 
   const handleSpeech = useCallback((transcript: string) => {
     setOpmerking((prev) => (prev ? prev + " " + transcript : transcript));
