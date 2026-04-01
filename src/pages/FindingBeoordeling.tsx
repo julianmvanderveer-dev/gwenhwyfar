@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { Mic, MicOff, Forward } from "lucide-react";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import AudioVisualizer from "@/components/AudioVisualizer";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Tables } from "@/integrations/supabase/types";
