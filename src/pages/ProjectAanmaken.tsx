@@ -8,14 +8,18 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "@/hooks/use-toast";
+import { statusBadge } from "@/lib/badges";
 import type { Enums } from "@/integrations/supabase/types";
 import { EPW_D_CHECKLIST } from "@/data/epwd-checklist";
 import { EPW_B_CHECKLIST } from "@/data/epwb-checklist";
 import { EPU_B_CHECKLIST } from "@/data/epub-checklist";
 import { EPU_D_CHECKLIST } from "@/data/epud-checklist";
+import { format } from "date-fns";
+import { nl } from "date-fns/locale";
 
 type Adviseur = { id: string; nummer: number; naam: string; email: string | null; actief: boolean };
 type ToewijsbaarPersoon = { id: string; naam: string; email: string; roles: Enums<"app_role">[]; auditCategorieen: Enums<"audit_categorie">[] };
+type AdviseurProject = { projectnaam: string; audit_categorie: string; audit_soort: string; status: string; datum_aangemaakt: string };
 
 export default function ProjectAanmaken() {
   const { user, hasRole } = useAuth();
@@ -33,6 +37,7 @@ export default function ProjectAanmaken() {
   const [toewijzing, setToewijzing] = useState<"pool" | "specifiek">("pool");
   const [toegewezenAan, setToegewezenAan] = useState("");
   const [toewijsbarePersonen, setToewijsbarePersonen] = useState<ToewijsbaarPersoon[]>([]);
+  const [adviseurProjecten, setAdviseurProjecten] = useState<AdviseurProject[]>([]);
 
   useEffect(() => {
     supabase.from("adviseurs").select("*").eq("actief", true).order("nummer").then(({ data }) => {
@@ -40,6 +45,25 @@ export default function ProjectAanmaken() {
     });
     loadToewijsbarePersonen();
   }, []);
+
+  // Laad projecten van geselecteerde adviseur (afgelopen jaar)
+  useEffect(() => {
+    if (!adviseurId) {
+      setAdviseurProjecten([]);
+      return;
+    }
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    supabase
+      .from("projects")
+      .select("projectnaam, audit_categorie, audit_soort, status, datum_aangemaakt")
+      .eq("adviseur_id", adviseurId)
+      .gte("datum_aangemaakt", oneYearAgo.toISOString())
+      .order("datum_aangemaakt", { ascending: false })
+      .then(({ data }) => {
+        setAdviseurProjecten((data as AdviseurProject[]) ?? []);
+      });
+  }, [adviseurId]);
 
   const loadToewijsbarePersonen = async () => {
     const { data: profiles } = await supabase.from("profiles").select("id, naam, email").eq("actief", true);
@@ -158,6 +182,42 @@ export default function ProjectAanmaken() {
             ))}
           </select>
         </div>
+        {/* Audit-overzicht adviseur */}
+        {adviseurId && (
+          <div className={`border rounded-lg p-3 text-sm ${adviseurProjecten.length > 0 ? "bg-yellow-50 border-yellow-300" : "bg-muted/30"}`}>
+            <p className="font-semibold mb-2">
+              Audits afgelopen jaar voor {adviseurs.find((a) => a.id === adviseurId)?.naam ?? "adviseur"}
+            </p>
+            {adviseurProjecten.length === 0 ? (
+              <p className="text-muted-foreground">Geen audits gevonden in het afgelopen jaar.</p>
+            ) : (
+              <div className="overflow-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-1 pr-2">Project</th>
+                      <th className="text-left py-1 pr-2">Cat.</th>
+                      <th className="text-left py-1 pr-2">Soort</th>
+                      <th className="text-left py-1 pr-2">Status</th>
+                      <th className="text-left py-1">Datum</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {adviseurProjecten.map((p, i) => (
+                      <tr key={i} className="border-b last:border-0">
+                        <td className="py-1 pr-2">{p.projectnaam}</td>
+                        <td className="py-1 pr-2">{p.audit_categorie}</td>
+                        <td className="py-1 pr-2">{p.audit_soort === "dossieraudit" ? "Dossier" : "Project"}</td>
+                        <td className="py-1 pr-2">{statusBadge(p.status)}</td>
+                        <td className="py-1">{format(new Date(p.datum_aangemaakt), "d MMM yyyy", { locale: nl })}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
         <div>
           <Label>Audit categorie</Label>
           <select className="border rounded px-2 py-1 w-full text-sm" value={auditCategorie} onChange={(e) => setAuditCategorie(e.target.value as any)}>
