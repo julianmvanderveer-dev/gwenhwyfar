@@ -1,52 +1,59 @@
 
 
-## Plan: Formulier vereenvoudigen en inspreekfunctie stabiliseren
+## Plan: EP2-beoordeling automatisch berekenen (KT/NKT/GOED)
 
-### 1. "Kritiek / niet kritiek" kolom verwijderen
+### Logica
 
-**`src/pages/ProjectDetail.tsx`**:
-- Verwijder de "Type" kolom (header rij 628 + cel rij 679-691) uit de tabel
-- In `updateBeoordeling`: verwijder de automatische toewijzing van `type_afwijking` bij "niet_goed" (regel 273)
-- In `auditAfronden`: vereenvoudig de deadline-logica — alle "niet_goed" findings krijgen dezelfde deadline (3 maanden), geen onderscheid meer tussen kritiek/niet-kritiek (regels 342-357)
-- EP2 beoordeling select: vereenvoudig naar alleen "Goed" en "Niet goed" (verwijder NK/KT opties, regels 807-809)
+De EP2-beoordeling wordt automatisch bepaald op basis van drie criteria:
 
-**`src/pages/FindingBeoordeling.tsx`**:
-- Verwijder de "Type afwijking" regel uit het info-blok (regel 119)
+1. **KT (Kritiek)** als een van deze waar is:
+   - Eindwaarde > 125 EN afwijking > 8% t.o.v. startwaarde
+   - Eindwaarde <= 125 EN absolute afwijking > 10 kWh/m²
+   - Meer dan 4 findings met beoordeling "niet_goed"
 
-**`src/lib/badges.tsx`**:
-- `afwijkingBadge` functie kan blijven (backward compatible) maar wordt niet meer aangeroepen vanuit de tabel
+2. **NKT (Niet Kritiek)** als er minstens 1 finding "niet_goed" is maar geen KT-criteria
 
-**`src/lib/generateAuditReport.ts`**: verwijder type_afwijking referenties uit het rapport (indien aanwezig)
+3. **GOED** als alle findings "goed" zijn (of opmerking) en geen KT/NKT-criteria
 
-### 2. Deadline-kolom uit hoofdscherm halen
+### Wijzigingen
 
 **`src/pages/ProjectDetail.tsx`**:
-- Verwijder de "Deadline" header (regel 629) en de deadline-cel (regels 693-695) uit de tabel
-- Deadline blijft intern bestaan en wordt nog steeds berekend bij `auditAfronden`, maar is niet meer zichtbaar in het audit-formulier
-- Deadline blijft zichtbaar op de `FindingBeoordeling`-pagina (daar is het relevant)
 
-### 3. Inspreekfunctie stabiliseren
+1. **Bereken automatische beoordeling** — nieuw `useMemo`/berekend veld na de bestaande EP2-berekeningen (regel ~452):
+   - Tel `niet_goed` findings
+   - Pas de drie KT-regels toe
+   - Bepaal KT / NKT / GOED
 
-**`src/hooks/useSpeechRecognition.ts`**:
-- Probleem: `continuous = true` + `interimResults = false` kan ertoe leiden dat de browser de sessie afbreekt zonder duidelijke feedback
-- Fix: voeg `recognition.onend` auto-restart toe wanneer de gebruiker nog aan het luisteren is (browser stopt soms na stilte)
-- Voeg een ref bij om te voorkomen dat `onResult` wordt aangeroepen na handmatig stoppen
-- Voeg een timeout toe (bijv. 60s) die de opname automatisch stopt met een toast-melding
+2. **Auto-fill bij wijziging** — `useEffect` die `ep2Beoordeling` zet wanneer start/eindwaarde of findings wijzigen, maar alleen als de auditor niet handmatig heeft overschreven (track via een `ep2ManualOverride` state)
 
-### Overzicht tabelkolommen (na wijziging)
+3. **Dropdown opties wijzigen** — van "goed"/"niet_goed" naar "goed"/"nkt"/"kt" met labels "GOED", "NKT", "KT"
+
+4. **Toon berekende suggestie** — klein infoblok onder de beoordeling-select dat uitlegt waarom de automatische waarde is gekozen (bijv. "Automatisch: KT — afwijking 9.2% bij EP2 > 125")
+
+5. **Override mogelijk** — auditor kan altijd handmatig de waarde wijzigen; bij handmatige wijziging wordt een `(handmatig)` label getoond
+
+### Technisch detail
 
 ```text
-Huidig:   Code | Controlepunt | [Uitdraai] | Deel | Beoordeling | Type | Deadline | Status
-Nieuw:    Code | Controlepunt | [Uitdraai] | Deel | Beoordeling | Status
+// Pseudo-logica
+const nietGoedCount = findings.filter(f => f.beoordeling === "niet_goed").length;
+const alleGoed = findings.every(f => f.beoordeling === "goed" || f.beoordeling === "opmerking" || !f.beoordeling);
+
+let autoEp2 = "goed";
+if (afwijkingAbs !== null && eindVal > 125 && Math.abs(afwijkingPct) > 8) autoEp2 = "kt";
+else if (afwijkingAbs !== null && eindVal <= 125 && Math.abs(afwijkingAbs) > 10) autoEp2 = "kt";
+if (nietGoedCount > 4) autoEp2 = "kt";
+else if (!alleGoed && autoEp2 !== "kt") autoEp2 = "nkt";
+if (alleGoed && autoEp2 !== "kt") autoEp2 = "goed";
 ```
 
-### Bestanden
+### Database
+
+De `ep2_beoordeling` kolom is al een vrij tekstveld — geen migratie nodig. De waarden worden "goed", "nkt", "kt".
+
+### Bestand
 
 | Bestand | Wijziging |
 |---------|-----------|
-| `src/pages/ProjectDetail.tsx` | Verwijder Type + Deadline kolommen, vereenvoudig auditAfronden en updateBeoordeling, EP2 opties |
-| `src/pages/FindingBeoordeling.tsx` | Verwijder type_afwijking uit info-blok |
-| `src/hooks/useSpeechRecognition.ts` | Auto-restart bij onverwacht stoppen, timeout, stabielere state management |
-| `src/lib/badges.tsx` | Geen wijziging nodig (backward compatible) |
-| `src/lib/generateAuditReport.ts` | Verwijder type_afwijking referenties |
+| `src/pages/ProjectDetail.tsx` | Auto-berekening EP2-beoordeling, dropdown opties KT/NKT/GOED, override-tracking, info-uitleg |
 
