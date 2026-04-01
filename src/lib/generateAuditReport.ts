@@ -57,8 +57,6 @@ export function generateAuditReport({ project, findings, adviseurNaam, templates
   const goedCount = beoordeeld.filter((f) => f.beoordeling === "goed").length;
   const nietGoedCount = beoordeeld.filter((f) => f.beoordeling === "niet_goed").length;
   const opmerkingCount = beoordeeld.filter((f) => f.beoordeling === "opmerking").length;
-  const kritiekCount = findings.filter((f) => f.type_afwijking === "kritiek").length;
-  const nietKritiekCount = findings.filter((f) => f.type_afwijking === "niet_kritiek").length;
 
   // EP2
   const ep2Start = project.ep2_startwaarde;
