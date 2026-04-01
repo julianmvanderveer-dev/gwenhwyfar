@@ -39,15 +39,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    // Initiële sessie: wacht op rollen vóór loading = false
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!mounted) return;
-      setUser(session?.user ?? null);
-      if (session?.user) await fetchRoles(session.user.id);
-      if (mounted) setLoading(false);
-    });
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!mounted) return;
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          await fetchRoles(session.user.id).catch(() => {});
+        }
+      } catch (e) {
+        console.error("Auth init error:", e);
+        if (mounted) {
+          setUser(null);
+          setRoles([]);
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
 
-    // Opvolgende auth-events (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (!mounted) return;
