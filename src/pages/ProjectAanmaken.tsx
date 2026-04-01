@@ -37,6 +37,7 @@ export default function ProjectAanmaken() {
   const [toewijzing, setToewijzing] = useState<"pool" | "specifiek">("pool");
   const [toegewezenAan, setToegewezenAan] = useState("");
   const [toewijsbarePersonen, setToewijsbarePersonen] = useState<ToewijsbaarPersoon[]>([]);
+  const [adviseurProjecten, setAdviseurProjecten] = useState<AdviseurProject[]>([]);
 
   useEffect(() => {
     supabase.from("adviseurs").select("*").eq("actief", true).order("nummer").then(({ data }) => {
