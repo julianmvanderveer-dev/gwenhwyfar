@@ -338,29 +338,23 @@ export default function ProjectDetail() {
     const now = new Date();
     const nietGoedFindings = findings.filter(f => f.beoordeling === "niet_goed");
     const opmerkingFindings = findings.filter(f => f.beoordeling === "opmerking");
-    const hasKt = nietGoedFindings.some(f => f.type_afwijking === "kritiek");
+    const deadline3m = addMonths(now, 3).toISOString();
 
-    const kritiekIds = nietGoedFindings.filter(f => f.type_afwijking === "kritiek").map(f => f.id);
-    const nietKritiekIds = nietGoedFindings.filter(f => f.type_afwijking !== "kritiek").map(f => f.id);
+    const nietGoedIds = nietGoedFindings.map(f => f.id);
 
     await Promise.all([
-      kritiekIds.length > 0 && supabase.from("findings").update({
-        deadline: addDays(now, 28).toISOString(),
+      nietGoedIds.length > 0 && supabase.from("findings").update({
+        deadline: deadline3m,
         zichtbaar_voor_adviseur: true,
         status: "open" as any,
-      }).in("id", kritiekIds),
-      nietKritiekIds.length > 0 && supabase.from("findings").update({
-        deadline: addMonths(now, 3).toISOString(),
-        zichtbaar_voor_adviseur: true,
-        status: "open" as any,
-      }).in("id", nietKritiekIds),
+      }).in("id", nietGoedIds),
       opmerkingFindings.length > 0 && supabase.from("findings").update({
         zichtbaar_voor_adviseur: true,
       }).in("id", opmerkingFindings.map(f => f.id)),
     ].filter(Boolean));
 
     // Punt 1: zet toegewezen_beoordelaar naar auditor voor alle zichtbare findings
-    const alleZichtbareIds = [...kritiekIds, ...nietKritiekIds, ...opmerkingFindings.map(f => f.id)];
+    const alleZichtbareIds = [...nietGoedIds, ...opmerkingFindings.map(f => f.id)];
     if (alleZichtbareIds.length > 0) {
       await supabase.from("findings").update({ toegewezen_beoordelaar: user!.id }).in("id", alleZichtbareIds);
     }
@@ -368,11 +362,9 @@ export default function ProjectDetail() {
     const hasNietGoed = nietGoedFindings.length > 0;
 
     if (hasNietGoed) {
-      const now2 = new Date();
-      const reactieDeadline = hasKt ? addDays(now2, 28).toISOString() : addMonths(now2, 3).toISOString();
       await supabase.from("projects").update({
         status: "wacht_op_reactie" as any,
-        reactie_deadline: reactieDeadline,
+        reactie_deadline: deadline3m,
       }).eq("id", id!);
       toast({ title: "Audit afgerond", description: "Status naar 'Wacht op reactie', deadline berekend" });
     } else {
