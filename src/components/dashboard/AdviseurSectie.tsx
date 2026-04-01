@@ -28,6 +28,7 @@ export default function AdviseurSectie({
   adviseurProjectNames,
   adviseurStatusBadge,
   handleDownload,
+  adviseurProjecten = [],
 }: AdviseurSectieProps) {
   return (
     <div className="bg-card rounded-lg border shadow-sm p-4">
