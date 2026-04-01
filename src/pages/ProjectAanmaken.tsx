@@ -46,6 +46,25 @@ export default function ProjectAanmaken() {
     loadToewijsbarePersonen();
   }, []);
 
+  // Laad projecten van geselecteerde adviseur (afgelopen jaar)
+  useEffect(() => {
+    if (!adviseurId) {
+      setAdviseurProjecten([]);
+      return;
+    }
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    supabase
+      .from("projects")
+      .select("projectnaam, audit_categorie, audit_soort, status, datum_aangemaakt")
+      .eq("adviseur_id", adviseurId)
+      .gte("datum_aangemaakt", oneYearAgo.toISOString())
+      .order("datum_aangemaakt", { ascending: false })
+      .then(({ data }) => {
+        setAdviseurProjecten((data as AdviseurProject[]) ?? []);
+      });
+  }, [adviseurId]);
+
   const loadToewijsbarePersonen = async () => {
     const { data: profiles } = await supabase.from("profiles").select("id, naam, email").eq("actief", true);
     const { data: roles } = await supabase.from("user_roles").select("user_id, role");
