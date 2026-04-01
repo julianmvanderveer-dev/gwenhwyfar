@@ -361,6 +361,7 @@ export default function Inbox() {
               adviseurProjectNames={adviseurProjectNames}
               adviseurStatusBadge={adviseurStatusBadge}
               handleDownload={handleDownload}
+              adviseurProjecten={adviseurProjecten}
             />
           )}
 
