@@ -624,7 +624,7 @@ export default function ProjectDetail() {
                         const f = row.finding;
                         const editable = canEditTemplate(row);
                         const uitdraaiValue = localUitdraaiData[row.code] ?? "";
-                        const colSpan = hasUitdraaiData ? 8 : 7;
+                        const colSpan = hasUitdraaiData ? 6 : 5;
                         return (
                           <React.Fragment key={row.id}>
                             <tr className={`border-b last:border-0 hover:bg-muted/50 transition-colors ${i % 2 !== 0 ? 'bg-muted/20' : ''}`}>
