@@ -397,55 +397,6 @@ export default function ProjectDetail() {
     loadProject();
   };
 
-  if (!project) return <div className="p-6 text-muted-foreground">Laden...</div>;
-
-  // Build merged rows per onderdeel
-  const onderdelen = [...new Set(templates.map((t) => t.onderdeel))].sort((a, b) =>
-    a.localeCompare(b, undefined, { numeric: true })
-  );
-  const allTabs = [...onderdelen, "__ep2__"];
-
-  const canDeel1 = hasRole("tekenaar") && (project.status === "nog_niet_begonnen" || project.status === "deel1_bezig");
-  const canDeel2 = hasRole("auditor") && (project.status === "deel1_afgerond" || project.status === "deel2_bezig");
-
-  const canEditFindingByDeel = (deel: number) => {
-    if (canDeel1 && deel === 1) return true;
-    if (canDeel2) return true;  // auditor mag alles
-    return false;
-  };
-
-  const canEditFinding = (f: Finding) => canEditFindingByDeel(f.deel);
-  const canEditTemplate = (t: Template) => canEditFindingByDeel(t.deel);
-  const canEditAny = canDeel1 || canDeel2;
-
-  const getMergedRows = (onderdeel: string): MergedRow[] => {
-    const onderdeelTemplates = templates
-      .filter((t) => t.onderdeel === onderdeel)
-      .sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
-    return onderdeelTemplates.map((t) => {
-      const finding = findings.find(
-        (f) => f.onderdeel === t.onderdeel && f.controlepunt === t.controlepunt && f.deel === t.deel
-      );
-      return { ...t, finding };
-    });
-  };
-
-  const currentIndex = allTabs.indexOf(activeTab);
-  const goTo = (dir: -1 | 1) => {
-    const next = allTabs[currentIndex + dir];
-    if (next) setActiveTab(next);
-  };
-
-  const statusLabel: Record<string, string> = {
-    nog_niet_begonnen: "Nog niet begonnen",
-    deel1_bezig: "Deel 1 bezig",
-    deel1_afgerond: "Deel 1 afgerond",
-    deel2_bezig: "Deel 2 bezig",
-    afgerond: "Afgerond",
-    wacht_op_reactie: "Reactie EP-adviseur gevraagd",
-    gesloten: "Gesloten",
-  };
-
   // EP2 berekeningen
   const startVal = parseFloat(ep2Start);
   const eindVal = parseFloat(ep2Eind);
@@ -503,6 +454,55 @@ export default function ProjectDetail() {
       setEp2Beoordeling(autoEp2);
     }
   }, [autoEp2, ep2ManualOverride]);
+
+  if (!project) return <div className="p-6 text-muted-foreground">Laden...</div>;
+
+  // Build merged rows per onderdeel
+  const onderdelen = [...new Set(templates.map((t) => t.onderdeel))].sort((a, b) =>
+    a.localeCompare(b, undefined, { numeric: true })
+  );
+  const allTabs = [...onderdelen, "__ep2__"];
+
+  const canDeel1 = hasRole("tekenaar") && (project.status === "nog_niet_begonnen" || project.status === "deel1_bezig");
+  const canDeel2 = hasRole("auditor") && (project.status === "deel1_afgerond" || project.status === "deel2_bezig");
+
+  const canEditFindingByDeel = (deel: number) => {
+    if (canDeel1 && deel === 1) return true;
+    if (canDeel2) return true;
+    return false;
+  };
+
+  const canEditFinding = (f: Finding) => canEditFindingByDeel(f.deel);
+  const canEditTemplate = (t: Template) => canEditFindingByDeel(t.deel);
+  const canEditAny = canDeel1 || canDeel2;
+
+  const getMergedRows = (onderdeel: string): MergedRow[] => {
+    const onderdeelTemplates = templates
+      .filter((t) => t.onderdeel === onderdeel)
+      .sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
+    return onderdeelTemplates.map((t) => {
+      const finding = findings.find(
+        (f) => f.onderdeel === t.onderdeel && f.controlepunt === t.controlepunt && f.deel === t.deel
+      );
+      return { ...t, finding };
+    });
+  };
+
+  const currentIndex = allTabs.indexOf(activeTab);
+  const goTo = (dir: -1 | 1) => {
+    const next = allTabs[currentIndex + dir];
+    if (next) setActiveTab(next);
+  };
+
+  const statusLabel: Record<string, string> = {
+    nog_niet_begonnen: "Nog niet begonnen",
+    deel1_bezig: "Deel 1 bezig",
+    deel1_afgerond: "Deel 1 afgerond",
+    deel2_bezig: "Deel 2 bezig",
+    afgerond: "Afgerond",
+    wacht_op_reactie: "Reactie EP-adviseur gevraagd",
+    gesloten: "Gesloten",
+  };
 
   const hasUitdraaiData = uitdraai?.status === "klaar" && uitdraai.extracted_data && Object.keys(uitdraai.extracted_data).length > 0;
 
