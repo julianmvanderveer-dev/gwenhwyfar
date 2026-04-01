@@ -332,6 +332,10 @@ export default function ProjectDetail() {
   };
 
   const auditAfronden = async () => {
+    if (!hasRole("auditor")) {
+      toast({ title: "Geen toegang", description: "Alleen een auditor kan de audit afronden.", variant: "destructive" });
+      return;
+    }
     const now = new Date();
     const nietGoedFindings = findings.filter(f => f.beoordeling === "niet_goed");
     const opmerkingFindings = findings.filter(f => f.beoordeling === "opmerking");
