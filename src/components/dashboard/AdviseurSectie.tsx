@@ -76,7 +76,11 @@ export default function AdviseurSectie({
             <tbody>
               {filteredAdviseurFindings.map((f, i) => (
                 <tr key={f.id} className={`border-b last:border-0 ${i % 2 === 0 ? 'bg-card' : 'bg-background'}`}>
-                  <td className="px-4 py-2.5 font-medium">{f.projectnaam}</td>
+                  <td className="px-4 py-2.5 font-medium">
+                    <Link to={`/project/${f.project_id}`} className="text-accent hover:underline">
+                      {f.projectnaam}
+                    </Link>
+                  </td>
                   <td className="px-4 py-2.5">{f.controlepunt}</td>
                   <td className="px-4 py-2.5">{afwijkingBadge(f.type_afwijking)}</td>
                   <td className="px-4 py-2.5">{adviseurStatusBadge(f.status)}</td>

@@ -27,6 +27,7 @@ export default function Inbox() {
   const [adviseurFindings, setAdviseurFindings] = useState<Finding[]>([]);
   const [adviseurFilterProject, setAdviseurFilterProject] = useState<string>("alle");
   const [adviseurFilterStatus, setAdviseurFilterStatus] = useState<string>("alle");
+  const [adviseurProjecten, setAdviseurProjecten] = useState<{ id: string; projectnaam: string }[]>([]);
   const [zoekterm, setZoekterm] = useState("");
   const [toewijsbarePersonen, setToewijsbarePersonen] = useState<ToewijsbarePersoon[]>([]);
 
