@@ -267,7 +267,11 @@ export default function MedewerkerDashboard() {
                     const statusInfo = getStatusInfo(p.status, eigenaarRol);
                     return (
                       <tr key={p.id} className={`border-b last:border-0 ${i % 2 === 0 ? "bg-card" : "bg-background"}`}>
-                        <td className="px-4 py-2.5 font-medium">{p.projectnaam}</td>
+                        <td className="px-4 py-2.5 font-medium">
+                          <Link to={`/project/${p.id}`} className="text-primary hover:underline">
+                            {p.projectnaam}
+                          </Link>
+                        </td>
                         <td className="px-4 py-2.5">
                           <Badge variant="secondary" className="text-xs">{p.audit_categorie}</Badge>
                         </td>
