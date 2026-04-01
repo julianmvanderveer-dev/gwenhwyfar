@@ -452,6 +452,58 @@ export default function ProjectDetail() {
   const afwijkingAbs = !isNaN(startVal) && !isNaN(eindVal) ? eindVal - startVal : null;
   const afwijkingPct = afwijkingAbs !== null && startVal !== 0 ? (afwijkingAbs / startVal) * 100 : null;
 
+  // Auto EP2-beoordeling berekening
+  const autoEp2 = useMemo(() => {
+    const nietGoedCount = findings.filter((f) => f.beoordeling === "niet_goed").length;
+    const alleGoed = findings.length === 0 || findings.every(
+      (f) => f.beoordeling === "goed" || f.beoordeling === "opmerking" || !f.beoordeling
+    );
+
+    let result = "goed";
+
+    // KT-criteria
+    if (afwijkingAbs !== null && eindVal > 125 && afwijkingPct !== null && Math.abs(afwijkingPct) > 8) {
+      result = "kt";
+    } else if (afwijkingAbs !== null && eindVal <= 125 && Math.abs(afwijkingAbs) > 10) {
+      result = "kt";
+    }
+    if (nietGoedCount > 4) {
+      result = "kt";
+    } else if (!alleGoed && result !== "kt") {
+      result = "nkt";
+    }
+
+    return result;
+  }, [findings, afwijkingAbs, afwijkingPct, eindVal]);
+
+  const autoEp2Reden = useMemo(() => {
+    const nietGoedCount = findings.filter((f) => f.beoordeling === "niet_goed").length;
+    if (autoEp2 === "kt") {
+      const reasons: string[] = [];
+      if (afwijkingAbs !== null && eindVal > 125 && afwijkingPct !== null && Math.abs(afwijkingPct) > 8) {
+        reasons.push(`afwijking ${Math.abs(afwijkingPct).toFixed(1)}% bij EP2 > 125`);
+      }
+      if (afwijkingAbs !== null && eindVal <= 125 && Math.abs(afwijkingAbs) > 10) {
+        reasons.push(`afwijking ${Math.abs(afwijkingAbs).toFixed(1)} kWh/m² bij EP2 ≤ 125`);
+      }
+      if (nietGoedCount > 4) {
+        reasons.push(`${nietGoedCount} fouten (> 4)`);
+      }
+      return `Automatisch: KT — ${reasons.join("; ")}`;
+    }
+    if (autoEp2 === "nkt") {
+      return `Automatisch: NKT — ${nietGoedCount} fout(en)`;
+    }
+    return "Automatisch: GOED — geen afwijkingen";
+  }, [autoEp2, findings, afwijkingAbs, afwijkingPct, eindVal]);
+
+  // Auto-fill EP2 beoordeling tenzij handmatig overschreven
+  useEffect(() => {
+    if (!ep2ManualOverride) {
+      setEp2Beoordeling(autoEp2);
+    }
+  }, [autoEp2, ep2ManualOverride]);
+
   const hasUitdraaiData = uitdraai?.status === "klaar" && uitdraai.extracted_data && Object.keys(uitdraai.extracted_data).length > 0;
 
   return (
