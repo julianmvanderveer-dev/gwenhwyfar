@@ -105,6 +105,8 @@ export default function Inbox() {
       .select("id, projectnaam")
       .eq("adviseur_id", adviseurRecord.id);
 
+    setAdviseurProjecten(projectData ?? []);
+
     if (!projectData || projectData.length === 0) {
       setAdviseurFindings([]);
       return;
