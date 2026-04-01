@@ -1,40 +1,32 @@
 
 
-# Spraaktool verbeteren + visuele feedback
+# BengCert logo toevoegen
 
-## Problemen
+## Analyse van het logo
 
-1. **Geen visuele feedback** — De knop pulst alleen rood, maar er is geen geluidsgolf/volume-indicator die bevestigt dat audio daadwerkelijk wordt opgepikt.
-2. **Browser SpeechRecognition beperkingen** — De Web Speech API werkt alleen in Chromium-browsers, vereist een actieve internetverbinding, en kan stilzwijgend falen zonder foutmelding.
-3. **Geen foutmeldingen** — Als spraakherkenning faalt (geen microfoon-toestemming, niet-ondersteunde browser) ziet de gebruiker niets.
+Op bengcert.nl is het logo te zien: twee overlappende groene vinkjes (checkmarks) links, gevolgd door de tekst "beng" in donkerblauw (#1B2A4A) en "cert" in groen (#7AB929). Het logo op de website is een PNG — er is geen publieke SVG beschikbaar.
 
-## Oplossing
+## Plan
 
-### 1. Audio-visualisatie toevoegen
-Een nieuw component `AudioVisualizer` dat via de Web Audio API (`AudioContext` + `AnalyserNode`) de microfoon-input uitleest en realtime geluidsgolven toont als geanimeerde balkjes naast de microfoonknop. Dit geeft directe visuele bevestiging dat audio wordt opgepikt.
+### 1. SVG logo-component aanmaken (`src/components/BengCertLogo.tsx`)
+Een React-component dat het logo als inline SVG rendert:
+- Twee overlappende groene vinkjes (checkmarks) links
+- Tekst "beng" in donkerblauw, "cert" in groen
+- Props voor `size` (schaalt proportioneel) en `variant` (`light` voor op donkere achtergrond waar "beng" wit wordt, `dark` voor standaard)
 
-### 2. Betere foutafhandeling
-- Toast-melding bij geen microfoon-toestemming
-- Toast bij niet-ondersteunde browser
-- Visuele status-indicator (idle / luistert / fout)
+### 2. AppLayout.tsx updaten
+- `Shield` icoon verwijderen
+- `BengCertLogo` importeren met `variant="light"` (witte "beng" tekst op donkere navbar)
 
-### 3. Interim-resultaten tonen
-`interimResults` op `true` zetten zodat de gebruiker live tekst ziet verschijnen terwijl hij praat — dit bevestigt dat de spraakherkenning werkt.
+### 3. Login.tsx updaten
+- `Shield` icoon verwijderen
+- `BengCertLogo` importeren met `variant="dark"` (donkerblauwe "beng" tekst op witte card)
 
-## Bestanden
+### Bestanden
 
 | Bestand | Wijziging |
 |---|---|
-| `src/components/AudioVisualizer.tsx` | **Nieuw** — Geanimeerde geluidsgolf-balkjes op basis van `AnalyserNode` |
-| `src/hooks/useSpeechRecognition.ts` | Microfoon-toestemming vragen + `AudioContext` opzetten voor visualisatie, `interimResults: true`, betere foutmeldingen |
-| `src/components/FindingToelichting.tsx` | `AudioVisualizer` tonen tijdens opname |
-| `src/pages/FindingBeoordeling.tsx` | Idem: visualizer toevoegen bij de spraakknop |
-
-## Technisch
-
-- `useSpeechRecognition` retourneert extra: `analyserNode` (voor visualizer) en `interimText` (live preview)
-- `AudioVisualizer` gebruikt `requestAnimationFrame` + `canvas` of CSS-balkjes om frequentiedata te tekenen
-- Bij toggle-start: `navigator.mediaDevices.getUserMedia({ audio: true })` → `AudioContext` → `createAnalyser()` → stream koppelen
-- Bij stop: stream tracks stoppen, context sluiten
-- Geen externe dependencies nodig
+| `src/components/BengCertLogo.tsx` | **Nieuw** — SVG logo-component met twee vinkjes + tekst |
+| `src/components/AppLayout.tsx` | Shield → BengCertLogo (light variant) |
+| `src/pages/Login.tsx` | Shield → BengCertLogo (dark variant) |
 
