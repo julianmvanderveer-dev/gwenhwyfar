@@ -777,8 +777,7 @@ export default function ProjectDetail() {
               >
                 <option value="">— Selecteer —</option>
                 <option value="goed">GOED</option>
-                <option value="niet_kritiek">NK (Niet kritiek)</option>
-                <option value="kritiek">KT (Kritiek)</option>
+                <option value="niet_goed">NIET GOED</option>
               </select>
             </div>
 

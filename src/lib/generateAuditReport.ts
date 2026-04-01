@@ -17,10 +17,6 @@ const beoordelingLabel: Record<string, string> = {
   opmerking: "Opmerking",
 };
 
-const afwijkingLabel: Record<string, string> = {
-  kritiek: "Kritiek",
-  niet_kritiek: "Niet kritiek",
-};
 
 const statusLabel: Record<string, string> = {
   open: "Open",
