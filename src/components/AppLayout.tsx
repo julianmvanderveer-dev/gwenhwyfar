@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import NotificatieBel from "@/components/NotificatieBel";
 import FeedbackKnop from "@/components/FeedbackKnop";
-import { Shield } from "lucide-react";
+import BengCertLogo from "@/components/BengCertLogo";
 
 export default function AppLayout() {
   const { user, roles, signOut, hasRole } = useAuth();
@@ -17,11 +17,8 @@ export default function AppLayout() {
   return (
     <div className="min-h-screen bg-background">
       <nav className="bg-[hsl(220,42%,20%)] text-white px-6 py-3 flex items-center gap-6 text-sm shadow-md">
-        <Link to="/inbox" className="flex items-center gap-2 font-bold text-lg tracking-tight mr-4">
-          <Shield className="h-6 w-6 text-primary" />
-          <span>
-            beng<span className="text-primary">cert</span>
-          </span>
+        <Link to="/inbox" className="flex items-center mr-4">
+          <BengCertLogo variant="light" size={28} />
         </Link>
 
         <Link

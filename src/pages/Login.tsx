@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
-import { Shield } from "lucide-react";
+import BengCertLogo from "@/components/BengCertLogo";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -60,11 +60,8 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[hsl(220,42%,20%)] via-[hsl(212,65%,30%)] to-[hsl(212,65%,49%)]">
       <Card className="w-full max-w-md shadow-2xl border-0">
         <CardHeader className="text-center pb-2">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Shield className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold tracking-tight text-foreground">
-              beng<span className="text-primary">cert</span>
-            </span>
+          <div className="flex items-center justify-center mb-4">
+            <BengCertLogo variant="dark" size={36} />
           </div>
           <CardTitle className="text-xl">{title}</CardTitle>
         </CardHeader>
