@@ -2,67 +2,67 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Design system inspired by bengcert.nl — professional green/blue/gold palette */
+/* BengCert huisstijl — navy / groen / blauw / goud */
 
 @layer base {
   :root {
-    --background: 210 20% 98%;
-    --foreground: 220 40% 13%;
+    --background: 210 20% 97%;
+    --foreground: 220 42% 20%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 40% 13%;
+    --card-foreground: 220 42% 20%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 40% 13%;
+    --popover-foreground: 220 42% 20%;
 
-    --primary: 145 63% 32%;
+    --primary: 90 63% 44%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 210 25% 93%;
-    --secondary-foreground: 220 40% 13%;
+    --secondary-foreground: 220 42% 20%;
 
     --muted: 210 20% 95%;
     --muted-foreground: 215 14% 46%;
 
-    --accent: 217 71% 45%;
+    --accent: 212 65% 49%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
+    --warning: 38 92% 55%;
     --warning-foreground: 0 0% 100%;
 
-    --success: 145 63% 32%;
+    --success: 90 63% 44%;
     --success-foreground: 0 0% 100%;
 
     --border: 214 20% 88%;
     --input: 214 20% 88%;
-    --ring: 145 63% 32%;
+    --ring: 90 63% 44%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 220 40% 13%;
+    --sidebar-background: 220 42% 20%;
     --sidebar-foreground: 210 20% 95%;
-    --sidebar-primary: 145 63% 42%;
+    --sidebar-primary: 90 63% 44%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 35% 18%;
+    --sidebar-accent: 220 35% 25%;
     --sidebar-accent-foreground: 210 20% 95%;
-    --sidebar-border: 220 30% 22%;
-    --sidebar-ring: 145 63% 42%;
+    --sidebar-border: 220 30% 28%;
+    --sidebar-ring: 90 63% 44%;
   }
 
   .dark {
-    --background: 220 40% 7%;
+    --background: 220 42% 7%;
     --foreground: 210 20% 95%;
 
-    --card: 220 35% 10%;
+    --card: 220 38% 11%;
     --card-foreground: 210 20% 95%;
 
-    --popover: 220 35% 10%;
+    --popover: 220 38% 11%;
     --popover-foreground: 210 20% 95%;
 
-    --primary: 145 63% 42%;
+    --primary: 90 63% 44%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 220 30% 16%;
@@ -71,30 +71,30 @@
     --muted: 220 25% 14%;
     --muted-foreground: 215 14% 60%;
 
-    --accent: 217 71% 55%;
+    --accent: 212 65% 55%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62% 30%;
     --destructive-foreground: 210 20% 95%;
 
-    --warning: 38 92% 50%;
+    --warning: 38 92% 55%;
     --warning-foreground: 0 0% 100%;
 
-    --success: 145 63% 42%;
+    --success: 90 63% 44%;
     --success-foreground: 0 0% 100%;
 
     --border: 220 25% 18%;
     --input: 220 25% 18%;
-    --ring: 145 63% 42%;
+    --ring: 90 63% 44%;
 
-    --sidebar-background: 220 40% 5%;
+    --sidebar-background: 220 42% 5%;
     --sidebar-foreground: 210 20% 95%;
-    --sidebar-primary: 145 63% 42%;
+    --sidebar-primary: 90 63% 44%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 35% 12%;
     --sidebar-accent-foreground: 210 20% 95%;
     --sidebar-border: 220 25% 14%;
-    --sidebar-ring: 145 63% 42%;
+    --sidebar-ring: 90 63% 44%;
   }
 }
 
@@ -105,6 +105,6 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Poppins', system-ui, -apple-system, sans-serif;
   }
 }
