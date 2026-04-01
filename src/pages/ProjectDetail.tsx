@@ -765,7 +765,7 @@ export default function ProjectDetail() {
                 step="0.01"
                 value={ep2Start}
                 onChange={(e) => setEp2Start(e.target.value)}
-                disabled={!canDeel2}
+                disabled={!(canDeel1 || canDeel2)}
                 placeholder="bijv. 125.50"
               />
             </div>
