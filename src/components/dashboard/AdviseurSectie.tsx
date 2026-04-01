@@ -113,6 +113,24 @@ export default function AdviseurSectie({
           </table>
         </div>
       )}
+      {/* Projectenlijst */}
+      {adviseurProjecten.length > 0 && (
+        <div className="mt-6 bg-card rounded-lg border shadow-sm p-4">
+          <h2 className="font-semibold mb-3 text-sm">Mijn projecten</h2>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {adviseurProjecten.map((p) => (
+              <Link
+                key={p.id}
+                to={`/project/${p.id}`}
+                className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-accent/10 transition-colors"
+              >
+                <ExternalLink className="h-3.5 w-3.5 text-accent shrink-0" />
+                <span className="truncate font-medium">{p.projectnaam}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
