@@ -1,41 +1,41 @@
 
 
-## Plan: Volledige audit inzichtelijk voor EP-adviseur (read-only)
+## Plan: Doorklik naar volledige audit voor EP-adviseur
 
 ### Probleem
 
-EP-adviseurs kunnen momenteel alleen findings zien waar `zichtbaar_voor_adviseur = true`. Ze kunnen niet de volledige audit (alle controlepunten + beoordelingen) inzien.
+De EP-adviseur ziet projectnamen in het afwijkingen-overzicht, maar deze zijn niet klikbaar. Er is geen manier om naar de projectdetailpagina te navigeren en de volledige audit in te zien.
 
 ### Oplossing
 
-**1. Database: RLS-policy op `findings` aanpassen**
+**1. `src/components/dashboard/AdviseurSectie.tsx`** — Projectnaam klikbaar maken
 
-De huidige SELECT-policy voor EP-adviseurs filtert op `zichtbaar_voor_adviseur = true`. Dit aanpassen zodat EP-adviseurs **alle** findings van hun eigen projecten kunnen lezen (niet alleen zichtbare):
+De projectnaam-kolom in de tabel wordt een `<Link>` naar `/project/:id`. Hiervoor moet het `project_id` beschikbaar zijn in de finding data (dat is het al via `f.project_id`).
 
-```sql
--- Verwijder de bestaande SELECT policy en maak een nieuwe
--- EP-adviseur mag ALLE findings van eigen projecten LEZEN
--- maar mag alleen findings met zichtbaar_voor_adviseur = true UPDATEN (ongewijzigd)
+```tsx
+// Van:
+<td className="px-4 py-2.5 font-medium">{f.projectnaam}</td>
+
+// Naar:
+<td className="px-4 py-2.5 font-medium">
+  <Link to={`/project/${f.project_id}`} className="text-accent hover:underline">
+    {f.projectnaam}
+  </Link>
+</td>
 ```
 
-Concreet: in de SELECT-policy de `AND (zichtbaar_voor_adviseur = true)` conditie verwijderen voor EP-adviseurs.
+**2. `src/pages/Inbox.tsx`** — Projectenlijst toevoegen voor EP-adviseur
 
-**2. Frontend: `src/pages/ProjectDetail.tsx`**
+Onder het afwijkingen-overzicht een compact blok toevoegen met alle projecten van de adviseur (niet alleen findings), zodat de adviseur ook projecten zonder bevindingen kan openen:
 
-De pagina toont al de volledige checklist met tabs en read-only weergave wanneer `canEditAny = false`. Geen grote wijzigingen nodig, maar:
-
-- Verwijder de check die EP-adviseurs mogelijk beperkt in het zien van tabs/onderdelen
-- Zorg dat de EP-adviseur alle tabs kan zien inclusief EP2-beoordeling (read-only)
-- Markeer findings die `zichtbaar_voor_adviseur = true` zijn (= bevindingen waarop reactie verwacht wordt) visueel, zodat de adviseur het verschil ziet tussen "ter info" en "actie vereist"
-
-**3. Visueel onderscheid in de tabel**
-
-Voor EP-adviseurs: findings met `zichtbaar_voor_adviseur = true` en status "open" krijgen een accent-kleur of icoon om aan te geven dat hierop gereageerd moet worden. Overige rijen zijn gewoon leesbaar maar zonder actie-indicatie.
+- Query: de bestaande `projectData` uit `loadAdviseurData` bevat al `id` en `projectnaam`
+- Toon een lijst met klikbare projectnamen als links naar `/project/:id`
+- Opslaan in nieuwe state `adviseurProjecten`
 
 ### Bestanden
 
 | Bestand | Wijziging |
 |---------|-----------|
-| Database migration | RLS SELECT-policy `findings`: verwijder `zichtbaar_voor_adviseur` filter voor EP-adviseur |
-| `src/pages/ProjectDetail.tsx` | Visueel markeren van actionable findings voor EP-adviseur |
+| `src/components/dashboard/AdviseurSectie.tsx` | Projectnaam als `<Link>` naar projectdetail |
+| `src/pages/Inbox.tsx` | Projectenlijst met links voor EP-adviseur toevoegen, `adviseurProjecten` state |
 
