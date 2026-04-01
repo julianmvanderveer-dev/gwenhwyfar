@@ -17,10 +17,6 @@ const beoordelingLabel: Record<string, string> = {
   opmerking: "Opmerking",
 };
 
-const afwijkingLabel: Record<string, string> = {
-  kritiek: "Kritiek",
-  niet_kritiek: "Niet kritiek",
-};
 
 const statusLabel: Record<string, string> = {
   open: "Open",
@@ -41,7 +37,7 @@ const projectStatusLabel: Record<string, string> = {
 
 export function generateAuditReport({ project, findings, adviseurNaam, templates, uitdraaiData }: ReportData) {
   const hasUitdraai = uitdraaiData && Object.keys(uitdraaiData).length > 0;
-  const colCount = hasUitdraai ? 8 : 7;
+  const colCount = hasUitdraai ? 6 : 5;
 
   // Build merged rows: all templates with their findings
   const mergedRows = templates.map((t) => {
@@ -61,8 +57,6 @@ export function generateAuditReport({ project, findings, adviseurNaam, templates
   const goedCount = beoordeeld.filter((f) => f.beoordeling === "goed").length;
   const nietGoedCount = beoordeeld.filter((f) => f.beoordeling === "niet_goed").length;
   const opmerkingCount = beoordeeld.filter((f) => f.beoordeling === "opmerking").length;
-  const kritiekCount = findings.filter((f) => f.type_afwijking === "kritiek").length;
-  const nietKritiekCount = findings.filter((f) => f.type_afwijking === "niet_kritiek").length;
 
   // EP2
   const ep2Start = project.ep2_startwaarde;
@@ -107,16 +101,6 @@ export function generateAuditReport({ project, findings, adviseurNaam, templates
                 : "background:#dbeafe;color:#1d4ed8;"
             }">${beoordelingLabel[r.finding.beoordeling] ?? r.finding.beoordeling}</span>` : "—"}
           </td>
-          <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;">
-            ${r.finding?.type_afwijking ? `<span style="display:inline-block;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;${
-              r.finding.type_afwijking === "kritiek"
-                ? "background:#fee2e2;color:#b91c1c;"
-                : "background:#ffedd5;color:#c2410c;"
-            }">${afwijkingLabel[r.finding.type_afwijking] ?? r.finding.type_afwijking}</span>` : "—"}
-          </td>
-          <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#6b7280;">
-            ${r.finding?.deadline ? new Date(r.finding.deadline).toLocaleDateString("nl-NL") : "—"}
-          </td>
           <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;font-size:12px;">
             ${r.finding ? (statusLabel[r.finding.status] ?? r.finding.status) : "—"}
           </td>
@@ -137,8 +121,6 @@ export function generateAuditReport({ project, findings, adviseurNaam, templates
             ${uitdraaiHeader}
             <th style="padding:8px 10px;text-align:center;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;width:50px;">Deel</th>
             <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Beoordeling</th>
-            <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Type</th>
-            <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Deadline</th>
             <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Status</th>
           </tr>
         </thead>
@@ -196,7 +178,7 @@ export function generateAuditReport({ project, findings, adviseurNaam, templates
       <div><span style="color:#6b7280;">Startwaarde</span><br><strong>${ep2Start ?? "—"} kWh/m²</strong></div>
       <div><span style="color:#6b7280;">Eindwaarde</span><br><strong>${ep2Eind ?? "—"} kWh/m²</strong></div>
       <div><span style="color:#6b7280;">Afwijking</span><br><strong>${afwijkingAbs != null ? afwijkingAbs.toFixed(2) + " kWh/m²" : "—"}${afwijkingPct != null ? ` (${afwijkingPct.toFixed(1)}%)` : ""}</strong></div>
-      <div><span style="color:#6b7280;">Beoordeling</span><br><strong>${project.ep2_beoordeling ? (project.ep2_beoordeling === "goed" ? "Goed" : project.ep2_beoordeling === "kritiek" ? "Kritiek" : "Niet kritiek") : "—"}</strong></div>
+      <div><span style="color:#6b7280;">Beoordeling</span><br><strong>${project.ep2_beoordeling ? (project.ep2_beoordeling === "goed" ? "Goed" : "Niet goed") : "—"}</strong></div>
     </div>
   </div>
   ` : ""}
@@ -204,7 +186,7 @@ export function generateAuditReport({ project, findings, adviseurNaam, templates
   <!-- Samenvatting -->
   <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:24px;">
     <h2 style="margin:0 0 12px;font-size:15px;font-weight:600;color:#1f2937;">Samenvatting</h2>
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;text-align:center;font-size:13px;">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center;font-size:13px;">
       <div style="background:#d1fae5;border-radius:6px;padding:10px;">
         <div style="font-size:22px;font-weight:700;color:#047857;">${goedCount}</div>
         <div style="color:#047857;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Goed</div>
@@ -216,14 +198,6 @@ export function generateAuditReport({ project, findings, adviseurNaam, templates
       <div style="background:#dbeafe;border-radius:6px;padding:10px;">
         <div style="font-size:22px;font-weight:700;color:#1d4ed8;">${opmerkingCount}</div>
         <div style="color:#1d4ed8;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Opmerkingen</div>
-      </div>
-      <div style="background:#fee2e2;border-radius:6px;padding:10px;">
-        <div style="font-size:22px;font-weight:700;color:#b91c1c;">${kritiekCount}</div>
-        <div style="color:#b91c1c;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Kritiek</div>
-      </div>
-      <div style="background:#ffedd5;border-radius:6px;padding:10px;">
-        <div style="font-size:22px;font-weight:700;color:#c2410c;">${nietKritiekCount}</div>
-        <div style="color:#c2410c;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Niet kritiek</div>
       </div>
     </div>
   </div>

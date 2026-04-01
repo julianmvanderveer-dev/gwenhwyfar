@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import type { Tables, Enums } from "@/integrations/supabase/types";
-import { addMonths, addDays } from "date-fns";
+import { addMonths } from "date-fns";
 import FindingToelichting from "@/components/FindingToelichting";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { statusBadge, beoordelingBadge, afwijkingBadge } from "@/lib/badges";
+import { statusBadge, beoordelingBadge } from "@/lib/badges";
 import { ArrowLeft, CheckCircle2, ClipboardCheck, ChevronLeft, ChevronRight, Download, Upload, Loader2, FileText } from "lucide-react";
 import { generateAuditReport } from "@/lib/generateAuditReport";
 import AandachtspuntenAdviseur from "@/components/projecten/AandachtspuntenAdviseur";
@@ -270,7 +270,6 @@ export default function ProjectDetail() {
   const updateBeoordeling = async (findingId: string, beoordeling: Enums<"beoordeling_type">) => {
     const update: any = { beoordeling };
     if (beoordeling === "niet_goed") {
-      update.type_afwijking = "niet_kritiek";
       update.eigenaar_beoordeling = hasRole("tekenaar") ? "tekenaar" : "auditor";
       update.toegewezen_beoordelaar = user!.id;
     } else if (beoordeling === "opmerking") {
@@ -339,29 +338,23 @@ export default function ProjectDetail() {
     const now = new Date();
     const nietGoedFindings = findings.filter(f => f.beoordeling === "niet_goed");
     const opmerkingFindings = findings.filter(f => f.beoordeling === "opmerking");
-    const hasKt = nietGoedFindings.some(f => f.type_afwijking === "kritiek");
+    const deadline3m = addMonths(now, 3).toISOString();
 
-    const kritiekIds = nietGoedFindings.filter(f => f.type_afwijking === "kritiek").map(f => f.id);
-    const nietKritiekIds = nietGoedFindings.filter(f => f.type_afwijking !== "kritiek").map(f => f.id);
+    const nietGoedIds = nietGoedFindings.map(f => f.id);
 
     await Promise.all([
-      kritiekIds.length > 0 && supabase.from("findings").update({
-        deadline: addDays(now, 28).toISOString(),
+      nietGoedIds.length > 0 && supabase.from("findings").update({
+        deadline: deadline3m,
         zichtbaar_voor_adviseur: true,
         status: "open" as any,
-      }).in("id", kritiekIds),
-      nietKritiekIds.length > 0 && supabase.from("findings").update({
-        deadline: addMonths(now, 3).toISOString(),
-        zichtbaar_voor_adviseur: true,
-        status: "open" as any,
-      }).in("id", nietKritiekIds),
+      }).in("id", nietGoedIds),
       opmerkingFindings.length > 0 && supabase.from("findings").update({
         zichtbaar_voor_adviseur: true,
       }).in("id", opmerkingFindings.map(f => f.id)),
     ].filter(Boolean));
 
     // Punt 1: zet toegewezen_beoordelaar naar auditor voor alle zichtbare findings
-    const alleZichtbareIds = [...kritiekIds, ...nietKritiekIds, ...opmerkingFindings.map(f => f.id)];
+    const alleZichtbareIds = [...nietGoedIds, ...opmerkingFindings.map(f => f.id)];
     if (alleZichtbareIds.length > 0) {
       await supabase.from("findings").update({ toegewezen_beoordelaar: user!.id }).in("id", alleZichtbareIds);
     }
@@ -369,11 +362,9 @@ export default function ProjectDetail() {
     const hasNietGoed = nietGoedFindings.length > 0;
 
     if (hasNietGoed) {
-      const now2 = new Date();
-      const reactieDeadline = hasKt ? addDays(now2, 28).toISOString() : addMonths(now2, 3).toISOString();
       await supabase.from("projects").update({
         status: "wacht_op_reactie" as any,
-        reactie_deadline: reactieDeadline,
+        reactie_deadline: deadline3m,
       }).eq("id", id!);
       toast({ title: "Audit afgerond", description: "Status naar 'Wacht op reactie', deadline berekend" });
     } else {
@@ -625,8 +616,6 @@ export default function ProjectDetail() {
                         )}
                         <th className="text-center px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-16">Deel</th>
                         <th className="text-left px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Beoordeling</th>
-                        <th className="text-left px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Type</th>
-                        <th className="text-left px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Deadline</th>
                         <th className="text-left px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Status</th>
                       </tr>
                     </thead>
@@ -635,7 +624,7 @@ export default function ProjectDetail() {
                         const f = row.finding;
                         const editable = canEditTemplate(row);
                         const uitdraaiValue = localUitdraaiData[row.code] ?? "";
-                        const colSpan = hasUitdraaiData ? 8 : 7;
+                        const colSpan = hasUitdraaiData ? 6 : 5;
                         return (
                           <React.Fragment key={row.id}>
                             <tr className={`border-b last:border-0 hover:bg-muted/50 transition-colors ${i % 2 !== 0 ? 'bg-muted/20' : ''}`}>
@@ -675,23 +664,6 @@ export default function ProjectDetail() {
                                 ) : (
                                   f?.beoordeling ? beoordelingBadge(f.beoordeling) : <span className="text-muted-foreground">—</span>
                                 )}
-                              </td>
-                              <td className="px-3 py-2.5">
-                                {f && editable && f.beoordeling === "niet_goed" ? (
-                                  <select
-                                    className="border border-input rounded-md px-2 py-1 text-sm bg-background"
-                                    value={f.type_afwijking ?? ""}
-                                    onChange={(e) => updateAfwijkingType(f.id, e.target.value as any)}
-                                  >
-                                    <option value="kritiek">Kritiek</option>
-                                    <option value="niet_kritiek">Niet kritiek</option>
-                                  </select>
-                                ) : (
-                                  f?.type_afwijking ? afwijkingBadge(f.type_afwijking) : <span className="text-muted-foreground">—</span>
-                                )}
-                              </td>
-                              <td className="px-3 py-2.5 text-muted-foreground text-xs">
-                                {f?.deadline ? new Date(f.deadline).toLocaleDateString("nl-NL") : "—"}
                               </td>
                               <td className="px-3 py-2.5 text-xs">
                                 {f ? statusBadge(f.status) : <span className="text-muted-foreground">—</span>}
@@ -805,8 +777,7 @@ export default function ProjectDetail() {
               >
                 <option value="">— Selecteer —</option>
                 <option value="goed">GOED</option>
-                <option value="niet_kritiek">NK (Niet kritiek)</option>
-                <option value="kritiek">KT (Kritiek)</option>
+                <option value="niet_goed">NIET GOED</option>
               </select>
             </div>
 
