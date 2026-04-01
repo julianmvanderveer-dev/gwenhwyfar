@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -43,6 +43,7 @@ export default function ProjectDetail() {
   const [ep2Start, setEp2Start] = useState<string>("");
   const [ep2Eind, setEp2Eind] = useState<string>("");
   const [ep2Beoordeling, setEp2Beoordeling] = useState<string>("");
+  const [ep2ManualOverride, setEp2ManualOverride] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("");
 
   // Uitdraai state
@@ -451,6 +452,58 @@ export default function ProjectDetail() {
   const afwijkingAbs = !isNaN(startVal) && !isNaN(eindVal) ? eindVal - startVal : null;
   const afwijkingPct = afwijkingAbs !== null && startVal !== 0 ? (afwijkingAbs / startVal) * 100 : null;
 
+  // Auto EP2-beoordeling berekening
+  const autoEp2 = useMemo(() => {
+    const nietGoedCount = findings.filter((f) => f.beoordeling === "niet_goed").length;
+    const alleGoed = findings.length === 0 || findings.every(
+      (f) => f.beoordeling === "goed" || f.beoordeling === "opmerking" || !f.beoordeling
+    );
+
+    let result = "goed";
+
+    // KT-criteria
+    if (afwijkingAbs !== null && eindVal > 125 && afwijkingPct !== null && Math.abs(afwijkingPct) > 8) {
+      result = "kt";
+    } else if (afwijkingAbs !== null && eindVal <= 125 && Math.abs(afwijkingAbs) > 10) {
+      result = "kt";
+    }
+    if (nietGoedCount > 4) {
+      result = "kt";
+    } else if (!alleGoed && result !== "kt") {
+      result = "nkt";
+    }
+
+    return result;
+  }, [findings, afwijkingAbs, afwijkingPct, eindVal]);
+
+  const autoEp2Reden = useMemo(() => {
+    const nietGoedCount = findings.filter((f) => f.beoordeling === "niet_goed").length;
+    if (autoEp2 === "kt") {
+      const reasons: string[] = [];
+      if (afwijkingAbs !== null && eindVal > 125 && afwijkingPct !== null && Math.abs(afwijkingPct) > 8) {
+        reasons.push(`afwijking ${Math.abs(afwijkingPct).toFixed(1)}% bij EP2 > 125`);
+      }
+      if (afwijkingAbs !== null && eindVal <= 125 && Math.abs(afwijkingAbs) > 10) {
+        reasons.push(`afwijking ${Math.abs(afwijkingAbs).toFixed(1)} kWh/m² bij EP2 ≤ 125`);
+      }
+      if (nietGoedCount > 4) {
+        reasons.push(`${nietGoedCount} fouten (> 4)`);
+      }
+      return `Automatisch: KT — ${reasons.join("; ")}`;
+    }
+    if (autoEp2 === "nkt") {
+      return `Automatisch: NKT — ${nietGoedCount} fout(en)`;
+    }
+    return "Automatisch: GOED — geen afwijkingen";
+  }, [autoEp2, findings, afwijkingAbs, afwijkingPct, eindVal]);
+
+  // Auto-fill EP2 beoordeling tenzij handmatig overschreven
+  useEffect(() => {
+    if (!ep2ManualOverride) {
+      setEp2Beoordeling(autoEp2);
+    }
+  }, [autoEp2, ep2ManualOverride]);
+
   const hasUitdraaiData = uitdraai?.status === "klaar" && uitdraai.extracted_data && Object.keys(uitdraai.extracted_data).length > 0;
 
   return (
@@ -768,17 +821,39 @@ export default function ProjectDetail() {
             )}
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Beoordeling</label>
+              <label className="text-sm font-medium">
+                Beoordeling
+                {ep2ManualOverride && (
+                  <span className="ml-2 text-xs text-muted-foreground font-normal">(handmatig)</span>
+                )}
+              </label>
               <select
                 className="w-full border border-input rounded-md px-3 py-2 text-sm bg-background"
                 value={ep2Beoordeling}
-                onChange={(e) => setEp2Beoordeling(e.target.value)}
+                onChange={(e) => {
+                  setEp2Beoordeling(e.target.value);
+                  setEp2ManualOverride(true);
+                }}
                 disabled={!canDeel2}
               >
                 <option value="">— Selecteer —</option>
                 <option value="goed">GOED</option>
-                <option value="niet_goed">NIET GOED</option>
+                <option value="nkt">NKT</option>
+                <option value="kt">KT</option>
               </select>
+              <p className="text-xs text-muted-foreground">{autoEp2Reden}</p>
+              {ep2ManualOverride && (
+                <button
+                  type="button"
+                  className="text-xs text-primary underline"
+                  onClick={() => {
+                    setEp2ManualOverride(false);
+                    setEp2Beoordeling(autoEp2);
+                  }}
+                >
+                  Automatische waarde herstellen
+                </button>
+              )}
             </div>
 
             {(canDeel1 || canDeel2) && (
