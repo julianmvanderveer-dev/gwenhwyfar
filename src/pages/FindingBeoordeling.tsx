@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { Mic, MicOff, Forward } from "lucide-react";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import AudioVisualizer from "@/components/AudioVisualizer";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Tables } from "@/integrations/supabase/types";
@@ -30,7 +31,7 @@ export default function FindingBeoordeling() {
   const handleSpeech = useCallback((transcript: string) => {
     setOpmerking((prev) => (prev ? prev + " " + transcript : transcript));
   }, []);
-  const { listening, toggle, supported } = useSpeechRecognition(handleSpeech);
+  const { listening, toggle, supported, analyserNode, interimText } = useSpeechRecognition(handleSpeech);
 
   const isAuditor = hasRole("auditor");
   const isBeheer = hasRole("beheer");
@@ -218,18 +219,26 @@ export default function FindingBeoordeling() {
                 className="text-sm"
               />
               {supported && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className={`shrink-0 ${listening ? "text-red-500 animate-pulse" : ""}`}
-                  onClick={toggle}
-                  title={listening ? "Stop opname" : "Spraak invoer"}
-                >
-                  {listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                </Button>
+                <div className="flex items-center gap-1 shrink-0">
+                  <AudioVisualizer analyserNode={analyserNode} active={listening} />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className={`shrink-0 ${listening ? "text-destructive animate-pulse" : ""}`}
+                    onClick={toggle}
+                    title={listening ? "Stop opname" : "Spraak invoer"}
+                  >
+                    {listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  </Button>
+                </div>
               )}
             </div>
+            {listening && interimText && (
+              <p className="text-xs text-muted-foreground italic">
+                {interimText}…
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-2 mb-2">
             <Checkbox
