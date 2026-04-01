@@ -31,7 +31,7 @@ export default function FindingBeoordeling() {
   const handleSpeech = useCallback((transcript: string) => {
     setOpmerking((prev) => (prev ? prev + " " + transcript : transcript));
   }, []);
-  const { listening, toggle, supported } = useSpeechRecognition(handleSpeech);
+  const { listening, toggle, supported, analyserNode, interimText } = useSpeechRecognition(handleSpeech);
 
   const isAuditor = hasRole("auditor");
   const isBeheer = hasRole("beheer");
