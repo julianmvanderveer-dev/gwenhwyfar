@@ -408,7 +408,7 @@ export default function ProjectDetail() {
 
   const canEditFindingByDeel = (deel: number) => {
     if (canDeel1 && deel === 1) return true;
-    if (canDeel2 && deel === 2) return true;
+    if (canDeel2) return true;  // auditor mag alles
     return false;
   };
 
