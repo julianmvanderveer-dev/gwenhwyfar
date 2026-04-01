@@ -178,7 +178,7 @@ export function generateAuditReport({ project, findings, adviseurNaam, templates
       <div><span style="color:#6b7280;">Startwaarde</span><br><strong>${ep2Start ?? "—"} kWh/m²</strong></div>
       <div><span style="color:#6b7280;">Eindwaarde</span><br><strong>${ep2Eind ?? "—"} kWh/m²</strong></div>
       <div><span style="color:#6b7280;">Afwijking</span><br><strong>${afwijkingAbs != null ? afwijkingAbs.toFixed(2) + " kWh/m²" : "—"}${afwijkingPct != null ? ` (${afwijkingPct.toFixed(1)}%)` : ""}</strong></div>
-      <div><span style="color:#6b7280;">Beoordeling</span><br><strong>${project.ep2_beoordeling ? (project.ep2_beoordeling === "goed" ? "Goed" : project.ep2_beoordeling === "kritiek" ? "Kritiek" : "Niet kritiek") : "—"}</strong></div>
+      <div><span style="color:#6b7280;">Beoordeling</span><br><strong>${project.ep2_beoordeling ? (project.ep2_beoordeling === "goed" ? "Goed" : "Niet goed") : "—"}</strong></div>
     </div>
   </div>
   ` : ""}
