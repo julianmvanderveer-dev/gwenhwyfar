@@ -810,7 +810,7 @@ export default function ProjectDetail() {
               </select>
             </div>
 
-            {canDeel2 && (
+            {(canDeel1 || canDeel2) && (
               <Button onClick={saveEp2} size="sm" className="shadow-sm">
                 EP2 opslaan
               </Button>
