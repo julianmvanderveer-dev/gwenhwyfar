@@ -680,7 +680,7 @@ export default function ProjectDetail() {
                         const colSpan = hasUitdraaiData ? 6 : 5;
                         return (
                           <React.Fragment key={row.id}>
-                            <tr className={`border-b last:border-0 hover:bg-muted/50 transition-colors ${i % 2 !== 0 ? 'bg-muted/20' : ''}`}>
+                            <tr className={`border-b last:border-0 hover:bg-muted/50 transition-colors ${i % 2 !== 0 ? 'bg-muted/20' : ''} ${hasRole("ep_adviseur") && f?.zichtbaar_voor_adviseur && f?.status === "open" ? 'ring-1 ring-inset ring-accent/40 bg-accent/5' : ''}`}>
                               <td className="px-4 py-2.5 text-muted-foreground font-mono text-xs">{row.code}</td>
                               <td className="px-4 py-2.5 font-medium">{row.controlepunt}</td>
                               {hasUitdraaiData && (
@@ -719,7 +719,12 @@ export default function ProjectDetail() {
                                 )}
                               </td>
                               <td className="px-3 py-2.5 text-xs">
-                                {f ? statusBadge(f.status) : <span className="text-muted-foreground">—</span>}
+                                <div className="flex items-center gap-1.5">
+                                  {f ? statusBadge(f.status) : <span className="text-muted-foreground">—</span>}
+                                  {hasRole("ep_adviseur") && f?.zichtbaar_voor_adviseur && f?.status === "open" && (
+                                    <span className="inline-flex items-center rounded-full bg-accent/15 text-accent px-1.5 py-0.5 text-[10px] font-semibold">Actie</span>
+                                  )}
+                                </div>
                               </td>
                             </tr>
                             {f && ((editable && (f.beoordeling === "niet_goed" || f.beoordeling === "opmerking")) || f.toelichting) && (
