@@ -1,30 +1,41 @@
 
 
-## Plan: Audit-overzicht per EP-adviseur bij projectaanmaak
+## Plan: Volledige audit inzichtelijk voor EP-adviseur (read-only)
 
-### Wat
+### Probleem
 
-Wanneer een gebruiker (beheer, tekenaar of auditor) een adviseur selecteert bij het aanmaken van een nieuw project, verschijnt er direct een overzicht van alle projecten die het afgelopen jaar voor deze adviseur zijn geaudit. Dit voorkomt dubbele audits.
+EP-adviseurs kunnen momenteel alleen findings zien waar `zichtbaar_voor_adviseur = true`. Ze kunnen niet de volledige audit (alle controlepunten + beoordelingen) inzien.
 
-### Hoe
+### Oplossing
 
-**Bestand: `src/pages/ProjectAanmaken.tsx`**
+**1. Database: RLS-policy op `findings` aanpassen**
 
-1. **Nieuwe state**: `adviseurProjecten` array om eerdere projecten op te slaan
-2. **useEffect op `adviseurId`**: Wanneer een adviseur wordt geselecteerd, query `projects` waar `adviseur_id` gelijk is aan de geselecteerde adviseur en `datum_aangemaakt` binnen het afgelopen jaar valt. Haal `projectnaam`, `audit_categorie`, `audit_soort`, `status` en `datum_aangemaakt` op.
-3. **UI-blok**: Toon onder het adviseur-selectveld een compact overzichtsblok:
-   - Titel: "Audits afgelopen jaar voor [adviseurnaam]"
-   - Tabel met kolommen: Projectnaam | Categorie | Soort | Status | Datum
-   - Als er geen projecten zijn: "Geen audits gevonden in het afgelopen jaar."
-   - Visuele waarschuwing (gele achtergrond) als er wél projecten zijn, zodat de gebruiker bewust de keuze maakt
+De huidige SELECT-policy voor EP-adviseurs filtert op `zichtbaar_voor_adviseur = true`. Dit aanpassen zodat EP-adviseurs **alle** findings van hun eigen projecten kunnen lezen (niet alleen zichtbare):
 
-### Geen database-wijzigingen nodig
+```sql
+-- Verwijder de bestaande SELECT policy en maak een nieuwe
+-- EP-adviseur mag ALLE findings van eigen projecten LEZEN
+-- maar mag alleen findings met zichtbaar_voor_adviseur = true UPDATEN (ongewijzigd)
+```
 
-De benodigde data (projects + adviseur_id + datum_aangemaakt) is al beschikbaar. RLS-policies staan beheer, tekenaar en auditor al toe om projecten te lezen.
+Concreet: in de SELECT-policy de `AND (zichtbaar_voor_adviseur = true)` conditie verwijderen voor EP-adviseurs.
 
-### Bestand
+**2. Frontend: `src/pages/ProjectDetail.tsx`**
+
+De pagina toont al de volledige checklist met tabs en read-only weergave wanneer `canEditAny = false`. Geen grote wijzigingen nodig, maar:
+
+- Verwijder de check die EP-adviseurs mogelijk beperkt in het zien van tabs/onderdelen
+- Zorg dat de EP-adviseur alle tabs kan zien inclusief EP2-beoordeling (read-only)
+- Markeer findings die `zichtbaar_voor_adviseur = true` zijn (= bevindingen waarop reactie verwacht wordt) visueel, zodat de adviseur het verschil ziet tussen "ter info" en "actie vereist"
+
+**3. Visueel onderscheid in de tabel**
+
+Voor EP-adviseurs: findings met `zichtbaar_voor_adviseur = true` en status "open" krijgen een accent-kleur of icoon om aan te geven dat hierop gereageerd moet worden. Overige rijen zijn gewoon leesbaar maar zonder actie-indicatie.
+
+### Bestanden
 
 | Bestand | Wijziging |
 |---------|-----------|
-| `src/pages/ProjectAanmaken.tsx` | useEffect voor adviseur-projecten, overzichtstabel onder adviseur-select |
+| Database migration | RLS SELECT-policy `findings`: verwijder `zichtbaar_voor_adviseur` filter voor EP-adviseur |
+| `src/pages/ProjectDetail.tsx` | Visueel markeren van actionable findings voor EP-adviseur |
 
