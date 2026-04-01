@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download } from "lucide-react";
+import { Download, ExternalLink } from "lucide-react";
 import { afwijkingBadge } from "@/lib/badges";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -16,6 +16,7 @@ interface AdviseurSectieProps {
   adviseurProjectNames: (string | undefined)[];
   adviseurStatusBadge: (status: string) => React.ReactNode;
   handleDownload: (path: string) => void;
+  adviseurProjecten?: { id: string; projectnaam: string }[];
 }
 
 export default function AdviseurSectie({
