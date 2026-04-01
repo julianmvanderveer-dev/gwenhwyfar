@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import NotificatieBel from "@/components/NotificatieBel";
 import FeedbackKnop from "@/components/FeedbackKnop";
-import { Shield } from "lucide-react";
+import BengCertLogo from "@/components/BengCertLogo";
 
 export default function AppLayout() {
   const { user, roles, signOut, hasRole } = useAuth();
