@@ -356,6 +356,12 @@ export default function ProjectDetail() {
       }).in("id", opmerkingFindings.map(f => f.id)),
     ].filter(Boolean));
 
+    // Punt 1: zet toegewezen_beoordelaar naar auditor voor alle zichtbare findings
+    const alleZichtbareIds = [...kritiekIds, ...nietKritiekIds, ...opmerkingFindings.map(f => f.id)];
+    if (alleZichtbareIds.length > 0) {
+      await supabase.from("findings").update({ toegewezen_beoordelaar: user!.id }).in("id", alleZichtbareIds);
+    }
+
     const hasNietGoed = nietGoedFindings.length > 0;
 
     if (hasNietGoed) {
