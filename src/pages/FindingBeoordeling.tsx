@@ -219,18 +219,26 @@ export default function FindingBeoordeling() {
                 className="text-sm"
               />
               {supported && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className={`shrink-0 ${listening ? "text-red-500 animate-pulse" : ""}`}
-                  onClick={toggle}
-                  title={listening ? "Stop opname" : "Spraak invoer"}
-                >
-                  {listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                </Button>
+                <div className="flex items-center gap-1 shrink-0">
+                  <AudioVisualizer analyserNode={analyserNode} active={listening} />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className={`shrink-0 ${listening ? "text-destructive animate-pulse" : ""}`}
+                    onClick={toggle}
+                    title={listening ? "Stop opname" : "Spraak invoer"}
+                  >
+                    {listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  </Button>
+                </div>
               )}
             </div>
+            {listening && interimText && (
+              <p className="text-xs text-muted-foreground italic">
+                {interimText}…
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-2 mb-2">
             <Checkbox
