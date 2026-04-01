@@ -1,41 +1,32 @@
 
 
-## Plan: Doorklik naar volledige audit voor EP-adviseur
+## Plan: Aandachtspunten verbergen voor EP-adviseur
 
-### Probleem
+### Wijziging
 
-De EP-adviseur ziet projectnamen in het afwijkingen-overzicht, maar deze zijn niet klikbaar. Er is geen manier om naar de projectdetailpagina te navigeren en de volledige audit in te zien.
-
-### Oplossing
-
-**1. `src/components/dashboard/AdviseurSectie.tsx`** — Projectnaam klikbaar maken
-
-De projectnaam-kolom in de tabel wordt een `<Link>` naar `/project/:id`. Hiervoor moet het `project_id` beschikbaar zijn in de finding data (dat is het al via `f.project_id`).
+**`src/pages/ProjectDetail.tsx`** (regel 561-564): Voeg een rol-check toe zodat het component alleen getoond wordt voor beheer, tekenaar en auditor.
 
 ```tsx
 // Van:
-<td className="px-4 py-2.5 font-medium">{f.projectnaam}</td>
+{project.adviseur_id && (
+  <AandachtspuntenAdviseur ... />
+)}
 
 // Naar:
-<td className="px-4 py-2.5 font-medium">
-  <Link to={`/project/${f.project_id}`} className="text-accent hover:underline">
-    {f.projectnaam}
-  </Link>
-</td>
+{project.adviseur_id && !hasRole("ep_adviseur") && (
+  <AandachtspuntenAdviseur ... />
+)}
 ```
 
-**2. `src/pages/Inbox.tsx`** — Projectenlijst toevoegen voor EP-adviseur
+Alternatief (als een gebruiker zowel ep_adviseur als tekenaar is, wil je het wél tonen): check expliciet op interne rollen:
 
-Onder het afwijkingen-overzicht een compact blok toevoegen met alle projecten van de adviseur (niet alleen findings), zodat de adviseur ook projecten zonder bevindingen kan openen:
+```tsx
+{project.adviseur_id && (hasRole("beheer") || hasRole("tekenaar") || hasRole("auditor")) && (
+  <AandachtspuntenAdviseur ... />
+)}
+```
 
-- Query: de bestaande `projectData` uit `loadAdviseurData` bevat al `id` en `projectnaam`
-- Toon een lijst met klikbare projectnamen als links naar `/project/:id`
-- Opslaan in nieuwe state `adviseurProjecten`
+### Technisch detail
 
-### Bestanden
-
-| Bestand | Wijziging |
-|---------|-----------|
-| `src/components/dashboard/AdviseurSectie.tsx` | Projectnaam als `<Link>` naar projectdetail |
-| `src/pages/Inbox.tsx` | Projectenlijst met links voor EP-adviseur toevoegen, `adviseurProjecten` state |
+`hasRole` is al beschikbaar in het component via `useAuth()`. Eén regel conditionele logica wijzigen, geen andere bestanden nodig.
 
