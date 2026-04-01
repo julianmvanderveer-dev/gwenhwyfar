@@ -1,46 +1,42 @@
 
 
-## Plan: Tabbladen voor gebruikers met meerdere rollen
+## Aangepast plan: Reactiestroom en rechten aanscherpen
 
-### Probleem
-Gebruikers zoals Frank die zowel `ep_adviseur` als `auditor` zijn, zien beide secties onder elkaar — onoverzichtelijk.
+Het eerder goedgekeurde plan wordt op punt 5 aangepast: de auditor kan **alles** wat de tekenaar kan, inclusief het invullen van de EP2-startwaarde.
 
-### Oplossing
-Wanneer een gebruiker meerdere relevante rollen heeft, toon tabbladen om te wisselen tussen weergaven. Eén rol actief = geen tabs, gewoon directe weergave.
+### Wijzigingen (5 punten)
 
-### Wijzigingen
+#### 1. Reacties EP-adviseur altijd eerst naar auditor
+Bij `auditAfronden` in `ProjectDetail.tsx`: zet `toegewezen_beoordelaar` naar de huidige auditor (`user.id`) voor alle findings die zichtbaar worden voor de adviseur.
 
-**`src/pages/Inbox.tsx`**:
+#### 2. Auditor kan finding doorzetten naar tekenaar
+In `FindingBeoordeling.tsx`: voeg een "Doorzetten naar tekenaar" actie toe met dropdown van beschikbare tekenaars (gefilterd op audit-categorie). Update `toegewezen_beoordelaar` en maak notificatie aan.
 
-1. Detecteer of de gebruiker meerdere weergaven heeft (combinatie van `ep_adviseur` + `tekenaar`/`auditor`).
+#### 3. Alleen auditor kan audit afronden
+De `auditAfronden`-functie bevat al de `canDeel2`-guard. Extra defensieve check: verifieer `hasRole("auditor")` voordat status wordt bijgewerkt.
 
-2. Als ja: wrap de EP-adviseur sectie en het MedewerkerDashboard in een `<Tabs>` component met:
-   - Tab "EP-adviseur" → bestaande EP-adviseur afwijkingen sectie
-   - Tab "Auditor" (of "Tekenaar", afhankelijk van rol) → bestaand MedewerkerDashboard
-
-3. Als nee (slechts één relevante rol): toon direct zonder tabs (huidige gedrag behouden).
-
-4. Beheerders (`beheer`) worden niet beïnvloed — hun sectie blijft apart.
-
-### Technisch detail
+#### 4. Auditor kan deel 1 inzien en bewerken
+Pas `canEditFindingByDeel` aan zodat auditors **altijd** kunnen bewerken (deel 1 en 2):
 
 ```text
-// Pseudo-logica
-const heeftMeerdereWeergaven = hasRole("ep_adviseur") && isMedewerker;
-
-if (heeftMeerdereWeergaven) {
-  <Tabs defaultValue="ep_adviseur">
-    <TabsList>
-      <TabsTrigger value="ep_adviseur">EP-adviseur</TabsTrigger>
-      <TabsTrigger value="medewerker">{hasRole("auditor") ? "Auditor" : "Tekenaar"}</TabsTrigger>
-    </TabsList>
-    <TabsContent value="ep_adviseur">...EP-adviseur sectie...</TabsContent>
-    <TabsContent value="medewerker"><MedewerkerDashboard /></TabsContent>
-  </Tabs>
-} else {
-  // Bestaand gedrag: toon alleen de relevante sectie
+canEditFindingByDeel = (deel) => {
+  if (canDeel1 && deel === 1) return true;
+  if (canDeel2) return true;  // auditor mag alles
+  return false;
 }
 ```
 
-Geen nieuwe bestanden nodig — alleen `src/pages/Inbox.tsx` wordt aangepast.
+#### 5. EP2-startwaarde: auditor en tekenaar beide
+**Gewijzigd t.o.v. vorig plan**: De startwaarde is bewerkbaar wanneer `canDeel1 || canDeel2` (dus zowel tekenaar als auditor). Eindwaarde en beoordeling blijven `canDeel2` only. De EP2 opslaan-knop is zichtbaar bij `canDeel1 || canDeel2`.
+
+Concreet in `ProjectDetail.tsx` regel 758: `disabled={!canDeel2}` wordt `disabled={!(canDeel1 || canDeel2)}`.
+
+---
+
+### Bestanden
+
+| Bestand | Wijzigingen |
+|---------|------------|
+| `src/pages/ProjectDetail.tsx` | Punten 1, 3, 4, 5 |
+| `src/pages/FindingBeoordeling.tsx` | Punt 2: doorzetten naar tekenaar |
 
