@@ -121,8 +121,6 @@ export function generateAuditReport({ project, findings, adviseurNaam, templates
             ${uitdraaiHeader}
             <th style="padding:8px 10px;text-align:center;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;width:50px;">Deel</th>
             <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Beoordeling</th>
-            <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Type</th>
-            <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Deadline</th>
             <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Status</th>
           </tr>
         </thead>
