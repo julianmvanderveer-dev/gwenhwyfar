@@ -186,7 +186,7 @@ export function generateAuditReport({ project, findings, adviseurNaam, templates
   <!-- Samenvatting -->
   <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:24px;">
     <h2 style="margin:0 0 12px;font-size:15px;font-weight:600;color:#1f2937;">Samenvatting</h2>
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;text-align:center;font-size:13px;">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center;font-size:13px;">
       <div style="background:#d1fae5;border-radius:6px;padding:10px;">
         <div style="font-size:22px;font-weight:700;color:#047857;">${goedCount}</div>
         <div style="color:#047857;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Goed</div>
@@ -198,14 +198,6 @@ export function generateAuditReport({ project, findings, adviseurNaam, templates
       <div style="background:#dbeafe;border-radius:6px;padding:10px;">
         <div style="font-size:22px;font-weight:700;color:#1d4ed8;">${opmerkingCount}</div>
         <div style="color:#1d4ed8;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Opmerkingen</div>
-      </div>
-      <div style="background:#fee2e2;border-radius:6px;padding:10px;">
-        <div style="font-size:22px;font-weight:700;color:#b91c1c;">${kritiekCount}</div>
-        <div style="color:#b91c1c;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Kritiek</div>
-      </div>
-      <div style="background:#ffedd5;border-radius:6px;padding:10px;">
-        <div style="font-size:22px;font-weight:700;color:#c2410c;">${nietKritiekCount}</div>
-        <div style="color:#c2410c;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Niet kritiek</div>
       </div>
     </div>
   </div>

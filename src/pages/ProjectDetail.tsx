@@ -10,7 +10,7 @@ import { addMonths } from "date-fns";
 import FindingToelichting from "@/components/FindingToelichting";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { statusBadge, beoordelingBadge, afwijkingBadge } from "@/lib/badges";
+import { statusBadge, beoordelingBadge } from "@/lib/badges";
 import { ArrowLeft, CheckCircle2, ClipboardCheck, ChevronLeft, ChevronRight, Download, Upload, Loader2, FileText } from "lucide-react";
 import { generateAuditReport } from "@/lib/generateAuditReport";
 import AandachtspuntenAdviseur from "@/components/projecten/AandachtspuntenAdviseur";
