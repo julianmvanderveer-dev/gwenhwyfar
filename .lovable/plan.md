@@ -1,59 +1,82 @@
 
 
-## Algehele test-checklist voor de applicatie
+# Restyling voorstel: BengCert huisstijl toepassen
 
-Hieronder een uitgebreide prompt die je kunt gebruiken om alle functionaliteit end-to-end te verifiëren.
+## Analyse bengcert.nl
 
----
+Uit de website blijken de volgende brandingkeuzes:
 
-### Test-prompt
+```text
+Kleuren:
+- Donkerblauw (navy):  #1B2A4A (header, tekst, achtergronden)
+- Groen (primair):     #7AB929 (logo vinkje, accenten, CTA-knoppen)
+- Blauw gradient:      #1B3A6B → #2E7DD1 (hero-secties)
+- Wit:                 #FFFFFF (cards, achtergronden)
+- Goud/geel:           #F5A623 (iconen, accenten)
 
-**Test de volgende flows per rol:**
+Typografie:
+- Schreefloos, modern (lijkt op Poppins/Montserrat)
+- Duidelijke hiërarchie: vet/groot voor koppen, licht voor body
 
-**1. Beheerder (beheer)**
-- Log in als beheerder
-- Maak een nieuw project aan met alle velden ingevuld
-- Wijs een EP-adviseur, tekenaar en auditor toe
-- Open het project en controleer dat alle checklist-onderdelen (tabs) zichtbaar zijn
-- Voeg een finding toe en controleer type-afwijking badge
-- Hertoewijzen van een beoordelaar via FindingBeoordeling
-- Open Beheer-pagina en Checklist-beheer — controleer dat beide navigatielinks werken
-- Controleer dat "Aandachtspunten bij deze adviseur" zichtbaar is op projectdetail
-- Exporteer een audit-rapport en verifieer dat het downloadt
-- Controleer notificatiebel
+Stijlkenmerken:
+- Clean, professioneel, corporate
+- Witte cards met subtiele schaduwen
+- Afgeronde knoppen met groene achtergrond
+- Blauwe gradiënt hero-secties
+- Gele/gouden iconen als visueel accent
+```
 
-**2. Auditor**
-- Log in als auditor
-- Open inbox — controleer dat toegewezen projecten zichtbaar zijn
-- Open een project, controleer dat Deel 1 én Deel 2 van de checklist bewerkbaar zijn
-- Beoordeel een finding met status "reactie_ontvangen": test Akkoord en Niet-akkoord flows
-- Test "Doorzetten naar tekenaar" functionaliteit
-- Controleer dat "Aandachtspunten bij deze adviseur" zichtbaar is
-- Controleer spraakherkenning (microfoon) bij opmerkingenveld
-- Verifieer dat EP2-beoordeling correct automatisch berekend wordt
+## Huidige staat platform
 
-**3. Tekenaar**
-- Log in als tekenaar
-- Open inbox — controleer dashboard en projectenlijst
-- Open een project en controleer dat Deel 1 checklist bewerkbaar is
-- Controleer dat "Aandachtspunten bij deze adviseur" zichtbaar is
-- Controleer dat achtergrondkleur groen is (bg-green-50)
+De app gebruikt al een groen/blauw kleurenpalet, maar wijkt af:
+- Rolgebaseerde achtergrondkleuren (geel, blauw, groen per rol) — niet in lijn met bengcert
+- Navigatiebalk is kaal en minimaal
+- Login-pagina mist branding volledig
+- Geen logo, geen gradient hero, geen visuele identiteit
 
-**4. EP-adviseur**
-- Log in als EP-adviseur
-- Controleer dat het afwijkingen-overzicht zichtbaar is met filters (project + status)
-- Controleer dat projectnamen in de tabel **klikbaar** zijn en navigeren naar projectdetail
-- Controleer dat "Mijn projecten" sectie zichtbaar is onderaan met alle toegewezen projecten
-- Open een project via de link — controleer dat de projectdetailpagina laadt zonder errors
-- Controleer dat "Aandachtspunten bij deze adviseur" **NIET** zichtbaar is
-- Open een finding met status "open" en dien een reactie in (met optioneel bestand)
-- Controleer dat achtergrondkleur geel is (bg-yellow-50)
-- Controleer dat de "Reageren" link werkt en naar FindingReactie navigeert
+## Voorstel wijzigingen
 
-**5. Algemeen (alle rollen)**
-- Controleer dat uitloggen werkt en redirect naar /login
-- Controleer dat onbekende routes naar NotFound-pagina leiden
-- Controleer dat wachtwoord-reset flow werkt via /reset-password
-- Controleer responsive weergave op mobiel (< 768px)
-- Controleer dat er geen console-errors zijn op elke pagina
+### 1. CSS variabelen updaten (`src/index.css`)
+- `--primary` aanpassen naar bengcert-groen (#7AB929)
+- `--foreground` naar donkerblauw (#1B2A4A)
+- `--sidebar-background` naar bengcert navy
+- `--accent` naar bengcert blauw (#2E7DD1)
+- Nieuwe `--gradient-hero` voor blauwe gradiënt-secties
+
+### 2. Navigatiebalk restylen (`AppLayout.tsx`)
+- Donkerblauwe achtergrond met witte tekst (zoals bengcert.nl header)
+- Logo linksboven toevoegen (tekst-logo "bengcert" of SVG)
+- Navigatielinks met hover-effect in groen
+- "Contact" / actie-knop rechts met groene pill-stijl
+- Rolgebaseerde achtergrondkleuren verwijderen (altijd wit/lichtgrijs)
+
+### 3. Login-pagina redesign (`Login.tsx`)
+- Blauwe gradiënt-achtergrond (zoals bengcert hero)
+- Witte card gecentreerd met schaduw
+- Logo boven het formulier
+- Groene primaire knop
+
+### 4. Cards en tabellen
+- Cards: witte achtergrond, subtiele border, lichte schaduw (al grotendeels goed)
+- Knoppen: groene primaire kleur, afgerond
+- Badges: gouden/gele accenten voor waarschuwingen behouden
+
+### 5. Algemeen
+- Font wijzigen naar Poppins of Montserrat (dichter bij bengcert)
+- Consistente border-radius (8px, al ingesteld)
+
+## Bestanden die wijzigen
+
+| Bestand | Wat |
+|---|---|
+| `src/index.css` | CSS variabelen, font-import |
+| `src/components/AppLayout.tsx` | Navbar restyling, logo, rolkleuren weg |
+| `src/pages/Login.tsx` | Gradient achtergrond, card-layout, logo |
+| `tailwind.config.ts` | Eventuele gradient utilities |
+| `index.html` | Google Fonts link (Poppins) |
+
+## Wat niet wijzigt
+
+- Functionaliteit, routes, database, componenten-logica
+- UI-componenten (shadcn) — alleen kleurvariabelen
 
