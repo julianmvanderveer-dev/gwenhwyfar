@@ -9,6 +9,7 @@ import { Mic, MicOff } from "lucide-react";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Forward } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Finding = Tables<"findings">;
