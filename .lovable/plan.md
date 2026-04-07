@@ -1,33 +1,31 @@
 
 
-# Rol-tabbladen voor alle gebruikers met meerdere rollen
+# Tabs tonen voor gebruikers met meerdere rollen
 
 ## Probleem
-De tab-navigatie wordt momenteel alleen getoond als je `ep_adviseur` + `tekenaar/auditor` bent én géén `beheer` hebt. Omdat je `beheer` hebt, word je direct naar het beheer-dashboard gestuurd zonder tabbladen.
+De code bouwt `beschikbareWeergaven` correct op basis van `user_roles`, maar je ziet geen tabbladen. Er zijn twee mogelijke oorzaken:
+
+1. **Timing**: De `roles` array is bij eerste render nog leeg of incompleet, waardoor `beschikbareWeergaven` maar 1 item heeft en geen tabs toont. Daarna wordt niet opnieuw gerenderd.
+2. **EP-adviseur ontbreekt**: Je staat in de `adviseurs`-tabel maar hebt geen `ep_adviseur` rol in `user_roles`, dus die tab verschijnt sowieso niet.
 
 ## Oplossing
-De logica in `Inbox.tsx` aanpassen zodat iedereen met meerdere weergave-rollen tabbladen krijgt. De mogelijke tabbladen zijn:
 
-- **Beheer** — het volledige beheerders-overzicht (zoeken, 3 groepen, toewijzing)
-- **Auditor** of **Tekenaar** — het MedewerkerDashboard
-- **EP-adviseur** — het AdviseurSectie-overzicht
+### 1. `src/pages/Inbox.tsx` — EP-adviseur tab ook tonen op basis van adviseurs-tabel
+- Na het laden van adviseur-data, een extra state `isAdviseur` bijhouden
+- In `beschikbareWeergaven`: EP-adviseur tab tonen als `hasRole("ep_adviseur") || isAdviseur`
+- Dit voorkomt dat je handmatig rollen moet synchroniseren
 
-Alleen tabbladen tonen waarvoor de gebruiker daadwerkelijk de rol heeft. Bij één weergave: geen tabbladen, direct dat dashboard tonen (huidige gedrag).
+### 2. `src/pages/Inbox.tsx` — Defensieve rendering
+- `beschikbareWeergaven` laten afhangen van zowel `roles` als `isAdviseur`
+- Een `console.log` toevoegen die de beschikbare weergaven logt bij elke berekening (tijdelijk, voor debugging)
+
+### 3. Database — `ep_adviseur` rol toevoegen (optioneel)
+- INSERT `ep_adviseur` in `user_roles` voor julian@borgch.nl zodat de rol ook formeel klopt
 
 ## Wijzigingen
 
-### `src/pages/Inbox.tsx`
-- De variabele `heeftMeerdereWeergaven` vervangen door een array van beschikbare weergaven (bijv. `[{ key: "beheer", label: "Beheer" }, { key: "medewerker", label: "Auditor" }, ...]`)
-- Als de array >1 item heeft: `Tabs` + `TabsList` renderen met die items
-- Beheer-inhoud (zoekbalk, 3 groepen, toewijzing) verplaatsen naar een `TabsContent value="beheer"`
-- MedewerkerDashboard in `TabsContent value="medewerker"`
-- AdviseurSectie in `TabsContent value="ep_adviseur"`
-- Default tabblad = eerste item in de array
-- De "Nieuw project"-knop alleen tonen in het beheer-tabblad
-
-Geen andere bestanden hoeven aangepast te worden.
-
 | Bestand | Wijziging |
 |---|---|
-| `src/pages/Inbox.tsx` | Dynamische rol-tabbladen ipv hardcoded conditie |
+| `src/pages/Inbox.tsx` | `isAdviseur` state + EP-adviseur tab op basis van adviseurs-tabel |
+| Database (optioneel) | `ep_adviseur` rol toevoegen aan user_roles |
 
