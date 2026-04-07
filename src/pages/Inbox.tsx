@@ -30,6 +30,7 @@ export default function Inbox() {
   const [adviseurProjecten, setAdviseurProjecten] = useState<{ id: string; projectnaam: string }[]>([]);
   const [zoekterm, setZoekterm] = useState("");
   const [toewijsbarePersonen, setToewijsbarePersonen] = useState<ToewijsbarePersoon[]>([]);
+  const [isAdviseur, setIsAdviseur] = useState(false);
 
   useEffect(() => {
     if (!user) return;
