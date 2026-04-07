@@ -1,32 +1,23 @@
 
 
-# BengCert logo toevoegen
+# Alle testdata verwijderen
 
-## Analyse van het logo
+## Wat er wordt gedaan
+Een eenmalige database-migratie die alle testprojecten en gerelateerde data verwijdert. Adviseurs blijven behouden.
 
-Op bengcert.nl is het logo te zien: twee overlappende groene vinkjes (checkmarks) links, gevolgd door de tekst "beng" in donkerblauw (#1B2A4A) en "cert" in groen (#7AB929). Het logo op de website is een PNG — er is geen publieke SVG beschikbaar.
+## Volgorde van verwijderen (vanwege data-afhankelijkheden)
+1. `messages` — alle berichten bij findings
+2. `notificaties` — alle notificaties
+3. `project_uitdraai` — alle geüploade uitdraaien
+4. `externe_rapportages` — alle externe rapportages
+5. `findings` — alle 423 findings
+6. `projects` — alle 10 testprojecten
 
-## Plan
+## Wat blijft staan
+- `adviseurs` — alle EP-adviseurs blijven bewaard
+- `profiles` en `user_roles` — alle gebruikersaccounts en rollen
+- `checklist_templates`, `sectoren`, `modules` — configuratie
 
-### 1. SVG logo-component aanmaken (`src/components/BengCertLogo.tsx`)
-Een React-component dat het logo als inline SVG rendert:
-- Twee overlappende groene vinkjes (checkmarks) links
-- Tekst "beng" in donkerblauw, "cert" in groen
-- Props voor `size` (schaalt proportioneel) en `variant` (`light` voor op donkere achtergrond waar "beng" wit wordt, `dark` voor standaard)
-
-### 2. AppLayout.tsx updaten
-- `Shield` icoon verwijderen
-- `BengCertLogo` importeren met `variant="light"` (witte "beng" tekst op donkere navbar)
-
-### 3. Login.tsx updaten
-- `Shield` icoon verwijderen
-- `BengCertLogo` importeren met `variant="dark"` (donkerblauwe "beng" tekst op witte card)
-
-### Bestanden
-
-| Bestand | Wijziging |
-|---|---|
-| `src/components/BengCertLogo.tsx` | **Nieuw** — SVG logo-component met twee vinkjes + tekst |
-| `src/components/AppLayout.tsx` | Shield → BengCertLogo (light variant) |
-| `src/pages/Login.tsx` | Shield → BengCertLogo (dark variant) |
+## Technisch
+Eén SQL-migratie met 6 DELETE-statements in de juiste volgorde. Geen code-wijzigingen nodig.
 
