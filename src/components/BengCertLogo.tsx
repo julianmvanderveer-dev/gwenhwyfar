@@ -5,50 +5,39 @@ interface Props {
 
 export default function BengCertLogo({ variant = "dark", size = 32 }: Props) {
   const textColor = variant === "light" ? "#FFFFFF" : "#28235D";
+  const scale = size / 40;
 
   return (
     <svg
-      width={size * 3.5}
-      height={size}
+      width={140 * scale}
+      height={40 * scale}
       viewBox="0 0 140 40"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Checkmark made of three overlapping diagonal bars */}
-      {/* Yellow/gold bar */}
+      {/* Three overlapping diagonal bars forming a checkmark */}
+      {/* Each bar is a thick diagonal stripe; they overlap to create the checkmark shape */}
+      
+      {/* Yellow/gold bar — leftmost */}
       <polygon
-        points="12,22 16,18 28,6 32,6 20,20 16,24"
+        points="8,24 14,30 30,10 24,4"
         fill="#FAC323"
       />
-      {/* Green bar */}
+      {/* Green bar — middle */}
       <polygon
-        points="16,20 20,16 32,4 36,4 24,18 18,24"
+        points="12,24 18,30 34,10 28,4"
         fill="#5AAF2D"
       />
-      {/* Blue/navy bar */}
+      {/* Blue/navy bar — rightmost */}
       <polygon
-        points="20,18 24,14 36,2 40,2 28,16 22,22"
+        points="16,24 22,30 38,10 32,4"
         fill="#234687"
       />
-      {/* Down-stroke of checkmark — yellow */}
-      <polygon
-        points="6,18 12,22 16,24 20,28 16,32 10,26 4,20"
-        fill="#FAC323"
-      />
-      {/* Down-stroke — green */}
-      <polygon
-        points="10,16 16,20 18,24 22,28 18,32 14,28 8,20"
-        fill="#5AAF2D"
-      />
-      {/* Down-stroke — blue */}
-      <polygon
-        points="14,14 20,18 22,22 24,26 20,30 16,24 12,18"
-        fill="#234687"
-      />
+
       {/* "bengcert" text */}
       <text
         x="46"
-        y="26"
+        y="27"
         fontFamily="'Poppins', system-ui, -apple-system, sans-serif"
         fontWeight="700"
         fontSize="18"
