@@ -15,23 +15,24 @@ export default function BengCertLogo({ variant = "dark", size = 32 }: Props) {
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Three overlapping diagonal bars forming a checkmark */}
-      {/* Each bar is a thick diagonal stripe; they overlap to create the checkmark shape */}
-      
-      {/* Yellow/gold bar — leftmost */}
-      <polygon
-        points="8,24 14,30 30,10 24,4"
-        fill="#FAC323"
+      {/* Two overlapping green checkmarks */}
+      {/* First checkmark (left, slightly darker green) */}
+      <path
+        d="M6,18 L14,26 L30,8"
+        fill="none"
+        stroke="#4a9e24"
+        strokeWidth="5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
-      {/* Green bar — middle */}
-      <polygon
-        points="12,24 18,30 34,10 28,4"
-        fill="#5AAF2D"
-      />
-      {/* Blue/navy bar — rightmost */}
-      <polygon
-        points="16,24 22,30 38,10 32,4"
-        fill="#234687"
+      {/* Second checkmark (right, brighter green, overlapping) */}
+      <path
+        d="M14,18 L22,26 L38,8"
+        fill="none"
+        stroke="#5AAF2D"
+        strokeWidth="5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
 
       {/* "bengcert" text */}
