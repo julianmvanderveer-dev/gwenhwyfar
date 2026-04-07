@@ -279,9 +279,9 @@ export default function Inbox() {
     if (hasRole("beheer")) views.push({ key: "beheer", label: "Beheer" });
     if (hasRole("auditor")) views.push({ key: "medewerker", label: "Auditor" });
     else if (hasRole("tekenaar")) views.push({ key: "medewerker", label: "Tekenaar" });
-    if (hasRole("ep_adviseur")) views.push({ key: "ep_adviseur", label: "EP-adviseur" });
+    if (hasRole("ep_adviseur") || isAdviseur) views.push({ key: "ep_adviseur", label: "EP-adviseur" });
     return views;
-  }, [roles]);
+  }, [roles, isAdviseur]);
 
   const adviseurStatusBadge = (status: string) => {
     const map: Record<string, { label: string; className: string }> = {
