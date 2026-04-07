@@ -1,23 +1,28 @@
 
 
-# Alle testdata verwijderen
+# BengCert logo updaten naar officieel ontwerp
 
-## Wat er wordt gedaan
-Een eenmalige database-migratie die alle testprojecten en gerelateerde data verwijdert. Adviseurs blijven behouden.
+## Analyse van het geüploade logo
 
-## Volgorde van verwijderen (vanwege data-afhankelijkheden)
-1. `messages` — alle berichten bij findings
-2. `notificaties` — alle notificaties
-3. `project_uitdraai` — alle geüploade uitdraaien
-4. `externe_rapportages` — alle externe rapportages
-5. `findings` — alle 423 findings
-6. `projects` — alle 10 testprojecten
+Het echte logo verschilt aanzienlijk van de huidige SVG:
+- **Vinkje**: Eén groot vinkje bestaande uit drie overlappende diagonale balken — geel/goud (links), groen (midden), blauw/navy (rechts) — die samen een kleurrijk checkmark vormen
+- **Tekst**: "bengcert" in één kleur (donker navy, ~#1B2A4A), niet gesplitst in twee kleuren
+- **Layout**: Vinkje boven de tekst in het volledige logo, maar voor de navbar wordt het horizontaal naast elkaar geplaatst
 
-## Wat blijft staan
-- `adviseurs` — alle EP-adviseurs blijven bewaard
-- `profiles` en `user_roles` — alle gebruikersaccounts en rollen
-- `checklist_templates`, `sectoren`, `modules` — configuratie
+## Wijzigingen
 
-## Technisch
-Eén SQL-migratie met 6 DELETE-statements in de juiste volgorde. Geen code-wijzigingen nodig.
+### 1. `src/components/BengCertLogo.tsx` herschrijven
+- Vinkje opbouwen uit drie overlappende gevulde parallelogrammen/paden: geel (#F5C518 / #EDBA1B), groen (#4AAD2B / #50A829), blauw (#1B3B8A / #2B4FA3)
+- De overlappende gebieden creëren de kleurovergangen (geel+groen = donkergroen, groen+blauw = donkerder blauw)
+- Tekst "bengcert" in één kleur (navy voor dark variant, wit voor light variant)
+- Compact horizontaal formaat voor navbar-gebruik (vinkje links, tekst rechts)
+
+### 2. Geen wijzigingen in andere bestanden
+AppLayout.tsx en Login.tsx gebruiken al `BengCertLogo` met de juiste variant-props.
+
+## Bestand
+
+| Bestand | Wijziging |
+|---|---|
+| `src/components/BengCertLogo.tsx` | Herschrijven — SVG aanpassen aan officieel logo |
 
