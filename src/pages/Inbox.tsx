@@ -38,7 +38,8 @@ export default function Inbox() {
   }, [user, roles]);
 
   const loadData = async () => {
-    if (hasRole("ep_adviseur")) await loadAdviseurData();
+    // Always check adviseur link (user may be in adviseurs table without ep_adviseur role)
+    await loadAdviseurData();
     if (hasRole("tekenaar") || hasRole("auditor") || hasRole("beheer")) await loadInternalData();
     if (hasRole("beheer")) await loadToewijsbarePersonen();
   };
