@@ -269,10 +269,17 @@ export default function Inbox() {
   }, [hoofdgroepen.bezig, substatusFilter]);
 
   const totalVisible = hoofdgroepen.nieuw.length + hoofdgroepen.bezig.length + hoofdgroepen.afgerond.length;
-  const isBeheer = hasRole("beheer");
-  const isMedewerker = hasRole("tekenaar") || hasRole("auditor");
-  const heeftMeerdereWeergaven = hasRole("ep_adviseur") && isMedewerker && !isBeheer;
-  const medewerkerTabLabel = hasRole("auditor") ? "Auditor" : "Tekenaar";
+
+  // Build available views based on roles
+  const beschikbareWeergaven = useMemo(() => {
+    const views: { key: string; label: string }[] = [];
+    if (hasRole("beheer")) views.push({ key: "beheer", label: "Beheer" });
+    if (hasRole("auditor")) views.push({ key: "medewerker", label: "Auditor" });
+    else if (hasRole("tekenaar")) views.push({ key: "medewerker", label: "Tekenaar" });
+    if (hasRole("ep_adviseur")) views.push({ key: "ep_adviseur", label: "EP-adviseur" });
+    return views;
+  }, [roles]);
+
   const adviseurStatusBadge = (status: string) => {
     const map: Record<string, { label: string; className: string }> = {
       open: { label: "Open", className: "bg-orange-100 text-orange-700" },
@@ -302,6 +309,126 @@ export default function Inbox() {
     window.open(data.signedUrl, "_blank");
   };
 
+  const beheerContent = (
+    <>
+      {/* Search */}
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Zoek op projectnaam of adviseur..."
+          value={zoekterm}
+          onChange={(e) => setZoekterm(e.target.value)}
+          className="pl-10 h-9 bg-card shadow-sm"
+        />
+      </div>
+
+      {/* Tellers strip */}
+      <div className="flex flex-wrap gap-1.5">
+        {([
+          { key: "nieuw", label: "Nieuw", count: hoofdgroepen.nieuw.length, icon: FolderKanban, accent: "text-muted-foreground" },
+          { key: "bezig", label: "Bezig", count: hoofdgroepen.bezig.length, icon: Clock3, accent: "text-accent" },
+          { key: "afgerond", label: "Afgerond", count: hoofdgroepen.afgerond.length, icon: CheckCircle2, accent: "text-primary" },
+        ] as const).map((g, i) => (
+          <div key={g.key} className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md bg-card border shadow-sm">
+            <g.icon className={`h-3.5 w-3.5 ${g.accent}`} />
+            <span className="text-muted-foreground">{i + 1}.</span>
+            <span className="font-medium">{g.label}</span>
+            <Badge variant={g.count > 0 ? "default" : "secondary"} className="text-[10px] px-1.5 py-0 ml-1">{g.count}</Badge>
+          </div>
+        ))}
+      </div>
+
+      {/* 3 collapsible groepen */}
+      <div className="space-y-2">
+        <FaseTabel
+          fase="nieuw"
+          faseIndex={0}
+          projecten={hoofdgroepen.nieuw}
+          canDelete={true}
+          onDelete={deleteProject}
+          defaultOpen={hoofdgroepen.nieuw.length > 0}
+          showToewijzing={true}
+          toewijsbarePersonen={toewijsbarePersonen}
+          onReassign={hertoewijzen}
+          onReturnToPool={terugNaarPool}
+          titel="Nieuw"
+          icon={FolderKanban}
+          accentClass="text-muted-foreground"
+        />
+
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 pl-1">
+            <Select value={substatusFilter} onValueChange={setSubstatusFilter}>
+              <SelectTrigger className="w-[220px] h-8 text-xs">
+                <SelectValue placeholder="Filter substatus" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="alle">Alle substatussen</SelectItem>
+                {bezigFases.map(f => (
+                  <SelectItem key={f} value={f}>{faseConfig[f].titel}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <FaseTabel
+            fase="deel1_bezig"
+            faseIndex={1}
+            projecten={filteredBezig}
+            canDelete={true}
+            onDelete={deleteProject}
+            defaultOpen={hoofdgroepen.bezig.length > 0}
+            showToewijzing={true}
+            showSubstatus
+            inlineToewijzing
+            toewijsbarePersonen={toewijsbarePersonen}
+            onReassign={hertoewijzen}
+            onReturnToPool={terugNaarPool}
+            titel="Bezig"
+            icon={Clock3}
+            accentClass="text-accent"
+            badge={hoofdgroepen.bezig.length}
+          />
+        </div>
+
+        <FaseTabel
+          fase="afgerond"
+          faseIndex={2}
+          projecten={hoofdgroepen.afgerond}
+          canDelete={true}
+          onDelete={deleteProject}
+          defaultOpen={hoofdgroepen.afgerond.length > 0}
+          showToewijzing={true}
+          toewijsbarePersonen={toewijsbarePersonen}
+          onReassign={hertoewijzen}
+          onReturnToPool={terugNaarPool}
+          titel="Afgerond"
+          icon={CheckCircle2}
+          accentClass="text-primary"
+        />
+      </div>
+
+      <ExportFilter projects={projects} />
+    </>
+  );
+
+  const adviseurContent = (
+    <AdviseurSectie
+      filteredAdviseurFindings={filteredAdviseurFindings}
+      adviseurFilterProject={adviseurFilterProject}
+      setAdviseurFilterProject={setAdviseurFilterProject}
+      adviseurFilterStatus={adviseurFilterStatus}
+      setAdviseurFilterStatus={setAdviseurFilterStatus}
+      adviseurProjectNames={adviseurProjectNames}
+      adviseurStatusBadge={adviseurStatusBadge}
+      handleDownload={handleDownload}
+      adviseurProjecten={adviseurProjecten}
+    />
+  );
+
+  const medewerkerContent = <MedewerkerDashboard />;
+
+  const heeftTabbladen = beschikbareWeergaven.length > 1;
+
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
       {/* Header */}
@@ -315,7 +442,8 @@ export default function Inbox() {
             <p className="text-xs text-muted-foreground">{totalVisible} actieve projecten · {roles.join(", ") || "geen rol"}</p>
           </div>
         </div>
-        {isBeheer && (
+        {/* Nieuw project knop alleen als er geen tabbladen zijn (beheer-only) */}
+        {hasRole("beheer") && !heeftTabbladen && (
           <Link to="/project/nieuw">
             <Button size="sm" className="shadow-sm">
               <Plus className="h-4 w-4 mr-1" /> Nieuw project
@@ -324,156 +452,44 @@ export default function Inbox() {
         )}
       </div>
 
-      {/* Multi-role: tabbladen */}
-      {heeftMeerdereWeergaven ? (
-        <Tabs defaultValue="ep_adviseur" className="w-full">
+      {heeftTabbladen ? (
+        <Tabs defaultValue={beschikbareWeergaven[0].key} className="w-full">
           <TabsList className="mb-4">
-            <TabsTrigger value="ep_adviseur">EP-adviseur</TabsTrigger>
-            <TabsTrigger value="medewerker">{medewerkerTabLabel}</TabsTrigger>
+            {beschikbareWeergaven.map(v => (
+              <TabsTrigger key={v.key} value={v.key}>{v.label}</TabsTrigger>
+            ))}
           </TabsList>
-          <TabsContent value="ep_adviseur">
-            <AdviseurSectie
-              filteredAdviseurFindings={filteredAdviseurFindings}
-              adviseurFilterProject={adviseurFilterProject}
-              setAdviseurFilterProject={setAdviseurFilterProject}
-              adviseurFilterStatus={adviseurFilterStatus}
-              setAdviseurFilterStatus={setAdviseurFilterStatus}
-              adviseurProjectNames={adviseurProjectNames}
-              adviseurStatusBadge={adviseurStatusBadge}
-              handleDownload={handleDownload}
-              adviseurProjecten={adviseurProjecten}
-            />
-          </TabsContent>
-          <TabsContent value="medewerker">
-            <MedewerkerDashboard />
-          </TabsContent>
+
+          {hasRole("beheer") && (
+            <TabsContent value="beheer" className="space-y-6">
+              <div className="flex justify-end">
+                <Link to="/project/nieuw">
+                  <Button size="sm" className="shadow-sm">
+                    <Plus className="h-4 w-4 mr-1" /> Nieuw project
+                  </Button>
+                </Link>
+              </div>
+              {beheerContent}
+            </TabsContent>
+          )}
+
+          {(hasRole("tekenaar") || hasRole("auditor")) && (
+            <TabsContent value="medewerker">
+              {medewerkerContent}
+            </TabsContent>
+          )}
+
+          {hasRole("ep_adviseur") && (
+            <TabsContent value="ep_adviseur">
+              {adviseurContent}
+            </TabsContent>
+          )}
         </Tabs>
       ) : (
         <>
-          {/* EP-adviseur section (single role) */}
-          {hasRole("ep_adviseur") && (
-            <AdviseurSectie
-              filteredAdviseurFindings={filteredAdviseurFindings}
-              adviseurFilterProject={adviseurFilterProject}
-              setAdviseurFilterProject={setAdviseurFilterProject}
-              adviseurFilterStatus={adviseurFilterStatus}
-              setAdviseurFilterStatus={setAdviseurFilterStatus}
-              adviseurProjectNames={adviseurProjectNames}
-              adviseurStatusBadge={adviseurStatusBadge}
-              handleDownload={handleDownload}
-              adviseurProjecten={adviseurProjecten}
-            />
-          )}
-
-          {/* Medewerker dashboard (single role) */}
-          {isMedewerker && !isBeheer && <MedewerkerDashboard />}
-        </>
-      )}
-
-      {/* Beheer: 3 hoofdgroepen */}
-      {isBeheer && (
-        <>
-          {/* Search */}
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Zoek op projectnaam of adviseur..."
-              value={zoekterm}
-              onChange={(e) => setZoekterm(e.target.value)}
-              className="pl-10 h-9 bg-card shadow-sm"
-            />
-          </div>
-
-          {/* Tellers strip: 3 groepen */}
-          <div className="flex flex-wrap gap-1.5">
-            {([
-              { key: "nieuw", label: "Nieuw", count: hoofdgroepen.nieuw.length, icon: FolderKanban, accent: "text-muted-foreground" },
-              { key: "bezig", label: "Bezig", count: hoofdgroepen.bezig.length, icon: Clock3, accent: "text-accent" },
-              { key: "afgerond", label: "Afgerond", count: hoofdgroepen.afgerond.length, icon: CheckCircle2, accent: "text-primary" },
-            ] as const).map((g, i) => (
-              <div key={g.key} className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md bg-card border shadow-sm">
-                <g.icon className={`h-3.5 w-3.5 ${g.accent}`} />
-                <span className="text-muted-foreground">{i + 1}.</span>
-                <span className="font-medium">{g.label}</span>
-                <Badge variant={g.count > 0 ? "default" : "secondary"} className="text-[10px] px-1.5 py-0 ml-1">{g.count}</Badge>
-              </div>
-            ))}
-          </div>
-
-          {/* 3 collapsible groepen */}
-          <div className="space-y-2">
-            {/* 1. Nieuw */}
-            <FaseTabel
-              fase="nieuw"
-              faseIndex={0}
-              projecten={hoofdgroepen.nieuw}
-              canDelete={isBeheer}
-              onDelete={deleteProject}
-              defaultOpen={hoofdgroepen.nieuw.length > 0}
-              showToewijzing={isBeheer}
-              toewijsbarePersonen={toewijsbarePersonen}
-              onReassign={hertoewijzen}
-              onReturnToPool={terugNaarPool}
-              titel="Nieuw"
-              icon={FolderKanban}
-              accentClass="text-muted-foreground"
-            />
-
-            {/* 2. Bezig (met substatus filter) */}
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 pl-1">
-                <Select value={substatusFilter} onValueChange={setSubstatusFilter}>
-                  <SelectTrigger className="w-[220px] h-8 text-xs">
-                    <SelectValue placeholder="Filter substatus" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="alle">Alle substatussen</SelectItem>
-                    {bezigFases.map(f => (
-                      <SelectItem key={f} value={f}>{faseConfig[f].titel}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <FaseTabel
-                fase="deel1_bezig"
-                faseIndex={1}
-                projecten={filteredBezig}
-                canDelete={isBeheer}
-                onDelete={deleteProject}
-                defaultOpen={hoofdgroepen.bezig.length > 0}
-                showToewijzing={isBeheer}
-                showSubstatus
-                inlineToewijzing
-                toewijsbarePersonen={toewijsbarePersonen}
-                onReassign={hertoewijzen}
-                onReturnToPool={terugNaarPool}
-                titel="Bezig"
-                icon={Clock3}
-                accentClass="text-accent"
-                badge={hoofdgroepen.bezig.length}
-              />
-            </div>
-
-            {/* 3. Afgerond */}
-            <FaseTabel
-              fase="afgerond"
-              faseIndex={2}
-              projecten={hoofdgroepen.afgerond}
-              canDelete={isBeheer}
-              onDelete={deleteProject}
-              defaultOpen={hoofdgroepen.afgerond.length > 0}
-              showToewijzing={isBeheer}
-              toewijsbarePersonen={toewijsbarePersonen}
-              onReassign={hertoewijzen}
-              onReturnToPool={terugNaarPool}
-              titel="Afgerond"
-              icon={CheckCircle2}
-              accentClass="text-primary"
-            />
-          </div>
-
-          {/* Export */}
-          <ExportFilter projects={projects} />
+          {hasRole("beheer") && beheerContent}
+          {!hasRole("beheer") && (hasRole("tekenaar") || hasRole("auditor")) && medewerkerContent}
+          {!hasRole("beheer") && !(hasRole("tekenaar") || hasRole("auditor")) && hasRole("ep_adviseur") && adviseurContent}
         </>
       )}
 
