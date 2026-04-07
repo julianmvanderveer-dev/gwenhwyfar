@@ -4,57 +4,47 @@ interface Props {
 }
 
 export default function BengCertLogo({ variant = "dark", size = 32 }: Props) {
-  const textColor = variant === "light" ? "#FFFFFF" : "#1B2A4A";
-  const accentColor = "#7AB929";
-  const scale = size / 32;
+  const textColor = variant === "light" ? "#FFFFFF" : "#28235D";
+  const scale = size / 40;
 
   return (
     <svg
-      width={size * 3.2}
-      height={size}
-      viewBox="0 0 102 32"
+      width={140 * scale}
+      height={40 * scale}
+      viewBox="0 0 140 40"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      style={{ transform: `scale(${scale})`, transformOrigin: "left center" }}
     >
-      {/* First checkmark */}
-      <path
-        d="M4 16L10 22L22 8"
-        stroke={accentColor}
-        strokeWidth="4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+      {/* Three overlapping diagonal bars forming a checkmark */}
+      {/* Each bar is a thick diagonal stripe; they overlap to create the checkmark shape */}
+      
+      {/* Yellow/gold bar — leftmost */}
+      <polygon
+        points="8,24 14,30 30,10 24,4"
+        fill="#FAC323"
       />
-      {/* Second checkmark (overlapping, offset) */}
-      <path
-        d="M10 16L16 22L28 8"
-        stroke={accentColor}
-        strokeWidth="4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity="0.6"
+      {/* Green bar — middle */}
+      <polygon
+        points="12,24 18,30 34,10 28,4"
+        fill="#5AAF2D"
       />
-      {/* "beng" text */}
+      {/* Blue/navy bar — rightmost */}
+      <polygon
+        points="16,24 22,30 38,10 32,4"
+        fill="#234687"
+      />
+
+      {/* "bengcert" text */}
       <text
-        x="32"
-        y="23"
-        fontFamily="system-ui, -apple-system, sans-serif"
+        x="46"
+        y="27"
+        fontFamily="'Poppins', system-ui, -apple-system, sans-serif"
         fontWeight="700"
-        fontSize="20"
+        fontSize="18"
         fill={textColor}
+        letterSpacing="0.5"
       >
-        beng
-      </text>
-      {/* "cert" text */}
-      <text
-        x="70"
-        y="23"
-        fontFamily="system-ui, -apple-system, sans-serif"
-        fontWeight="700"
-        fontSize="20"
-        fill={accentColor}
-      >
-        cert
+        bengcert
       </text>
     </svg>
   );
