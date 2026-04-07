@@ -30,6 +30,7 @@ export default function Inbox() {
   const [adviseurProjecten, setAdviseurProjecten] = useState<{ id: string; projectnaam: string }[]>([]);
   const [zoekterm, setZoekterm] = useState("");
   const [toewijsbarePersonen, setToewijsbarePersonen] = useState<ToewijsbarePersoon[]>([]);
+  const [isAdviseur, setIsAdviseur] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -97,9 +98,11 @@ export default function Inbox() {
       .single();
 
     if (!adviseurRecord) {
+      setIsAdviseur(false);
       setAdviseurFindings([]);
       return;
     }
+    setIsAdviseur(true);
 
     const { data: projectData } = await supabase
       .from("projects")
@@ -276,9 +279,9 @@ export default function Inbox() {
     if (hasRole("beheer")) views.push({ key: "beheer", label: "Beheer" });
     if (hasRole("auditor")) views.push({ key: "medewerker", label: "Auditor" });
     else if (hasRole("tekenaar")) views.push({ key: "medewerker", label: "Tekenaar" });
-    if (hasRole("ep_adviseur")) views.push({ key: "ep_adviseur", label: "EP-adviseur" });
+    if (hasRole("ep_adviseur") || isAdviseur) views.push({ key: "ep_adviseur", label: "EP-adviseur" });
     return views;
-  }, [roles]);
+  }, [roles, isAdviseur]);
 
   const adviseurStatusBadge = (status: string) => {
     const map: Record<string, { label: string; className: string }> = {
