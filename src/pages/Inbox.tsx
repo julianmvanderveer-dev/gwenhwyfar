@@ -98,9 +98,11 @@ export default function Inbox() {
       .single();
 
     if (!adviseurRecord) {
+      setIsAdviseur(false);
       setAdviseurFindings([]);
       return;
     }
+    setIsAdviseur(true);
 
     const { data: projectData } = await supabase
       .from("projects")
