@@ -836,3 +836,109 @@ export default function Beheer() {
     </div>
   );
 }
+
+function InstellingenTab() {
+  const { settings, updateSetting, refresh } = useAppSettings();
+  const [orgNaam, setOrgNaam] = useState(settings.org_naam);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setOrgNaam(settings.org_naam);
+  }, [settings.org_naam]);
+
+  const saveNaam = async () => {
+    if (!orgNaam.trim()) return;
+    setSaving(true);
+    try {
+      await updateSetting("org_naam", orgNaam.trim());
+      toast({ title: "Organisatienaam opgeslagen" });
+    } catch (err: any) {
+      toast({ title: "Fout", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const uploadLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Alleen afbeeldingen toegestaan", variant: "destructive" });
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() ?? "png";
+      const path = `logo.${ext}`;
+      // Remove old logo
+      await supabase.storage.from("branding").remove([path]);
+      const { error: upErr } = await supabase.storage.from("branding").upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from("branding").getPublicUrl(path);
+      const url = urlData.publicUrl + "?t=" + Date.now();
+      await updateSetting("org_logo_url", url);
+      toast({ title: "Logo geüpload" });
+    } catch (err: any) {
+      toast({ title: "Fout bij uploaden", description: err.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  const removeLogo = async () => {
+    try {
+      await updateSetting("org_logo_url", "");
+      toast({ title: "Logo verwijderd" });
+    } catch (err: any) {
+      toast({ title: "Fout", description: err.message, variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="max-w-lg space-y-6">
+      <div className="border rounded-lg p-6 bg-card shadow-sm space-y-4">
+        <h3 className="font-semibold text-sm">Organisatienaam</h3>
+        <div className="flex gap-2">
+          <Input
+            value={orgNaam}
+            onChange={(e) => setOrgNaam(e.target.value)}
+            placeholder="Organisatienaam"
+            className="flex-1"
+          />
+          <Button onClick={saveNaam} disabled={saving} size="sm">
+            {saving ? "Opslaan..." : "Opslaan"}
+          </Button>
+        </div>
+      </div>
+
+      <div className="border rounded-lg p-6 bg-card shadow-sm space-y-4">
+        <h3 className="font-semibold text-sm">Logo</h3>
+        {settings.org_logo_url && (
+          <div className="flex items-center gap-4">
+            <img src={settings.org_logo_url} alt="Logo" className="h-12 object-contain border rounded p-1" />
+            <Button variant="outline" size="sm" onClick={removeLogo}>
+              <Trash2 className="h-3.5 w-3.5 mr-1" /> Verwijderen
+            </Button>
+          </div>
+        )}
+        <div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/png,image/jpeg,image/svg+xml,image/webp"
+            className="hidden"
+            onChange={uploadLogo}
+          />
+          <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
+            <Upload className="h-3.5 w-3.5 mr-1" />
+            {uploading ? "Uploaden..." : settings.org_logo_url ? "Ander logo uploaden" : "Logo uploaden"}
+          </Button>
+          <p className="text-xs text-muted-foreground mt-2">PNG, JPG, SVG of WebP. Aanbevolen: transparante achtergrond.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
