@@ -49,6 +49,7 @@ export default function Beheer() {
   const [memberForm, setMemberForm] = useState({ naam: "", email: "", password: "", roles: [] as Enums<"app_role">[], auditCategorieen: [] as Enums<"audit_categorie">[] });
   const [showPassword, setShowPassword] = useState(false);
   const [submittingMember, setSubmittingMember] = useState(false);
+  const [inviteMode, setInviteMode] = useState(true);
 
   // Toewijzingen state
   const [toewijzingProjecten, setToewijzingProjecten] = useState<ToewijzingProject[]>([]);
@@ -324,7 +325,7 @@ export default function Beheer() {
       toast({ title: "E-mail is verplicht", variant: "destructive" });
       return;
     }
-    if (!memberForm.password) {
+    if (!inviteMode && !memberForm.password) {
       toast({ title: "Wachtwoord is verplicht", variant: "destructive" });
       return;
     }
@@ -334,7 +335,7 @@ export default function Beheer() {
         body: {
           naam: memberForm.naam.trim(),
           email: memberForm.email.trim(),
-          password: memberForm.password,
+          ...(inviteMode ? { invite: true } : { password: memberForm.password }),
           roles: memberForm.roles,
         },
       });
@@ -350,7 +351,7 @@ export default function Beheer() {
       setMemberForm({ naam: "", email: "", password: "", roles: [], auditCategorieen: [] });
       setShowPassword(false);
       loadUsers();
-      toast({ title: "Medewerker toegevoegd" });
+      toast({ title: data?.invited ? `Uitnodiging verstuurd naar ${memberForm.email.trim()}` : "Medewerker toegevoegd" });
     } catch (err: any) {
       toast({ title: "Fout bij toevoegen", description: err.message, variant: "destructive" });
     } finally {
@@ -509,23 +510,33 @@ export default function Beheer() {
                       );
                     })}
                     <td className="px-3 py-2.5">
-                      <div className="relative">
-                        <Input
-                          type={showPassword ? "text" : "password"}
-                          value={memberForm.password}
-                          onChange={(e) => setMemberForm({ ...memberForm, password: e.target.value })}
-                          placeholder="Wachtwoord"
-                          className="h-8 pr-8"
-                        />
-                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground">
-                          {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                        </button>
-                      </div>
+                      {inviteMode ? (
+                        <div className="flex items-center gap-1.5">
+                          <Badge variant="outline" className="text-[10px] whitespace-nowrap">Uitnodiging</Badge>
+                          <button type="button" onClick={() => setInviteMode(false)} className="text-[10px] text-muted-foreground underline whitespace-nowrap">Wachtwoord instellen</button>
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          <div className="relative">
+                            <Input
+                              type={showPassword ? "text" : "password"}
+                              value={memberForm.password}
+                              onChange={(e) => setMemberForm({ ...memberForm, password: e.target.value })}
+                              placeholder="Wachtwoord"
+                              className="h-8 pr-8"
+                            />
+                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground">
+                              {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                            </button>
+                          </div>
+                          <button type="button" onClick={() => { setInviteMode(true); setMemberForm({ ...memberForm, password: "" }); }} className="text-[10px] text-muted-foreground underline">Uitnodiging versturen</button>
+                        </div>
+                      )}
                     </td>
                     <td className="px-3 py-2.5">
                       <div className="flex gap-1">
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={addMember} disabled={submittingMember}><Check className="h-4 w-4" /></Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setAddingMember(false); setMemberForm({ naam: "", email: "", password: "", roles: [], auditCategorieen: [] }); setShowPassword(false); }}><X className="h-4 w-4" /></Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={addMember} disabled={submittingMember} title={inviteMode ? "Uitnodigen" : "Toevoegen"}><Check className="h-4 w-4" /></Button>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setAddingMember(false); setMemberForm({ naam: "", email: "", password: "", roles: [], auditCategorieen: [] }); setShowPassword(false); setInviteMode(true); }}><X className="h-4 w-4" /></Button>
                       </div>
                     </td>
                   </tr>

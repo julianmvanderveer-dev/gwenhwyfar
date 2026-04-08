@@ -52,10 +52,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { naam, email, password, roles } = await req.json();
+    const { naam, email, password, roles, invite } = await req.json();
 
-    if (!naam || !email || !password) {
-      return new Response(JSON.stringify({ error: "Naam, e-mail en wachtwoord zijn verplicht" }), {
+    if (!naam || !email) {
+      return new Response(JSON.stringify({ error: "Naam en e-mail zijn verplicht" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -67,31 +67,60 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Create auth user (profile is created via handle_new_user trigger)
-    const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: { naam },
-    });
+    let newUserId: string;
 
-    if (createError) {
-      return new Response(JSON.stringify({ error: createError.message }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    if (invite || !password) {
+      // Invite mode: send invitation email
+      const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
+        data: { naam },
       });
+
+      if (inviteError) {
+        return new Response(JSON.stringify({ error: inviteError.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      newUserId = inviteData.user.id;
+    } else {
+      // Password mode: create user directly
+      const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { naam },
+      });
+
+      if (createError) {
+        return new Response(JSON.stringify({ error: createError.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      newUserId = newUser.user.id;
     }
 
     // Assign roles if provided
     if (roles && Array.isArray(roles) && roles.length > 0) {
       const roleInserts = roles.map((role: string) => ({
-        user_id: newUser.user.id,
+        user_id: newUserId,
         role,
       }));
       await adminClient.from("user_roles").insert(roleInserts);
     }
 
-    return new Response(JSON.stringify({ success: true, user_id: newUser.user.id }), {
+    // Auto-link adviseur record if ep_adviseur role is assigned
+    if (roles && Array.isArray(roles) && roles.includes("ep_adviseur")) {
+      await adminClient
+        .from("adviseurs")
+        .update({ user_id: newUserId })
+        .eq("email", email)
+        .is("user_id", null);
+    }
+
+    return new Response(JSON.stringify({ success: true, user_id: newUserId, invited: !!invite || !password }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
