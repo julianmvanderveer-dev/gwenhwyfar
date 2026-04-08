@@ -417,9 +417,6 @@ export default function Beheer() {
             <Image className="h-3.5 w-3.5" />
             Instellingen
           </TabsTrigger>
-              <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0">{feedbackItems.length}</Badge>
-            )}
-          </TabsTrigger>
         </TabsList>
 
         {/* TAB: Projectteam */}
