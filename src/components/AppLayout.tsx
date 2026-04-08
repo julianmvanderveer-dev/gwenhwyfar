@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import NotificatieBel from "@/components/NotificatieBel";
 import FeedbackKnop from "@/components/FeedbackKnop";
-import BengCertLogo from "@/components/BengCertLogo";
+import AppLogo from "@/components/AppLogo";
 
 export default function AppLayout() {
   const { user, roles, signOut, hasRole } = useAuth();
@@ -18,7 +18,7 @@ export default function AppLayout() {
     <div className="min-h-screen bg-background">
       <nav className="bg-[hsl(220,42%,20%)] text-white px-6 py-3 flex items-center gap-6 text-sm shadow-md">
         <Link to="/inbox" className="flex items-center mr-4">
-          <BengCertLogo variant="light" size={28} />
+          <AppLogo variant="light" size={28} />
         </Link>
 
         <Link

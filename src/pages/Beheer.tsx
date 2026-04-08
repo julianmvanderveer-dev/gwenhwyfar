@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useAppSettings } from "@/hooks/useAppSettings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -8,8 +9,9 @@ import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { downloadCsv } from "@/lib/csv";
 import type { Tables, Enums } from "@/integrations/supabase/types";
-import { Download, Plus, Pencil, Check, X, Trash2, Settings, Users, Eye, EyeOff, ArrowRightLeft, RotateCcw, MessageSquare } from "lucide-react";
+import { Download, Plus, Pencil, Check, X, Trash2, Settings, Users, Eye, EyeOff, ArrowRightLeft, RotateCcw, MessageSquare, Upload, Image } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
 
 type Profile = Tables<"profiles">;
 type Adviseur = Tables<"adviseurs">;
@@ -409,6 +411,10 @@ export default function Beheer() {
             {feedbackItems.length > 0 && (
               <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0">{feedbackItems.length}</Badge>
             )}
+          </TabsTrigger>
+          <TabsTrigger value="instellingen" className="gap-1.5">
+            <Image className="h-3.5 w-3.5" />
+            Instellingen
           </TabsTrigger>
         </TabsList>
 
@@ -821,7 +827,118 @@ export default function Beheer() {
             </table>
           </div>
         </TabsContent>
+
+        {/* TAB: Instellingen */}
+        <TabsContent value="instellingen" className="space-y-4">
+          <InstellingenTab />
+        </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+function InstellingenTab() {
+  const { settings, updateSetting, refresh } = useAppSettings();
+  const [orgNaam, setOrgNaam] = useState(settings.org_naam);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setOrgNaam(settings.org_naam);
+  }, [settings.org_naam]);
+
+  const saveNaam = async () => {
+    if (!orgNaam.trim()) return;
+    setSaving(true);
+    try {
+      await updateSetting("org_naam", orgNaam.trim());
+      toast({ title: "Organisatienaam opgeslagen" });
+    } catch (err: any) {
+      toast({ title: "Fout", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const uploadLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Alleen afbeeldingen toegestaan", variant: "destructive" });
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() ?? "png";
+      const path = `logo.${ext}`;
+      // Remove old logo
+      await supabase.storage.from("branding").remove([path]);
+      const { error: upErr } = await supabase.storage.from("branding").upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from("branding").getPublicUrl(path);
+      const url = urlData.publicUrl + "?t=" + Date.now();
+      await updateSetting("org_logo_url", url);
+      toast({ title: "Logo geüpload" });
+    } catch (err: any) {
+      toast({ title: "Fout bij uploaden", description: err.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  const removeLogo = async () => {
+    try {
+      await updateSetting("org_logo_url", "");
+      toast({ title: "Logo verwijderd" });
+    } catch (err: any) {
+      toast({ title: "Fout", description: err.message, variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="max-w-lg space-y-6">
+      <div className="border rounded-lg p-6 bg-card shadow-sm space-y-4">
+        <h3 className="font-semibold text-sm">Organisatienaam</h3>
+        <div className="flex gap-2">
+          <Input
+            value={orgNaam}
+            onChange={(e) => setOrgNaam(e.target.value)}
+            placeholder="Organisatienaam"
+            className="flex-1"
+          />
+          <Button onClick={saveNaam} disabled={saving} size="sm">
+            {saving ? "Opslaan..." : "Opslaan"}
+          </Button>
+        </div>
+      </div>
+
+      <div className="border rounded-lg p-6 bg-card shadow-sm space-y-4">
+        <h3 className="font-semibold text-sm">Logo</h3>
+        {settings.org_logo_url && (
+          <div className="flex items-center gap-4">
+            <img src={settings.org_logo_url} alt="Logo" className="h-12 object-contain border rounded p-1" />
+            <Button variant="outline" size="sm" onClick={removeLogo}>
+              <Trash2 className="h-3.5 w-3.5 mr-1" /> Verwijderen
+            </Button>
+          </div>
+        )}
+        <div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/png,image/jpeg,image/svg+xml,image/webp"
+            className="hidden"
+            onChange={uploadLogo}
+          />
+          <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
+            <Upload className="h-3.5 w-3.5 mr-1" />
+            {uploading ? "Uploaden..." : settings.org_logo_url ? "Ander logo uploaden" : "Logo uploaden"}
+          </Button>
+          <p className="text-xs text-muted-foreground mt-2">PNG, JPG, SVG of WebP. Aanbevolen: transparante achtergrond.</p>
+        </div>
+      </div>
     </div>
   );
 }
