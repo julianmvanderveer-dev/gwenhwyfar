@@ -1,42 +1,36 @@
 
 
-# Project niet zichtbaar voor auditor na deel 1 afronding
+# Project 7108AA107b niet zichtbaar voor auditor
 
-## Probleem
+## Diagnose
 
-Wanneer een tekenaar deel 1 afrondt, verandert alleen de status naar `deel1_afgerond`. Het project blijft echter **specifiek toegewezen aan de tekenaar** (Hilbert). De RLS-policy zorgt ervoor dat alleen de toegewezen persoon of pool-projecten zichtbaar zijn. Julian (auditor) kan het project daarom niet zien.
+Het project `7108AA107b` heeft status `deel1_afgerond` maar is nog steeds specifiek toegewezen aan Hilbert van Eenennaam. De RLS-policy op `projects` laat tekenaar/auditor alleen projecten zien als:
+- `toegewezen_aan = auth.uid()` (niet het geval voor Julian), OF
+- `toewijzing = 'pool'` en `toegewezen_aan IS NULL` (ook niet het geval)
 
-Het project `7108AA107c` staat nu op `deel2_bezig` en is nog steeds toegewezen aan Hilbert.
+Dit is exact hetzelfde probleem als eerder beschreven in het plan voor project 7108AA107c.
 
 ## Oplossing
 
-### 1. `src/pages/ProjectDetail.tsx` — `deel1Afronden` aanpassen
-
-Na het afronden van deel 1:
-- `toegewezen_aan` op `null` zetten
-- `toegewezen_op` op `null` zetten  
-- `toewijzing` op `pool` zetten
-
-Hierdoor komt het project automatisch in de pool voor auditors terecht.
-
-### 2. Database fix — huidig project corrigeren
-
-Het project `50db86bc-7e4f-4ff8-aea9-fce84199542e` handmatig terugzetten naar de pool zodat Julian het kan zien en claimen:
+### 1. Data fix — huidige projecten corrigeren
+Alle projecten met status `deel1_afgerond` die nog specifiek toegewezen zijn, vrijgeven naar de pool:
 
 ```sql
 UPDATE projects 
-SET toegewezen_aan = NULL, 
-    toegewezen_op = NULL, 
-    toewijzing = 'pool'
-WHERE id = '50db86bc-7e4f-4ff8-aea9-fce84199542e';
+SET toegewezen_aan = NULL, toegewezen_op = NULL, toewijzing = 'pool'
+WHERE status = 'deel1_afgerond' AND toegewezen_aan IS NOT NULL;
 ```
 
-### 3. Optioneel: notificatie toevoegen
+### 2. Code fix — `ProjectDetail.tsx`
+In de `deel1Afronden` functie, na het updaten van de status naar `deel1_afgerond`, ook de toewijzingsvelden resetten:
+- `toegewezen_aan` → `null`
+- `toegewezen_op` → `null`  
+- `toewijzing` → `'pool'`
 
-Bij het vrijgeven na deel 1, een notificatie sturen naar auditors dat er een nieuw project in de pool staat.
+Dit voorkomt dat het probleem zich herhaalt bij toekomstige projecten.
 
-| Bestand | Wijziging |
+| Wijziging | Bestand |
 |---|---|
-| `src/pages/ProjectDetail.tsx` | `deel1Afronden`: project vrijgeven naar pool na statuswijziging |
-| Database (migration) | Huidig project corrigeren naar pool |
+| Data fix: vrijgeven naar pool | Database (via insert tool) |
+| Code fix: automatisch vrijgeven na deel 1 | `src/pages/ProjectDetail.tsx` |
 
