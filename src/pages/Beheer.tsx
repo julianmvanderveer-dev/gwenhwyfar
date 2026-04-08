@@ -49,6 +49,7 @@ export default function Beheer() {
   const [memberForm, setMemberForm] = useState({ naam: "", email: "", password: "", roles: [] as Enums<"app_role">[], auditCategorieen: [] as Enums<"audit_categorie">[] });
   const [showPassword, setShowPassword] = useState(false);
   const [submittingMember, setSubmittingMember] = useState(false);
+  const [inviteMode, setInviteMode] = useState(true);
 
   // Toewijzingen state
   const [toewijzingProjecten, setToewijzingProjecten] = useState<ToewijzingProject[]>([]);
