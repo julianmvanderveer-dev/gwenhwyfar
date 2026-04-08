@@ -326,8 +326,13 @@ export default function ProjectDetail() {
   };
 
   const deel1Afronden = async () => {
-    await supabase.from("projects").update({ status: "deel1_afgerond" as any }).eq("id", id!);
-    toast({ title: "Deel 1 afgerond", description: "Status gewijzigd naar 'Deel 1 afgerond'" });
+    await supabase.from("projects").update({
+      status: "deel1_afgerond" as any,
+      toegewezen_aan: null,
+      toegewezen_op: null,
+      toewijzing: "pool",
+    }).eq("id", id!);
+    toast({ title: "Deel 1 afgerond", description: "Project is vrijgegeven naar de auditor-pool" });
     loadProject();
   };
 
