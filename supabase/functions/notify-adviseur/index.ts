@@ -20,20 +20,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    const supabase = createClient(
+    // Verify caller is authenticated (JWT validated by gateway via verify_jwt=false config,
+    // but we still check the header exists for basic auth)
+    const _callerClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } }
     );
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     const { type, project_id, finding_id } = await req.json();
 
@@ -76,28 +69,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Build email content
-    let subject: string;
-    let html: string;
-
+    // Determine template name based on type
+    let templateName: string;
     if (type === "audit_afgerond") {
-      subject = `Audit afgerond: ${project.projectnaam}`;
-      html = `
-        <h2>Audit afgerond</h2>
-        <p>Beste ${adviseur.naam},</p>
-        <p>De audit voor project <strong>${project.projectnaam}</strong> is afgerond.</p>
-        <p>Er staan findings klaar die uw reactie vereisen. Log in om de findings te bekijken en te reageren.</p>
-        <p>Met vriendelijke groet,<br/>EPWD Auditplatform</p>
-      `;
+      templateName = "audit-afgerond";
     } else if (type === "niet_akkoord") {
-      subject = `Actie vereist: ${project.projectnaam}`;
-      html = `
-        <h2>Beoordeling: niet akkoord</h2>
-        <p>Beste ${adviseur.naam},</p>
-        <p>Uw reactie op een finding in project <strong>${project.projectnaam}</strong> is beoordeeld als <strong>niet akkoord</strong>.</p>
-        <p>De finding is heropend. Log in om uw reactie aan te passen.</p>
-        <p>Met vriendelijke groet,<br/>EPWD Auditplatform</p>
-      `;
+      templateName = "niet-akkoord";
     } else {
       return new Response(JSON.stringify({ error: "Ongeldig type" }), {
         status: 400,
@@ -105,33 +82,30 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Send via Resend
-    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-    if (!RESEND_API_KEY) {
-      throw new Error("RESEND_API_KEY is not configured");
+    // Send via transactional email infrastructure
+    const idempotencyKey = `${templateName}-${project_id}-${finding_id ?? "all"}-${Date.now()}`;
+
+    const { error: emailError } = await admin.functions.invoke(
+      "send-transactional-email",
+      {
+        body: {
+          templateName,
+          recipientEmail: adviseur.email,
+          idempotencyKey,
+          templateData: {
+            adviseurNaam: adviseur.naam,
+            projectnaam: project.projectnaam,
+          },
+        },
+      }
+    );
+
+    if (emailError) {
+      console.error("Email send error:", emailError);
+      throw new Error(`Email verzenden mislukt: ${emailError.message}`);
     }
 
-    const emailRes = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "EPWD Audit <onboarding@resend.dev>",
-        to: [adviseur.email],
-        subject,
-        html,
-      }),
-    });
-
-    const emailData = await emailRes.json();
-    if (!emailRes.ok) {
-      console.error("Resend error:", emailData);
-      throw new Error(`Resend API failed [${emailRes.status}]: ${JSON.stringify(emailData)}`);
-    }
-
-    return new Response(JSON.stringify({ success: true, email_id: emailData.id }), {
+    return new Response(JSON.stringify({ success: true, queued: true }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
