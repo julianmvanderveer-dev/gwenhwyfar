@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useAppSettings } from "@/hooks/useAppSettings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -8,7 +9,9 @@ import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { downloadCsv } from "@/lib/csv";
 import type { Tables, Enums } from "@/integrations/supabase/types";
-import { Download, Plus, Pencil, Check, X, Trash2, Settings, Users, Eye, EyeOff, ArrowRightLeft, RotateCcw, MessageSquare } from "lucide-react";
+import { Download, Plus, Pencil, Check, X, Trash2, Settings, Users, Eye, EyeOff, ArrowRightLeft, RotateCcw, MessageSquare, Upload, Image } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type Profile = Tables<"profiles">;
@@ -407,6 +410,13 @@ export default function Beheer() {
             <MessageSquare className="h-3.5 w-3.5" />
             Feedback
             {feedbackItems.length > 0 && (
+              <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0">{feedbackItems.length}</Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="instellingen" className="gap-1.5">
+            <Image className="h-3.5 w-3.5" />
+            Instellingen
+          </TabsTrigger>
               <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0">{feedbackItems.length}</Badge>
             )}
           </TabsTrigger>
@@ -820,6 +830,11 @@ export default function Beheer() {
               </tbody>
             </table>
           </div>
+        </TabsContent>
+
+        {/* TAB: Instellingen */}
+        <TabsContent value="instellingen" className="space-y-4">
+          <InstellingenTab />
         </TabsContent>
       </Tabs>
     </div>
