@@ -1,73 +1,42 @@
 
 
-# Logo en organisatienaam aanpasbaar maken
+# Project niet zichtbaar voor auditor na deel 1 afronding
 
-## Aanpak
+## Probleem
 
-Een nieuwe tabel `app_settings` aanmaken met key-value pairs voor organisatienaam en logo-URL. In het Beheer-scherm een sectie toevoegen waar beheerders deze kunnen aanpassen. Het logo kan als afbeelding geüpload worden via Supabase Storage.
+Wanneer een tekenaar deel 1 afrondt, verandert alleen de status naar `deel1_afgerond`. Het project blijft echter **specifiek toegewezen aan de tekenaar** (Hilbert). De RLS-policy zorgt ervoor dat alleen de toegewezen persoon of pool-projecten zichtbaar zijn. Julian (auditor) kan het project daarom niet zien.
 
-## Wijzigingen
+Het project `7108AA107c` staat nu op `deel2_bezig` en is nog steeds toegewezen aan Hilbert.
 
-### 1. Database: `app_settings` tabel + Storage bucket
+## Oplossing
+
+### 1. `src/pages/ProjectDetail.tsx` — `deel1Afronden` aanpassen
+
+Na het afronden van deel 1:
+- `toegewezen_aan` op `null` zetten
+- `toegewezen_op` op `null` zetten  
+- `toewijzing` op `pool` zetten
+
+Hierdoor komt het project automatisch in de pool voor auditors terecht.
+
+### 2. Database fix — huidig project corrigeren
+
+Het project `50db86bc-7e4f-4ff8-aea9-fce84199542e` handmatig terugzetten naar de pool zodat Julian het kan zien en claimen:
 
 ```sql
-CREATE TABLE public.app_settings (
-  key TEXT PRIMARY KEY,
-  value TEXT NOT NULL,
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;
-
--- Iedereen mag lezen (nodig voor logo op loginpagina)
-CREATE POLICY "Iedereen kan settings lezen" ON public.app_settings FOR SELECT USING (true);
--- Alleen beheerders mogen wijzigen
-CREATE POLICY "Beheer kan settings wijzigen" ON public.app_settings FOR ALL TO authenticated 
-  USING (public.has_role(auth.uid(), 'beheer')) 
-  WITH CHECK (public.has_role(auth.uid(), 'beheer'));
-
--- Standaardwaarden
-INSERT INTO public.app_settings (key, value) VALUES 
-  ('org_naam', 'bengcert'),
-  ('org_logo_url', '');
-
--- Storage bucket voor logo uploads
-INSERT INTO storage.buckets (id, name, public) VALUES ('branding', 'branding', true);
-CREATE POLICY "Beheer kan uploaden" ON storage.objects FOR ALL TO authenticated 
-  USING (bucket_id = 'branding' AND public.has_role(auth.uid(), 'beheer'));
-CREATE POLICY "Publiek lezen branding" ON storage.objects FOR SELECT USING (bucket_id = 'branding');
+UPDATE projects 
+SET toegewezen_aan = NULL, 
+    toegewezen_op = NULL, 
+    toewijzing = 'pool'
+WHERE id = '50db86bc-7e4f-4ff8-aea9-fce84199542e';
 ```
 
-### 2. `src/hooks/useAppSettings.ts` — Nieuwe hook
+### 3. Optioneel: notificatie toevoegen
 
-- Haalt `org_naam` en `org_logo_url` op uit `app_settings`
-- Cached in React context zodat het niet per component opnieuw geladen wordt
-- Biedt een `updateSetting(key, value)` functie
-
-### 3. `src/components/AppLogo.tsx` — Nieuw component
-
-- Als `org_logo_url` is ingesteld: toon `<img>` met die URL
-- Anders: toon de bestaande `BengCertLogo` SVG maar met de aangepaste `org_naam` als tekst
-- Props: `variant`, `size` (zelfde interface als huidige logo)
-
-### 4. `src/components/AppLayout.tsx` en `src/pages/Login.tsx`
-
-- `BengCertLogo` vervangen door `AppLogo`
-
-### 5. `src/pages/Beheer.tsx` — Instellingen-sectie toevoegen
-
-- Nieuw tab "Instellingen" in het beheer-scherm
-- Velden:
-  - **Organisatienaam**: tekstveld
-  - **Logo**: bestand-upload (accepteert PNG/SVG/JPG) + preview
-- Upload gaat naar de `branding` storage bucket
-- Na opslaan wordt `app_settings` bijgewerkt
+Bij het vrijgeven na deel 1, een notificatie sturen naar auditors dat er een nieuw project in de pool staat.
 
 | Bestand | Wijziging |
 |---|---|
-| Database migratie | `app_settings` tabel + `branding` storage bucket |
-| `src/hooks/useAppSettings.ts` | Nieuw: settings ophalen en updaten |
-| `src/components/AppLogo.tsx` | Nieuw: dynamisch logo component |
-| `src/components/AppLayout.tsx` | `BengCertLogo` → `AppLogo` |
-| `src/pages/Login.tsx` | `BengCertLogo` → `AppLogo` |
-| `src/pages/Beheer.tsx` | Nieuw tab "Instellingen" met logo-upload en naam |
+| `src/pages/ProjectDetail.tsx` | `deel1Afronden`: project vrijgeven naar pool na statuswijziging |
+| Database (migration) | Huidig project corrigeren naar pool |
 
