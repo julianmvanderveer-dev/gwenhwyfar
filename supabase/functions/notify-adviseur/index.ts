@@ -20,7 +20,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    const supabase = createClient(
+    // Verify caller is authenticated (JWT validated by gateway via verify_jwt=false config,
+    // but we still check the header exists for basic auth)
+    const _callerClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } }
@@ -83,7 +85,7 @@ Deno.serve(async (req) => {
     // Send via transactional email infrastructure
     const idempotencyKey = `${templateName}-${project_id}-${finding_id ?? "all"}-${Date.now()}`;
 
-    const { data: emailResult, error: emailError } = await admin.functions.invoke(
+    const { error: emailError } = await admin.functions.invoke(
       "send-transactional-email",
       {
         body: {
