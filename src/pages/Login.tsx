@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
-import BengCertLogo from "@/components/BengCertLogo";
+import AppLogo from "@/components/AppLogo";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -61,7 +61,7 @@ export default function Login() {
       <Card className="w-full max-w-md shadow-2xl border-0">
         <CardHeader className="text-center pb-2">
           <div className="flex items-center justify-center mb-4">
-            <BengCertLogo variant="dark" size={36} />
+            <AppLogo variant="dark" size={36} />
           </div>
           <CardTitle className="text-xl">{title}</CardTitle>
         </CardHeader>
