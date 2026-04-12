@@ -1,39 +1,43 @@
 
+Ik heb de situatie nagekeken en de meest waarschijnlijke oorzaak is niet de applicatiecode, maar de domeinverificatie zelf.
 
-# Michel de Graaf uitnodigen als EP-adviseur
+Wat ik nu zie
+- Het project gebruikt al `notify.bengaudit.nl` in de e-mailconfiguratie.
+- Zowel auth-mails als transactionele mails verwijzen in de code correct naar `notify.bengaudit.nl`.
+- De domeinstatus staat nog steeds op `Pending`.
+- Dat betekent: de app is al voorbereid om via dit domein te verzenden, maar het platform beschouwt het domein nog niet als geverifieerd.
 
-## Huidige situatie
+Waarschijnlijk waar het misgaat
+1. De NS-delegatie van `notify.bengaudit.nl` is nog niet goed overgenomen door de registrar.
+2. Er staan op exact `notify.bengaudit.nl` nog conflicterende records naast de NS-records.
+3. Het domein is in de e-mailinstellingen wel toegevoegd, maar de verificatieflow is blijven hangen en moet opnieuw gestart worden.
+4. Minder waarschijnlijk: de registrar ondersteunt deze subdomein-delegatie niet op de manier waarop het nu is ingevoerd.
 
-- Michel de Graaf staat in de `adviseurs` tabel maar heeft geen `user_id` — hij kan niet inloggen.
-- De Beheer-pagina kan teamleden aanmaken via `create-team-member`, maar dit vereist dat de beheerder handmatig een wachtwoord instelt. Er is geen uitnodigingsflow.
-- De invite-e-mailtemplate bestaat al (`_shared/email-templates/invite.tsx`).
-- Het e-maildomein (`notify.bengaudit.nl`) is nog in setup — zodra DNS-verificatie afgerond is, werken e-mails.
+Waarom ik denk dat het niet in de code zit
+- In de code wordt consequent `notify.bengaudit.nl` gebruikt als sender domain.
+- Er is geen aanwijzing dat er nog een oud ander e-maildomein actief wordt gebruikt.
+- Een fout in de code zou eerder leiden tot verzendfouten of queue-fouten, niet tot een blijvende `Pending` domeinstatus.
 
-## Plan
+Aanpak die ik zou uitvoeren zodra ik mag doorpakken
+1. De domeinconfiguratie in Cloud opnieuw controleren op de exacte vereiste records en foutdetails.
+2. Bevestigen of het project op rootdomein `bengaudit.nl` of subdomein `notify.bengaudit.nl` verwacht te verifiëren, want daar lijkt nu verwarring in te zitten.
+3. Als de setup vastzit: domeinverificatie opnieuw starten via de e-mailconfiguratie.
+4. Als dat niet helpt: het domein uit de e-mailconfiguratie verwijderen en opnieuw toevoegen zodat de provisioning schoon opnieuw begint.
+5. Daarna pas opnieuw controleren of de infrastructuur en queue nog gezond zijn.
 
-### 1. Uitnodigingsmodus toevoegen aan `create-team-member` Edge Function
-- Naast de huidige `createUser` (met wachtwoord) een `inviteUserByEmail` modus toevoegen.
-- Als `password` ontbreekt of een vlag `invite: true` wordt meegegeven, wordt `adminClient.auth.admin.inviteUserByEmail()` gebruikt in plaats van `createUser`.
-- Michel ontvangt dan de BengCert invite-e-mail met een link om zijn wachtwoord in te stellen.
+Wat jij nu het beste kunt controleren
+- Bij je DNS-provider: staan er op host `notify` echt alléén NS-records?
+- Dus geen A, AAAA, CNAME, MX of TXT op exact `notify.bengaudit.nl`.
+- Klik in Cloud → Emails op een herverificatie / verify actie als die zichtbaar is.
+- Als het al dagen vastzit: verwijder het domein daar en voeg het opnieuw toe.
 
-### 2. Beheer UI aanpassen (`src/pages/Beheer.tsx`)
-- Het wachtwoordveld optioneel maken: een toggle/knop toevoegen waarmee de beheerder kan kiezen tussen "Wachtwoord instellen" en "Uitnodiging versturen".
-- Bij de uitnodigingsmodus: wachtwoordveld verbergen, knoptekst wijzigen naar "Uitnodigen".
-- Na succesvolle uitnodiging een toast tonen: "Uitnodiging verstuurd naar [email]".
+Technische notitie
+- Ik zie een kleine inconsistentie in de backendstatus:
+  - de workspace toont `bengaudit.nl` als projectdomein in status `initiated`
+  - de statuscheck op `notify.bengaudit.nl` toont `Pending`
+- Dat wijst erop dat de configuratie waarschijnlijk op root/subdomein-niveau niet helemaal netjes is afgerond in de e-mailsetup, eerder dan dat de appcode fout is.
 
-### 3. Koppeling adviseur-record
-- Na het aanmaken/uitnodigen: als de nieuwe gebruiker de rol `ep_adviseur` krijgt, automatisch het `adviseurs` record met matchend e-mailadres bijwerken met de nieuwe `user_id`.
-- Dit kan in de Edge Function (server-side) of na terugkeer in de UI.
-
-### 4. Michel de Graaf uitnodigen
-- Zodra e-mail werkt: via Beheer → Projectteam → "Medewerker toevoegen", naam en e-mail van Michel invullen, rol `ep_adviseur` selecteren, en "Uitnodigen" klikken.
-
-## Technische details
-
-| Bestand | Wijziging |
-|---|---|
-| `supabase/functions/create-team-member/index.ts` | `inviteUserByEmail` modus toevoegen; automatische adviseur-koppeling |
-| `src/pages/Beheer.tsx` | Wachtwoord optioneel, toggle uitnodigingsmodus, UI feedback |
-
-De `inviteUserByEmail` API van Supabase Auth stuurt automatisch een e-mail via de geconfigureerde `invite` template die al in BengCert-huisstijl is opgemaakt.
-
+Als je dit goed wilt laten oplossen, is het volgende implementatie-/controlepad het meest zinvol
+- e-maildomeinconfiguratie opnieuw initialiseren
+- verificatiestatus opnieuw laten opbouwen
+- daarna pas end-to-end testen met een echte mailtrigger
