@@ -1,43 +1,25 @@
 
-Ik heb de situatie nagekeken en de meest waarschijnlijke oorzaak is niet de applicatiecode, maar de domeinverificatie zelf.
+Ik heb nog één belangrijke inconsistentie bevestigd:
 
-Wat ik nu zie
-- Het project gebruikt al `notify.bengaudit.nl` in de e-mailconfiguratie.
-- Zowel auth-mails als transactionele mails verwijzen in de code correct naar `notify.bengaudit.nl`.
-- De domeinstatus staat nog steeds op `Pending`.
-- Dat betekent: de app is al voorbereid om via dit domein te verzenden, maar het platform beschouwt het domein nog niet als geverifieerd.
+- In de code staat alles al goed op `notify.bengaudit.nl` voor zowel auth- als transactionele e-mails.
+- Er zijn geen oude verwijzingen naar Resend in de code.
+- De domeincheck zegt nog steeds `Pending` voor `notify.bengaudit.nl`.
+- Tegelijk zegt de projectcheck dat er op dit project momenteel géén actief gekoppeld e-maildomein staat.
 
-Waarschijnlijk waar het misgaat
-1. De NS-delegatie van `notify.bengaudit.nl` is nog niet goed overgenomen door de registrar.
-2. Er staan op exact `notify.bengaudit.nl` nog conflicterende records naast de NS-records.
-3. Het domein is in de e-mailinstellingen wel toegevoegd, maar de verificatieflow is blijven hangen en moet opnieuw gestart worden.
-4. Minder waarschijnlijk: de registrar ondersteunt deze subdomein-delegatie niet op de manier waarop het nu is ingevoerd.
+Dat wijst veel sterker op een vastgelopen of onvolledig gekoppelde domeinconfiguratie dan op een DNS-fout in de app.
 
-Waarom ik denk dat het niet in de code zit
-- In de code wordt consequent `notify.bengaudit.nl` gebruikt als sender domain.
-- Er is geen aanwijzing dat er nog een oud ander e-maildomein actief wordt gebruikt.
-- Een fout in de code zou eerder leiden tot verzendfouten of queue-fouten, niet tot een blijvende `Pending` domeinstatus.
+Plan
+1. In de e-mailinstellingen controleren of `notify.bengaudit.nl` echt aan dit project gekoppeld is, en niet alleen als losse domein-entry bestaat.
+2. Als die koppeling ontbreekt of half is blijven hangen: het domein uit de e-mailinstellingen verwijderen en opnieuw toevoegen aan dit project.
+3. Daarna opnieuw verifiëren of de status verandert van `Pending` naar een actieve/verifiërende projectstatus.
+4. Zodra de koppeling klopt, de e-mailinfrastructuur nogmaals nalopen zodat queue en verzending zeker op het juiste domein draaien.
+5. Daarna een echte testmail versturen, bijvoorbeeld met de uitnodiging voor Michel, om end-to-end te bevestigen dat alles werkt.
 
-Aanpak die ik zou uitvoeren zodra ik mag doorpakken
-1. De domeinconfiguratie in Cloud opnieuw controleren op de exacte vereiste records en foutdetails.
-2. Bevestigen of het project op rootdomein `bengaudit.nl` of subdomein `notify.bengaudit.nl` verwacht te verifiëren, want daar lijkt nu verwarring in te zitten.
-3. Als de setup vastzit: domeinverificatie opnieuw starten via de e-mailconfiguratie.
-4. Als dat niet helpt: het domein uit de e-mailconfiguratie verwijderen en opnieuw toevoegen zodat de provisioning schoon opnieuw begint.
-5. Daarna pas opnieuw controleren of de infrastructuur en queue nog gezond zijn.
-
-Wat jij nu het beste kunt controleren
-- Bij je DNS-provider: staan er op host `notify` echt alléén NS-records?
-- Dus geen A, AAAA, CNAME, MX of TXT op exact `notify.bengaudit.nl`.
-- Klik in Cloud → Emails op een herverificatie / verify actie als die zichtbaar is.
-- Als het al dagen vastzit: verwijder het domein daar en voeg het opnieuw toe.
+Wat ik op basis van de huidige gegevens het meest waarschijnlijk vind
+- Niet: fout in de appcode.
+- Wel: het domein is óf niet goed aan dit project gekoppeld, óf de provisioning in de e-mailinstellingen is blijven hangen ondanks correcte NS-records.
 
 Technische notitie
-- Ik zie een kleine inconsistentie in de backendstatus:
-  - de workspace toont `bengaudit.nl` als projectdomein in status `initiated`
-  - de statuscheck op `notify.bengaudit.nl` toont `Pending`
-- Dat wijst erop dat de configuratie waarschijnlijk op root/subdomein-niveau niet helemaal netjes is afgerond in de e-mailsetup, eerder dan dat de appcode fout is.
-
-Als je dit goed wilt laten oplossen, is het volgende implementatie-/controlepad het meest zinvol
-- e-maildomeinconfiguratie opnieuw initialiseren
-- verificatiestatus opnieuw laten opbouwen
-- daarna pas end-to-end testen met een echte mailtrigger
+- `notify.bengaudit.nl` staat hardcoded consistent in de verzendfuncties.
+- De auth-mailhook gebruikt al het queue-systeem.
+- De status-mismatch tussen “domein bestaat en is pending” versus “project heeft geen custom e-maildomein” is nu het sterkste aanknopingspunt.
