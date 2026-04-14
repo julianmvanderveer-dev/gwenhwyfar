@@ -52,7 +52,7 @@ export default function AppLayout() {
             variant="outline"
             size="sm"
             onClick={handleSignOut}
-            className="border-white/20 text-white hover:bg-white/10 hover:text-white"
+            className="bg-transparent border-white/20 text-white hover:bg-white/10 hover:text-white"
           >
             Uitloggen
           </Button>
