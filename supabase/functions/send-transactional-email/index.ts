@@ -31,12 +31,16 @@ Deno.serve(async (req) => {
   let templateName: string
   let recipientEmail: string
   let templateData: Record<string, any> = {}
+  let cc: string[] | undefined
   try {
     const body = await req.json()
     templateName = body.templateName || body.template_name
     recipientEmail = body.recipientEmail || body.recipient_email
     if (body.templateData && typeof body.templateData === 'object') {
       templateData = body.templateData
+    }
+    if (body.cc) {
+      cc = Array.isArray(body.cc) ? body.cc : [body.cc]
     }
   } catch {
     return new Response(
@@ -125,6 +129,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from: FROM_ADDRESS,
         to: [effectiveRecipient],
+        ...(cc && cc.length > 0 ? { cc } : {}),
         subject: resolvedSubject,
         html,
         text: plainText,

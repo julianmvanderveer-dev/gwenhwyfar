@@ -91,6 +91,7 @@ Deno.serve(async (req) => {
         body: {
           templateName,
           recipientEmail: adviseur.email,
+          cc: "julian@borgch.nl",
           idempotencyKey,
           templateData: {
             adviseurNaam: adviseur.naam,
