@@ -1,25 +1,29 @@
 
-Ik heb nog één belangrijke inconsistentie bevestigd:
+De codekant lijkt nu goed te staan; het probleem zit vrijwel zeker niet meer in de Edge Functions.
 
-- In de code staat alles al goed op `notify.bengaudit.nl` voor zowel auth- als transactionele e-mails.
-- Er zijn geen oude verwijzingen naar Resend in de code.
-- De domeincheck zegt nog steeds `Pending` voor `notify.bengaudit.nl`.
-- Tegelijk zegt de projectcheck dat er op dit project momenteel géén actief gekoppeld e-maildomein staat.
+Wat ik heb bevestigd
+- `auth-email-hook/index.ts` gebruikt al `bengcert.bengaudit.nl`.
+- `send-transactional-email/index.ts` gebruikt al `bengcert.bengaudit.nl`.
+- Ik zie geen resterende verwijzingen naar `notify.bengaudit.nl` in de relevante functiebestanden.
+- Daardoor is “blijft pending” nu het sterkste signaal van een domeinverificatie-/koppelprobleem in de e-mailconfiguratie zelf, niet van foute appcode.
 
-Dat wijst veel sterker op een vastgelopen of onvolledig gekoppelde domeinconfiguratie dan op een DNS-fout in de app.
+Meest waarschijnlijke oorzaken
+1. Het subdomein `bengcert.bengaudit.nl` is wel aangemaakt, maar de verificatie/provisioning is blijven hangen.
+2. Het domein bestaat in de workspace, maar is niet netjes aan dit project gekoppeld.
+3. De DNS-delegatie is ogenschijnlijk goed, maar er is nog een conflict of onvolledige propagatie op registrar/platformniveau.
 
-Plan
-1. In de e-mailinstellingen controleren of `notify.bengaudit.nl` echt aan dit project gekoppeld is, en niet alleen als losse domein-entry bestaat.
-2. Als die koppeling ontbreekt of half is blijven hangen: het domein uit de e-mailinstellingen verwijderen en opnieuw toevoegen aan dit project.
-3. Daarna opnieuw verifiëren of de status verandert van `Pending` naar een actieve/verifiërende projectstatus.
-4. Zodra de koppeling klopt, de e-mailinfrastructuur nogmaals nalopen zodat queue en verzending zeker op het juiste domein draaien.
-5. Daarna een echte testmail versturen, bijvoorbeeld met de uitnodiging voor Michel, om end-to-end te bevestigen dat alles werkt.
+Plan van aanpak
+1. De actuele status van `bengcert.bengaudit.nl` opnieuw controleren in de e-mailinstellingen en bevestigen of het domein echt aan dit project hangt.
+2. Als de status nog steeds `Pending` blijft: de e-mailsetup voor dit domein opnieuw initialiseren in plaats van nog meer code aan te passen.
+3. Als de koppeling half hangt: het domein verwijderen uit de e-mailinstellingen en opnieuw toevoegen voor dit project, zodat provisioning schoon herstart.
+4. Daarna de e-mailinfrastructuur opnieuw laten opbouwen/verversen zodat queue en dispatcher zeker gekoppeld zijn aan de huidige domeinconfiguratie.
+5. Tot slot een echte testmail end-to-end uitvoeren en daarna in de verzendlogs controleren of mails nog op `pending` blijven hangen of doorlopen naar `sent`/`failed`.
 
-Wat ik op basis van de huidige gegevens het meest waarschijnlijk vind
-- Niet: fout in de appcode.
-- Wel: het domein is óf niet goed aan dit project gekoppeld, óf de provisioning in de e-mailinstellingen is blijven hangen ondanks correcte NS-records.
+Wat ik daarna in default mode zou uitvoeren
+- De huidige domeinstatus en projectbinding uitlezen.
+- Indien nodig de e-mailconfiguratie opnieuw laten opzetten.
+- Daarna de queue/logs testen om vast te stellen of het probleem vóór verzending zit (domein) of ná enqueue (dispatcher).
 
 Technische notitie
-- `notify.bengaudit.nl` staat hardcoded consistent in de verzendfuncties.
-- De auth-mailhook gebruikt al het queue-systeem.
-- De status-mismatch tussen “domein bestaat en is pending” versus “project heeft geen custom e-maildomein” is nu het sterkste aanknopingspunt.
+- Omdat de code al naar `bengcert.bengaudit.nl` wijst, levert verdere codewijziging waarschijnlijk niets op.
+- De volgende nuttige stap is dus infrastructuurdiagnose en her-initialisatie van de e-maildomeinkoppeling, niet nog een search/replace in bestanden.
