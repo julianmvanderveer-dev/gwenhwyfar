@@ -20,14 +20,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verify caller is authenticated (JWT validated by gateway via verify_jwt=false config,
-    // but we still check the header exists for basic auth)
-    const _callerClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
     const { type, project_id, finding_id } = await req.json();
 
     if (!type || !project_id) {
@@ -37,7 +29,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Use service role to look up advisor email
+    // Use service role for all admin operations
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -58,7 +50,7 @@ Deno.serve(async (req) => {
 
     const { data: adviseur } = await admin
       .from("adviseurs")
-      .select("email, naam")
+      .select("email, naam, user_id")
       .eq("id", project.adviseur_id)
       .single();
 
@@ -69,7 +61,64 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Determine template name based on type
+    // --- Auto-invite if adviseur has no account yet ---
+    let invited = false;
+    if (!adviseur.user_id) {
+      try {
+        const { data: inviteData, error: inviteError } = await admin.auth.admin.inviteUserByEmail(
+          adviseur.email,
+          { data: { naam: adviseur.naam } }
+        );
+
+        if (inviteError) {
+          console.error("Invite error:", inviteError);
+        } else if (inviteData?.user) {
+          invited = true;
+          const newUserId = inviteData.user.id;
+
+          // Update adviseur record with new user_id
+          await admin
+            .from("adviseurs")
+            .update({ user_id: newUserId })
+            .eq("id", project.adviseur_id);
+
+          // Assign ep_adviseur role
+          await admin
+            .from("user_roles")
+            .insert({ user_id: newUserId, role: "ep_adviseur" });
+
+          console.log("Adviseur invited and linked:", adviseur.email, newUserId);
+
+          // Notify Julian about the new invite via a separate email
+          const notifyResp = await fetch(
+            `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-transactional-email`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+              },
+              body: JSON.stringify({
+                templateName: "audit-afgerond",
+                recipientEmail: "julian@borgch.nl",
+                idempotencyKey: `invite-notify-${project.adviseur_id}-${Date.now()}`,
+                templateData: {
+                  adviseurNaam: "Julian",
+                  projectnaam: `[Uitnodiging verstuurd] ${adviseur.naam} (${adviseur.email}) is uitgenodigd voor BengCert`,
+                },
+              }),
+            }
+          );
+          if (!notifyResp.ok) {
+            console.error("Failed to notify Julian about invite:", await notifyResp.text());
+          }
+        }
+      } catch (invErr) {
+        console.error("Invite process failed:", invErr);
+      }
+    }
+
+    // --- Determine template and send audit notification ---
     let templateName: string;
     if (type === "audit_afgerond") {
       templateName = "audit-afgerond";
@@ -82,13 +131,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Send via transactional email infrastructure
+    // Send via direct fetch instead of admin.functions.invoke to bypass gateway auth
     const idempotencyKey = `${templateName}-${project_id}-${finding_id ?? "all"}-${Date.now()}`;
 
-    const { error: emailError } = await admin.functions.invoke(
-      "send-transactional-email",
+    const emailResp = await fetch(
+      `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-transactional-email`,
       {
-        body: {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({
           templateName,
           recipientEmail: adviseur.email,
           cc: "julian@borgch.nl",
@@ -97,16 +151,20 @@ Deno.serve(async (req) => {
             adviseurNaam: adviseur.naam,
             projectnaam: project.projectnaam,
           },
-        },
+        }),
       }
     );
 
-    if (emailError) {
-      console.error("Email send error:", emailError);
-      throw new Error(`Email verzenden mislukt: ${emailError.message}`);
+    if (!emailResp.ok) {
+      const errBody = await emailResp.text();
+      console.error("Email send error:", emailResp.status, errBody);
+      throw new Error(`Email verzenden mislukt: ${errBody}`);
     }
 
-    return new Response(JSON.stringify({ success: true, queued: true }), {
+    const emailResult = await emailResp.json();
+    console.log("Email sent successfully:", emailResult);
+
+    return new Response(JSON.stringify({ success: true, invited, queued: true }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
