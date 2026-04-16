@@ -618,16 +618,30 @@ export default function Beheer() {
                        </button>
                      </td>
                      <td className="text-center px-3 py-2.5">
-                       <Button
-                         size="icon"
-                         variant="ghost"
-                         className="h-7 w-7 text-destructive"
-                         disabled={p.id === user?.id}
-                         title={p.id === user?.id ? "Je kunt je eigen account niet verwijderen" : "Verwijderen"}
-                         onClick={() => deleteProfile(p.id, p.naam)}
-                       >
-                         <Trash2 className="h-4 w-4" />
-                       </Button>
+                       <div className="flex gap-1 justify-center">
+                         {unconfirmedIds.has(p.id) && (
+                           <Button
+                             size="icon"
+                             variant="ghost"
+                             className="h-7 w-7 text-primary"
+                             disabled={resendingInvite === p.id}
+                             title="Uitnodiging opnieuw versturen"
+                             onClick={() => resendInvite(p.id, p.email, p.naam)}
+                           >
+                             <Mail className="h-4 w-4" />
+                           </Button>
+                         )}
+                         <Button
+                           size="icon"
+                           variant="ghost"
+                           className="h-7 w-7 text-destructive"
+                           disabled={p.id === user?.id}
+                           title={p.id === user?.id ? "Je kunt je eigen account niet verwijderen" : "Verwijderen"}
+                           onClick={() => deleteProfile(p.id, p.naam)}
+                         >
+                           <Trash2 className="h-4 w-4" />
+                         </Button>
+                       </div>
                      </td>
                   </tr>
                 ))}
