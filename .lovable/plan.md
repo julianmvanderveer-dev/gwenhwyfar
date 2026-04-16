@@ -1,59 +1,49 @@
 
 
-## Plan: Fix 401, automatische uitnodigingsmails, CC-verificatie
+## Plan: Uitnodiging opnieuw versturen + "Opnieuw uitnodigen"-knop in Beheer
 
-### Probleem 1: 401-fout bij send-transactional-email
+### Stap 1: Direct uitnodiging versturen naar Michel de Graaf
 
-**Oorzaak:** `notify-adviseur` roept `send-transactional-email` aan via `admin.functions.invoke()`, maar de Supabase gateway blokkeert dit ondanks `verify_jwt = false` in de config. De signing-keys van het platform overschrijven deze instelling.
+Michel de Graaf (mdegraaf@selekthuis.nl) heeft een account maar heeft nooit ingelogd en zijn e-mail is niet bevestigd. We versturen opnieuw een uitnodiging via de admin API.
 
-**Oplossing:** In `notify-adviseur` de aanroep veranderen van `admin.functions.invoke()` naar een directe HTTP `fetch()` naar de functie-URL met de service role key als Bearer token. Dit omzeilt de gateway-authenticatie:
+Dit doen we door de `create-team-member` edge function aan te roepen met zijn e-mailadres en `invite: true`. Echter, omdat het account al bestaat, zal `inviteUserByEmail` falen. In plaats daarvan gebruiken we `admin.auth.admin.generateLink({ type: 'invite', email })` om een nieuwe uitnodigingslink te genereren, en sturen die per mail.
 
-```typescript
-const resp = await fetch(
-  `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-transactional-email`,
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-    },
-    body: JSON.stringify({ templateName, recipientEmail, cc, templateData }),
-  }
-);
-```
+**Alternatief (eenvoudiger):** Een nieuwe edge function `resend-invite` maken die:
+1. Controleert of de caller beheerder is
+2. Via `admin.auth.admin.generateLink({ type: 'magiclink', email })` een inloglink genereert
+3. Een e-mail verstuurt via `send-transactional-email` met de link
 
-### Probleem 2: Automatische uitnodigingsmail voor nieuwe adviseurs
+### Stap 2: "Opnieuw uitnodigen"-knop in Beheer → Projectteam-tabel
 
-Wanneer `notify-adviseur` een adviseur mailt die nog geen `user_id` heeft (= geen account op het platform), moet er automatisch een uitnodiging worden verstuurd via `adminClient.auth.admin.inviteUserByEmail()`.
+In de Projectteam-tabel een knop toevoegen bij medewerkers die nog nooit hebben ingelogd (`last_sign_in_at` is null). Dit vereist:
 
-**Wijzigingen in `notify-adviseur/index.ts`:**
-1. Na het ophalen van de adviseur, ook `user_id` meenemen in de query
-2. Als `user_id` is `null`: een uitnodiging versturen via de admin auth API
-3. De uitnodigingsmail wordt verzorgd door Supabase Auth zelf (via het bestaande invite-template)
-4. Na succesvolle invite: de adviseur-record updaten met het nieuwe `user_id`
-5. CC `julian@borgch.nl` op de uitnodiging is niet standaard mogelijk via de auth invite API, maar we loggen de uitnodiging en sturen een aparte notificatie-mail naar Julian dat er een nieuwe adviseur is uitgenodigd
+1. **Extra data ophalen**: Bij het laden van profielen ook `last_sign_in_at` meenemen (dit zit niet in de profiles-tabel maar in auth.users). We voegen een veld `confirmed` toe aan de profiles-tabel, OF we checken het via de edge function.
 
-### Probleem 3: CC naar julian@borgch.nl
+   Eenvoudigere aanpak: In het `create-team-member` edge function een nieuw endpoint/actie toevoegen (`resend_invite: true`) die een bestaande gebruiker opnieuw uitnodigt.
 
-De CC-logica is correct geïmplementeerd in de code:
-- `notify-adviseur` stuurt `cc: "julian@borgch.nl"` mee
-- `send-transactional-email` leest het `cc` veld en stuurt het door naar Resend
-
-Dit werkt zodra probleem 1 is opgelost. Na de fix wordt de CC automatisch meegestuurd.
-
----
+2. **UI**: Een klein "Opnieuw uitnodigen" icoontje (RotateCcw of Mail) naast de naam of in de acties-kolom, alleen zichtbaar voor gebruikers die nog niet bevestigd zijn.
 
 ### Technische details
 
-**Bestanden die worden gewijzigd:**
+**Bestanden die worden gewijzigd/aangemaakt:**
 
-1. **`supabase/functions/notify-adviseur/index.ts`**:
-   - Adviseur-query uitbreiden met `user_id`
-   - `admin.functions.invoke()` vervangen door directe `fetch()` naar de functie-URL
-   - Toevoegen: als `adviseur.user_id === null`, automatisch `admin.auth.admin.inviteUserByEmail()` aanroepen
-   - Na invite: adviseur-record updaten met het nieuwe user_id en ep_adviseur rol toekennen
+1. **`supabase/functions/create-team-member/index.ts`** — Uitbreiden met `resend_invite` actie:
+   - Als `resend_invite: true` en `email` is meegegeven
+   - Gebruik `admin.auth.admin.generateLink({ type: 'magiclink', email })` om een link te genereren
+   - Verstuur een uitnodigingsmail via `send-transactional-email` met de link
+   - Of eenvoudiger: verwijder het bestaande account en maak opnieuw aan via `inviteUserByEmail`
 
-2. **Herdeployment** van `notify-adviseur` en `send-transactional-email`
+   Beste aanpak: `admin.auth.admin.inviteUserByEmail(email)` opnieuw aanroepen — Supabase staat dit toe voor bestaande niet-bevestigde gebruikers en genereert een nieuwe invite-link.
 
-3. **Testen** via de curl tool om te verifiëren dat de volledige flow werkt
+2. **`src/pages/Beheer.tsx`**:
+   - Track welke gebruikers nog niet bevestigd zijn (via een edge function call of extra veld)
+   - Voeg een "Opnieuw uitnodigen" knop toe per niet-bevestigde gebruiker
+   - Knop roept `create-team-member` aan met `{ email, resend_invite: true }`
+
+3. **Directe actie**: Na deployment, de functie aanroepen voor Michel de Graaf
+
+### Samenvatting
+- Edge function uitbreiden met resend-invite mogelijkheid
+- Beheer-pagina: knop voor opnieuw uitnodigen bij niet-bevestigde gebruikers
+- Direct uitnodiging versturen naar Michel de Graaf
 
