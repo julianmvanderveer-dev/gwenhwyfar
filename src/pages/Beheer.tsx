@@ -114,6 +114,33 @@ export default function Beheer() {
     setProfiles(combined);
   };
 
+  const loadUnconfirmedUsers = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("create-team-member", {
+        body: { action: "list_unconfirmed" },
+      });
+      if (!error && data?.unconfirmed_ids) {
+        setUnconfirmedIds(new Set(data.unconfirmed_ids));
+      }
+    } catch {}
+  };
+
+  const resendInvite = async (profileId: string, email: string, naam: string) => {
+    setResendingInvite(profileId);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-team-member", {
+        body: { resend_invite: true, email, naam },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({ title: `Uitnodiging opnieuw verstuurd naar ${email}` });
+    } catch (err: any) {
+      toast({ title: "Fout bij versturen uitnodiging", description: err.message, variant: "destructive" });
+    } finally {
+      setResendingInvite(null);
+    }
+  };
+
   const loadAdviseurs = async () => {
     const { data } = await supabase.from("adviseurs").select("*").order("nummer");
     setAdviseurs(data ?? []);
