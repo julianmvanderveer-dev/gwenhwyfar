@@ -1,49 +1,23 @@
 
 
-## Plan: Uitnodiging opnieuw versturen + "Opnieuw uitnodigen"-knop in Beheer
+## Plan: Notificatie naar julian@borgch.nl bij elke uitnodiging
 
-### Stap 1: Direct uitnodiging versturen naar Michel de Graaf
+### Probleem
+Bij het opnieuw uitnodigen van medewerkers via de Beheer-pagina (`resend_invite` actie in `create-team-member`) wordt geen kopie/notificatie naar julian@borgch.nl gestuurd. De Supabase Auth invite API ondersteunt geen CC-veld.
 
-Michel de Graaf (mdegraaf@selekthuis.nl) heeft een account maar heeft nooit ingelogd en zijn e-mail is niet bevestigd. We versturen opnieuw een uitnodiging via de admin API.
-
-Dit doen we door de `create-team-member` edge function aan te roepen met zijn e-mailadres en `invite: true`. Echter, omdat het account al bestaat, zal `inviteUserByEmail` falen. In plaats daarvan gebruiken we `admin.auth.admin.generateLink({ type: 'invite', email })` om een nieuwe uitnodigingslink te genereren, en sturen die per mail.
-
-**Alternatief (eenvoudiger):** Een nieuwe edge function `resend-invite` maken die:
-1. Controleert of de caller beheerder is
-2. Via `admin.auth.admin.generateLink({ type: 'magiclink', email })` een inloglink genereert
-3. Een e-mail verstuurt via `send-transactional-email` met de link
-
-### Stap 2: "Opnieuw uitnodigen"-knop in Beheer → Projectteam-tabel
-
-In de Projectteam-tabel een knop toevoegen bij medewerkers die nog nooit hebben ingelogd (`last_sign_in_at` is null). Dit vereist:
-
-1. **Extra data ophalen**: Bij het laden van profielen ook `last_sign_in_at` meenemen (dit zit niet in de profiles-tabel maar in auth.users). We voegen een veld `confirmed` toe aan de profiles-tabel, OF we checken het via de edge function.
-
-   Eenvoudigere aanpak: In het `create-team-member` edge function een nieuw endpoint/actie toevoegen (`resend_invite: true`) die een bestaande gebruiker opnieuw uitnodigt.
-
-2. **UI**: Een klein "Opnieuw uitnodigen" icoontje (RotateCcw of Mail) naast de naam of in de acties-kolom, alleen zichtbaar voor gebruikers die nog niet bevestigd zijn.
+### Oplossing
+Na een succesvolle `inviteUserByEmail` in de `resend_invite` actie, een aparte notificatie-mail sturen naar julian@borgch.nl via `send-transactional-email` (zelfde patroon als in `notify-adviseur`).
 
 ### Technische details
 
-**Bestanden die worden gewijzigd/aangemaakt:**
+**Bestand: `supabase/functions/create-team-member/index.ts`**
 
-1. **`supabase/functions/create-team-member/index.ts`** — Uitbreiden met `resend_invite` actie:
-   - Als `resend_invite: true` en `email` is meegegeven
-   - Gebruik `admin.auth.admin.generateLink({ type: 'magiclink', email })` om een link te genereren
-   - Verstuur een uitnodigingsmail via `send-transactional-email` met de link
-   - Of eenvoudiger: verwijder het bestaande account en maak opnieuw aan via `inviteUserByEmail`
+In de `resend_invite` blok (regels 90-103), na succesvolle invite:
+- Een `fetch` naar `send-transactional-email` toevoegen met het `audit-afgerond` template (hergebruik als notificatie-template)
+- Inhoud: "Uitnodiging opnieuw verstuurd naar [naam] ([email])"
+- Ontvanger: julian@borgch.nl
 
-   Beste aanpak: `admin.auth.admin.inviteUserByEmail(email)` opnieuw aanroepen — Supabase staat dit toe voor bestaande niet-bevestigde gebruikers en genereert een nieuwe invite-link.
+Hetzelfde toevoegen in het originele create-flow (regels 120+) wanneer een nieuwe medewerker wordt uitgenodigd via `invite: true`.
 
-2. **`src/pages/Beheer.tsx`**:
-   - Track welke gebruikers nog niet bevestigd zijn (via een edge function call of extra veld)
-   - Voeg een "Opnieuw uitnodigen" knop toe per niet-bevestigde gebruiker
-   - Knop roept `create-team-member` aan met `{ email, resend_invite: true }`
-
-3. **Directe actie**: Na deployment, de functie aanroepen voor Michel de Graaf
-
-### Samenvatting
-- Edge function uitbreiden met resend-invite mogelijkheid
-- Beheer-pagina: knop voor opnieuw uitnodigen bij niet-bevestigde gebruikers
-- Direct uitnodiging versturen naar Michel de Graaf
+Na wijziging: `create-team-member` herdeployen.
 
