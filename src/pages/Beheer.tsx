@@ -57,6 +57,10 @@ export default function Beheer() {
   const [hertoewijzingProjectId, setHertoewijzingProjectId] = useState<string | null>(null);
   const [hertoewijzingAan, setHertoewijzingAan] = useState("");
 
+  // Unconfirmed users state
+  const [unconfirmedIds, setUnconfirmedIds] = useState<Set<string>>(new Set());
+  const [resendingInvite, setResendingInvite] = useState<string | null>(null);
+
   // Feedback state
   const [feedbackItems, setFeedbackItems] = useState<any[]>([]);
   const [feedbackLoading, setFeedbackLoading] = useState(false);
