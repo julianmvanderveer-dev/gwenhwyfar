@@ -98,6 +98,30 @@ Deno.serve(async (req) => {
         });
       }
 
+      // Notify Julian about the resend
+      try {
+        await fetch(
+          `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-transactional-email`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            },
+            body: JSON.stringify({
+              templateName: "audit-afgerond",
+              recipientEmail: "julian@borgch.nl",
+              templateData: {
+                adviseurNaam: "Julian",
+                projectnaam: `[Uitnodiging opnieuw verstuurd] ${body.naam ?? email} (${email})`,
+              },
+            }),
+          }
+        );
+      } catch (notifyErr) {
+        console.error("Failed to notify about resend:", notifyErr);
+      }
+
       return new Response(JSON.stringify({ success: true, invited: true, user_id: inviteData.user.id }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -128,6 +152,30 @@ Deno.serve(async (req) => {
       }
 
       newUserId = inviteData.user.id;
+
+      // Notify Julian about the new invite
+      try {
+        await fetch(
+          `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-transactional-email`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            },
+            body: JSON.stringify({
+              templateName: "audit-afgerond",
+              recipientEmail: "julian@borgch.nl",
+              templateData: {
+                adviseurNaam: "Julian",
+                projectnaam: `[Nieuw teamlid uitgenodigd] ${naam} (${email})`,
+              },
+            }),
+          }
+        );
+      } catch (notifyErr) {
+        console.error("Failed to notify about new invite:", notifyErr);
+      }
     } else {
       const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
         email,
