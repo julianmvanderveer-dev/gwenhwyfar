@@ -46,13 +46,65 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (!roleCheck) {
-      return new Response(JSON.stringify({ error: "Alleen beheerders mogen teamleden toevoegen" }), {
+      return new Response(JSON.stringify({ error: "Alleen beheerders mogen teamleden beheren" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { naam, email, password, roles, invite } = await req.json();
+    const body = await req.json();
+
+    // Admin client
+    const adminClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // Action: list unconfirmed users
+    if (body.action === "list_unconfirmed") {
+      const { data: { users }, error: listError } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+      if (listError) {
+        return new Response(JSON.stringify({ error: listError.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const unconfirmedIds = (users ?? [])
+        .filter(u => !u.email_confirmed_at)
+        .map(u => u.id);
+      return new Response(JSON.stringify({ unconfirmed_ids: unconfirmedIds }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Action: resend invite
+    if (body.resend_invite) {
+      const { email } = body;
+      if (!email) {
+        return new Response(JSON.stringify({ error: "E-mail is verplicht" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
+        data: { naam: body.naam },
+      });
+
+      if (inviteError) {
+        return new Response(JSON.stringify({ error: inviteError.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ success: true, invited: true, user_id: inviteData.user.id }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Original create flow
+    const { naam, email, password, roles, invite } = body;
 
     if (!naam || !email) {
       return new Response(JSON.stringify({ error: "Naam en e-mail zijn verplicht" }), {
@@ -61,16 +113,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Admin client for creating user
-    const adminClient = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
     let newUserId: string;
 
     if (invite || !password) {
-      // Invite mode: send invitation email
       const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
         data: { naam },
       });
@@ -84,7 +129,6 @@ Deno.serve(async (req) => {
 
       newUserId = inviteData.user.id;
     } else {
-      // Password mode: create user directly
       const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
         email,
         password,

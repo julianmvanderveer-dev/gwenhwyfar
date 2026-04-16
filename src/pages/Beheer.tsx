@@ -9,7 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { downloadCsv } from "@/lib/csv";
 import type { Tables, Enums } from "@/integrations/supabase/types";
-import { Download, Plus, Pencil, Check, X, Trash2, Settings, Users, Eye, EyeOff, ArrowRightLeft, RotateCcw, MessageSquare, Upload, Image } from "lucide-react";
+import { Download, Plus, Pencil, Check, X, Trash2, Settings, Users, Eye, EyeOff, ArrowRightLeft, RotateCcw, MessageSquare, Upload, Image, Mail } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 
@@ -57,6 +57,10 @@ export default function Beheer() {
   const [hertoewijzingProjectId, setHertoewijzingProjectId] = useState<string | null>(null);
   const [hertoewijzingAan, setHertoewijzingAan] = useState("");
 
+  // Unconfirmed users state
+  const [unconfirmedIds, setUnconfirmedIds] = useState<Set<string>>(new Set());
+  const [resendingInvite, setResendingInvite] = useState<string | null>(null);
+
   // Feedback state
   const [feedbackItems, setFeedbackItems] = useState<any[]>([]);
   const [feedbackLoading, setFeedbackLoading] = useState(false);
@@ -66,6 +70,7 @@ export default function Beheer() {
     loadAdviseurs();
     loadToewijzingen();
     loadFeedback();
+    loadUnconfirmedUsers();
   }, []);
 
   const loadFeedback = async () => {
@@ -107,6 +112,33 @@ export default function Beheer() {
       return prioA - prioB || a.naam.localeCompare(b.naam);
     });
     setProfiles(combined);
+  };
+
+  const loadUnconfirmedUsers = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("create-team-member", {
+        body: { action: "list_unconfirmed" },
+      });
+      if (!error && data?.unconfirmed_ids) {
+        setUnconfirmedIds(new Set(data.unconfirmed_ids));
+      }
+    } catch {}
+  };
+
+  const resendInvite = async (profileId: string, email: string, naam: string) => {
+    setResendingInvite(profileId);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-team-member", {
+        body: { resend_invite: true, email, naam },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({ title: `Uitnodiging opnieuw verstuurd naar ${email}` });
+    } catch (err: any) {
+      toast({ title: "Fout bij versturen uitnodiging", description: err.message, variant: "destructive" });
+    } finally {
+      setResendingInvite(null);
+    }
   };
 
   const loadAdviseurs = async () => {
@@ -586,16 +618,30 @@ export default function Beheer() {
                        </button>
                      </td>
                      <td className="text-center px-3 py-2.5">
-                       <Button
-                         size="icon"
-                         variant="ghost"
-                         className="h-7 w-7 text-destructive"
-                         disabled={p.id === user?.id}
-                         title={p.id === user?.id ? "Je kunt je eigen account niet verwijderen" : "Verwijderen"}
-                         onClick={() => deleteProfile(p.id, p.naam)}
-                       >
-                         <Trash2 className="h-4 w-4" />
-                       </Button>
+                       <div className="flex gap-1 justify-center">
+                         {unconfirmedIds.has(p.id) && (
+                           <Button
+                             size="icon"
+                             variant="ghost"
+                             className="h-7 w-7 text-primary"
+                             disabled={resendingInvite === p.id}
+                             title="Uitnodiging opnieuw versturen"
+                             onClick={() => resendInvite(p.id, p.email, p.naam)}
+                           >
+                             <Mail className="h-4 w-4" />
+                           </Button>
+                         )}
+                         <Button
+                           size="icon"
+                           variant="ghost"
+                           className="h-7 w-7 text-destructive"
+                           disabled={p.id === user?.id}
+                           title={p.id === user?.id ? "Je kunt je eigen account niet verwijderen" : "Verwijderen"}
+                           onClick={() => deleteProfile(p.id, p.naam)}
+                         >
+                           <Trash2 className="h-4 w-4" />
+                         </Button>
+                       </div>
                      </td>
                   </tr>
                 ))}
