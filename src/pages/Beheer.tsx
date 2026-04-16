@@ -70,6 +70,7 @@ export default function Beheer() {
     loadAdviseurs();
     loadToewijzingen();
     loadFeedback();
+    loadUnconfirmedUsers();
   }, []);
 
   const loadFeedback = async () => {
