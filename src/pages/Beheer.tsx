@@ -502,6 +502,45 @@ export default function Beheer() {
             </Button>
           </div>
 
+          {/* Losse platform-uitnodiging sturen */}
+          <div className="border rounded-lg p-4 bg-card shadow-sm space-y-3">
+            <div className="flex items-center gap-2">
+              <Send className="h-4 w-4 text-accent" />
+              <h2 className="text-sm font-semibold">Platform-uitnodiging sturen</h2>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Stuur een vriendelijke welkomstmail met uitleg hoe iemand een account kan aanmaken via "Wachtwoord vergeten". Julian ontvangt automatisch een CC.
+            </p>
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="flex-1 min-w-[160px]">
+                <Label className="text-xs">Naam</Label>
+                <Input
+                  value={losseUitnodiging.naam}
+                  onChange={(e) => setLosseUitnodiging({ ...losseUitnodiging, naam: e.target.value })}
+                  placeholder="Bijv. Rob Harbers"
+                  className="h-8"
+                />
+              </div>
+              <div className="flex-1 min-w-[200px]">
+                <Label className="text-xs">E-mailadres</Label>
+                <Input
+                  type="email"
+                  value={losseUitnodiging.email}
+                  onChange={(e) => setLosseUitnodiging({ ...losseUitnodiging, email: e.target.value })}
+                  placeholder="naam@voorbeeld.nl"
+                  className="h-8"
+                />
+              </div>
+              <Button
+                size="sm"
+                onClick={sendLossePlatformInvite}
+                disabled={submittingLosseUitnodiging}
+              >
+                <Send className="h-3.5 w-3.5 mr-1" /> Versturen
+              </Button>
+            </div>
+          </div>
+
           <div className="border rounded-lg overflow-hidden shadow-sm bg-card">
             <table className="w-full text-sm">
               <thead>
