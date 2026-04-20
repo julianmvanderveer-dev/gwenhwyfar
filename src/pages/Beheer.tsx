@@ -659,13 +659,23 @@ export default function Beheer() {
                      </td>
                      <td className="text-center px-3 py-2.5">
                        <div className="flex gap-1 justify-center">
+                         <Button
+                           size="icon"
+                           variant="ghost"
+                           className="h-7 w-7 text-accent"
+                           disabled={sendingPlatformInvite === p.id}
+                           title="Platform-uitnodiging sturen (uitleg account aanmaken via wachtwoord vergeten)"
+                           onClick={() => sendPlatformInvite(p.id, p.email, p.naam)}
+                         >
+                           <Send className="h-4 w-4" />
+                         </Button>
                          {unconfirmedIds.has(p.id) && (
                            <Button
                              size="icon"
                              variant="ghost"
                              className="h-7 w-7 text-primary"
                              disabled={resendingInvite === p.id}
-                             title="Uitnodiging opnieuw versturen"
+                             title="Auth-uitnodiging opnieuw versturen (magic link)"
                              onClick={() => resendInvite(p.id, p.email, p.naam)}
                            >
                              <Mail className="h-4 w-4" />
