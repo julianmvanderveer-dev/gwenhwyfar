@@ -60,6 +60,11 @@ export default function Beheer() {
   // Unconfirmed users state
   const [unconfirmedIds, setUnconfirmedIds] = useState<Set<string>>(new Set());
   const [resendingInvite, setResendingInvite] = useState<string | null>(null);
+  const [sendingPlatformInvite, setSendingPlatformInvite] = useState<string | null>(null);
+
+  // Losse platform-uitnodiging sectie
+  const [losseUitnodiging, setLosseUitnodiging] = useState({ naam: "", email: "" });
+  const [submittingLosseUitnodiging, setSubmittingLosseUitnodiging] = useState(false);
 
   // Feedback state
   const [feedbackItems, setFeedbackItems] = useState<any[]>([]);
