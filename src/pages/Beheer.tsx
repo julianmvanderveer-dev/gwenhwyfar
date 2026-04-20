@@ -819,6 +819,16 @@ export default function Beheer() {
                         </td>
                         <td className="px-4 py-2.5">
                           <div className="flex gap-1">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 text-accent"
+                              disabled={!a.email || sendingPlatformInvite === a.id}
+                              title={a.email ? "Platform-uitnodiging sturen" : "Geen e-mailadres bekend"}
+                              onClick={() => a.email && sendPlatformInvite(a.id, a.email, a.naam)}
+                            >
+                              <Send className="h-4 w-4" />
+                            </Button>
                             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEdit(a)}><Pencil className="h-4 w-4" /></Button>
                             <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteAdviseur(a.id, a.naam)}><Trash2 className="h-4 w-4" /></Button>
                           </div>
