@@ -11,8 +11,10 @@ export interface TemplateEntry {
 
 import { template as auditAfgerond } from './audit-afgerond.tsx'
 import { template as nietAkkoord } from './niet-akkoord.tsx'
+import { template as platformUitnodiging } from './platform-uitnodiging.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'audit-afgerond': auditAfgerond,
   'niet-akkoord': nietAkkoord,
+  'platform-uitnodiging': platformUitnodiging,
 }

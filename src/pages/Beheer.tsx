@@ -9,7 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { downloadCsv } from "@/lib/csv";
 import type { Tables, Enums } from "@/integrations/supabase/types";
-import { Download, Plus, Pencil, Check, X, Trash2, Settings, Users, Eye, EyeOff, ArrowRightLeft, RotateCcw, MessageSquare, Upload, Image, Mail } from "lucide-react";
+import { Download, Plus, Pencil, Check, X, Trash2, Settings, Users, Eye, EyeOff, ArrowRightLeft, RotateCcw, MessageSquare, Upload, Image, Mail, Send } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 
@@ -60,6 +60,11 @@ export default function Beheer() {
   // Unconfirmed users state
   const [unconfirmedIds, setUnconfirmedIds] = useState<Set<string>>(new Set());
   const [resendingInvite, setResendingInvite] = useState<string | null>(null);
+  const [sendingPlatformInvite, setSendingPlatformInvite] = useState<string | null>(null);
+
+  // Losse platform-uitnodiging sectie
+  const [losseUitnodiging, setLosseUitnodiging] = useState({ naam: "", email: "" });
+  const [submittingLosseUitnodiging, setSubmittingLosseUitnodiging] = useState(false);
 
   // Feedback state
   const [feedbackItems, setFeedbackItems] = useState<any[]>([]);
@@ -138,6 +143,41 @@ export default function Beheer() {
       toast({ title: "Fout bij versturen uitnodiging", description: err.message, variant: "destructive" });
     } finally {
       setResendingInvite(null);
+    }
+  };
+
+  const sendPlatformInvite = async (key: string, email: string, naam: string) => {
+    setSendingPlatformInvite(key);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-transactional-email", {
+        body: {
+          templateName: "platform-uitnodiging",
+          recipientEmail: email,
+          templateData: { naam },
+          cc: "julian@borgch.nl",
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({ title: `Platform-uitnodiging verstuurd naar ${email}` });
+    } catch (err: any) {
+      toast({ title: "Fout bij versturen platform-uitnodiging", description: err.message, variant: "destructive" });
+    } finally {
+      setSendingPlatformInvite(null);
+    }
+  };
+
+  const sendLossePlatformInvite = async () => {
+    if (!losseUitnodiging.naam.trim() || !losseUitnodiging.email.trim()) {
+      toast({ title: "Naam en e-mail zijn verplicht", variant: "destructive" });
+      return;
+    }
+    setSubmittingLosseUitnodiging(true);
+    try {
+      await sendPlatformInvite("losse", losseUitnodiging.email.trim(), losseUitnodiging.naam.trim());
+      setLosseUitnodiging({ naam: "", email: "" });
+    } finally {
+      setSubmittingLosseUitnodiging(false);
     }
   };
 
@@ -462,6 +502,45 @@ export default function Beheer() {
             </Button>
           </div>
 
+          {/* Losse platform-uitnodiging sturen */}
+          <div className="border rounded-lg p-4 bg-card shadow-sm space-y-3">
+            <div className="flex items-center gap-2">
+              <Send className="h-4 w-4 text-accent" />
+              <h2 className="text-sm font-semibold">Platform-uitnodiging sturen</h2>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Stuur een vriendelijke welkomstmail met uitleg hoe iemand een account kan aanmaken via "Wachtwoord vergeten". Julian ontvangt automatisch een CC.
+            </p>
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="flex-1 min-w-[160px]">
+                <Label className="text-xs">Naam</Label>
+                <Input
+                  value={losseUitnodiging.naam}
+                  onChange={(e) => setLosseUitnodiging({ ...losseUitnodiging, naam: e.target.value })}
+                  placeholder="Bijv. Rob Harbers"
+                  className="h-8"
+                />
+              </div>
+              <div className="flex-1 min-w-[200px]">
+                <Label className="text-xs">E-mailadres</Label>
+                <Input
+                  type="email"
+                  value={losseUitnodiging.email}
+                  onChange={(e) => setLosseUitnodiging({ ...losseUitnodiging, email: e.target.value })}
+                  placeholder="naam@voorbeeld.nl"
+                  className="h-8"
+                />
+              </div>
+              <Button
+                size="sm"
+                onClick={sendLossePlatformInvite}
+                disabled={submittingLosseUitnodiging}
+              >
+                <Send className="h-3.5 w-3.5 mr-1" /> Versturen
+              </Button>
+            </div>
+          </div>
+
           <div className="border rounded-lg overflow-hidden shadow-sm bg-card">
             <table className="w-full text-sm">
               <thead>
@@ -619,13 +698,23 @@ export default function Beheer() {
                      </td>
                      <td className="text-center px-3 py-2.5">
                        <div className="flex gap-1 justify-center">
+                         <Button
+                           size="icon"
+                           variant="ghost"
+                           className="h-7 w-7 text-accent"
+                           disabled={sendingPlatformInvite === p.id}
+                           title="Platform-uitnodiging sturen (uitleg account aanmaken via wachtwoord vergeten)"
+                           onClick={() => sendPlatformInvite(p.id, p.email, p.naam)}
+                         >
+                           <Send className="h-4 w-4" />
+                         </Button>
                          {unconfirmedIds.has(p.id) && (
                            <Button
                              size="icon"
                              variant="ghost"
                              className="h-7 w-7 text-primary"
                              disabled={resendingInvite === p.id}
-                             title="Uitnodiging opnieuw versturen"
+                             title="Auth-uitnodiging opnieuw versturen (magic link)"
                              onClick={() => resendInvite(p.id, p.email, p.naam)}
                            >
                              <Mail className="h-4 w-4" />
