@@ -146,6 +146,41 @@ export default function Beheer() {
     }
   };
 
+  const sendPlatformInvite = async (key: string, email: string, naam: string) => {
+    setSendingPlatformInvite(key);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-transactional-email", {
+        body: {
+          templateName: "platform-uitnodiging",
+          recipientEmail: email,
+          templateData: { naam },
+          cc: "julian@borgch.nl",
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({ title: `Platform-uitnodiging verstuurd naar ${email}` });
+    } catch (err: any) {
+      toast({ title: "Fout bij versturen platform-uitnodiging", description: err.message, variant: "destructive" });
+    } finally {
+      setSendingPlatformInvite(null);
+    }
+  };
+
+  const sendLossePlatformInvite = async () => {
+    if (!losseUitnodiging.naam.trim() || !losseUitnodiging.email.trim()) {
+      toast({ title: "Naam en e-mail zijn verplicht", variant: "destructive" });
+      return;
+    }
+    setSubmittingLosseUitnodiging(true);
+    try {
+      await sendPlatformInvite("losse", losseUitnodiging.email.trim(), losseUitnodiging.naam.trim());
+      setLosseUitnodiging({ naam: "", email: "" });
+    } finally {
+      setSubmittingLosseUitnodiging(false);
+    }
+  };
+
   const loadAdviseurs = async () => {
     const { data } = await supabase.from("adviseurs").select("*").order("nummer");
     setAdviseurs(data ?? []);
