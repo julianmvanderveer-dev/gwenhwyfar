@@ -52,8 +52,8 @@ export const faseConfig: Record<FaseKey, {
     accentClass: "text-primary",
   },
   reactie_ontvangen: {
-    titel: "Reactie ontvangen",
-    omschrijving: "EP-adviseur heeft gereageerd, wacht op opvolging.",
+    titel: "Reactie ontvangen — beoordeling nodig",
+    omschrijving: "EP-adviseur heeft gereageerd; Auditor of Tekenaar moet opvolgen.",
     icon: Mail,
     accentClass: "text-warning",
   },
