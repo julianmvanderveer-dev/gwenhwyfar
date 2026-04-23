@@ -25,6 +25,7 @@ interface MijnProject {
   status: string;
   toewijzing: string;
   toegewezen_aan: string | null;
+  hasReactieOntvangen?: boolean;
 }
 
 export default function MedewerkerDashboard() {
@@ -139,10 +140,24 @@ export default function MedewerkerDashboard() {
       );
     }
 
-    setProjecten(filtered);
+    const projectIds = filtered.map((p) => p.id);
+    const { data: reactieFindings } = projectIds.length > 0
+      ? await supabase
+          .from("findings")
+          .select("project_id")
+          .in("project_id", projectIds)
+          .eq("status", "reactie_ontvangen")
+      : { data: [] };
+
+    const projectenMetReactie = new Set((reactieFindings ?? []).map((f) => f.project_id));
+    setProjecten(filtered.map((p) => ({ ...p, hasReactieOntvangen: projectenMetReactie.has(p.id) })));
   };
 
-  const getStatusInfo = (status: string, rol: string) => {
+  const getStatusInfo = (status: string, rol: string, hasReactieOntvangen = false) => {
+    if (status === "wacht_op_reactie" && hasReactieOntvangen) {
+      return { label: "Reacties beoordelen", clickable: false };
+    }
+
     if (rol === "tekenaar") {
       switch (status) {
         case "nog_niet_begonnen": return { label: "Starten", clickable: true, variant: "default" };
@@ -264,7 +279,7 @@ export default function MedewerkerDashboard() {
                 </thead>
                 <tbody>
                   {items.map((p, i) => {
-                    const statusInfo = getStatusInfo(p.status, eigenaarRol);
+                    const statusInfo = getStatusInfo(p.status, eigenaarRol, p.hasReactieOntvangen);
                     return (
                       <tr key={p.id} className={`border-b last:border-0 ${i % 2 === 0 ? "bg-card" : "bg-background"}`}>
                         <td className="px-4 py-2.5 font-medium">
