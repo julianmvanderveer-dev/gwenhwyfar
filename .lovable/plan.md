@@ -1,61 +1,82 @@
 
+## Plan: beoordelingscontext + juiste status in projectenoverzicht
 
-## Plan: Aparte "Welkom op het platform" uitnodigingsmail
+### Doel
+De Auditor moet duidelijk zien waarop hij een reactie beoordeelt, én het projectenoverzicht mag niet meer zeggen “Reactie EP-adviseur gevraagd” zodra de EP-adviseur al op bevindingen heeft gereageerd.
 
-### Probleem
-De huidige uitnodigingsmail naar nieuwe adviseurs/medewerkers is de Supabase Auth `invite` mail (`InviteEmail` template) — kort, technisch, gekoppeld aan een magic link. Julian wil een **aparte, vriendelijke mail** sturen waarin puur wordt uitgelegd:
-- Dat er een platform (BengCert) is
-- Dat ze een account kunnen aanmaken
-- Hoe dat werkt (stappen)
-- Geen koppeling aan een specifiek project of audit
+### Aanpassing 1: beoordelingsscherm verduidelijken
+In `src/pages/FindingBeoordeling.tsx` wordt het scherm voor het beoordelen van een reactie uitgebreid.
 
-### Oplossing
-Een nieuwe transactionele e-mail toevoegen — `platform-uitnodiging` — die los van de Auth-flow kan worden verstuurd via `send-transactional-email`. Dit is een aparte mail naast de bestaande auth-invite. De beheerder kan deze handmatig versturen vanuit Beheer naar één persoon.
+Dit wordt zichtbaar:
+- Titel wijzigen naar **“Bevinding beoordelen”**.
+- Een duidelijke kaart **“Originele bevinding”** met:
+  - Onderdeel
+  - Controlepunt
+  - Beoordeling
+  - Type afwijking
+  - Originele toelichting
+  - Deadline
+  - Status
+- Een kaart **“Communicatie over deze bevinding”** met alle berichten chronologisch.
+- Per bericht:
+  - Datum/tijd
+  - Berichttekst
+  - Indien aanwezig: knop **“Bijlage downloaden”**
+- Onderaan een aparte sectie **“Beoordeling door Auditor”** met:
+  - Opmerking
+  - Optie om extra documentatie te eisen
+  - Knoppen **Akkoord** en **Niet akkoord**
 
-### Wat we bouwen
+Technisch:
+- `loadFinding()` wordt aangepast van `.single()` naar `.maybeSingle()`, volgens de projectstandaard.
+- Bijlagen worden geopend via een tijdelijke signed URL uit de bestaande private opslag `finding-documents`.
+- Geen databasewijzigingen nodig.
 
-**1. Nieuw e-mailtemplate: `platform-uitnodiging.tsx`**
-- Locatie: `supabase/functions/_shared/transactional-email-templates/platform-uitnodiging.tsx`
-- Inhoud (Nederlands, BengCert huisstijl — donkerblauw #28235D, groen #5AAF2D, Poppins):
-  - Onderwerp: "Welkom bij BengCert — maak je account aan"
-  - Begroeting met naam (optioneel via `templateData`)
-  - Korte uitleg: "Je bent toegevoegd aan het BengCert platform, waar audits van energieprestatie-rapporten worden beoordeeld."
-  - Stappen om account aan te maken:
-    1. Klik op de knop hieronder om naar het platform te gaan
-    2. Klik op "Wachtwoord vergeten" en vul je e-mailadres in
-    3. Volg de instructies in de mail die je dan ontvangt om een wachtwoord in te stellen
-    4. Log in met je e-mailadres en nieuwe wachtwoord
-  - Knop: "Ga naar BengCert" → `https://www.bengaudit.nl`
-  - Footer: contactinfo Julian (julian@borgch.nl) bij vragen
+### Aanpassing 2: overzichtstatus aanpassen wanneer reactie binnen is
+Het project zelf blijft in de database status `wacht_op_reactie`, maar in het overzicht wordt al visueel onderscheid gemaakt via `getProjectFase(project.status, hasReactieOntvangen)`.
 
-**2. Registreren in `registry.ts`**
-- Importeer template en voeg toe aan `TEMPLATES` map onder key `platform-uitnodiging`
-- `previewData`: `{ naam: 'Rob Harbers' }`
+De bestaande logica kent al:
+- `wacht_op_reactie_ep`: **“Reactie EP-adviseur gevraagd”**
+- `reactie_ontvangen`: **“Reactie ontvangen”**
 
-**3. Beheer-pagina UI uitbreiden**
-- Per medewerker een extra knop "Platform-uitnodiging sturen" (naast bestaande "Opnieuw uitnodigen")
-- Of: een aparte sectie in Beheer "Platform-uitnodiging sturen" met invoervelden naam + e-mail + verstuurknop (handig voor mensen die nog géén account hebben in het systeem)
-- Aanbeveling: **beide** — knop bij bestaande medewerkers + losse sectie voor nieuwe ontvangers
-- Bij verzenden: `supabase.functions.invoke('send-transactional-email', { body: { templateName: 'platform-uitnodiging', recipientEmail, templateData: { naam }, idempotencyKey: ..., cc: 'julian@borgch.nl' } })`
+Ik pas dit aan zodat de tekst duidelijker wordt wanneer de bal weer intern ligt.
 
-**4. Direct versturen naar Rob Harbers**
-- Na deployment: één keer aanroepen voor `info@kampermanadviseurs.nl` met naam "Rob Harbers"
-- Julian krijgt automatisch CC
+Nieuwe labels:
+- Als er nog geen reactie is:
+  - **“Reactie EP-adviseur gevraagd”**
+  - Omschrijving: **“Audit verzonden, wacht op reactie EP-adviseur.”**
+- Als er wel minimaal één bevinding met `reactie_ontvangen` is:
+  - **“Reactie ontvangen — beoordeling nodig”**
+  - Omschrijving: **“EP-adviseur heeft gereageerd; Auditor of Tekenaar moet opvolgen.”**
 
-### Te wijzigen / nieuwe bestanden
-- **NIEUW**: `supabase/functions/_shared/transactional-email-templates/platform-uitnodiging.tsx`
-- **WIJZIG**: `supabase/functions/_shared/transactional-email-templates/registry.ts` (template registreren)
-- **WIJZIG**: `src/pages/Beheer.tsx` (nieuwe knop + losse sectie voor uitnodiging)
-- **DEPLOY**: `send-transactional-email` edge function herdeployen
-- **ACTIE**: Eénmalige call voor Rob Harbers
+### Aanpassing 3: medewerkerdashboard ook juiste tekst geven
+In `src/components/dashboard/MedewerkerDashboard.tsx` staat nu bij projecten met `wacht_op_reactie` altijd:
 
-### Verschil met bestaande mails
-| Mail | Trigger | Inhoud |
-|---|---|---|
-| Auth `invite` (InviteEmail) | `inviteUserByEmail` via Beheer | Magic link naar wachtwoord-aanmaak (1 klik) |
-| `notify-adviseur` audit-afgerond | Auditor rondt audit af | "Er is een audit voor jouw project, reageer binnen X dagen" |
-| **NIEUW `platform-uitnodiging`** | Handmatig vanuit Beheer | Algemene welkomstmail + uitleg hoe account aanmaken via "wachtwoord vergeten" |
+```text
+Reactie EP-adviseur gevraagd
+```
 
-### Waarom "wachtwoord vergeten" i.p.v. magic link?
-De magic-link uit `inviteUserByEmail` lijkt voor sommige adviseurs (zoals Rob) niet aan te komen of verloopt voordat ze hem zien. Door ze via "wachtwoord vergeten" te laten gaan, hebben ze altijd zelf controle en kan de flow herhaald worden zonder beheerder-actie.
+Dat is verwarrend zodra er openstaande reacties bij de Auditor/Tekenaar liggen.
 
+Ik pas de tekst daar aan naar een neutralere workflowtekst:
+- Voor Auditor/Tekenaar:
+  - **“Reacties beoordelen”** wanneer er openstaande bevindingen in de tab “Bevindingen” staan.
+  - Anders blijft projectstatus **“Reactie EP-adviseur gevraagd”** alleen gebruikt voor projecten waar echt nog gewacht wordt op de adviseur.
+
+Als de bestaande medewerkerprojectlijst onvoldoende finding-context heeft om dit per project exact te bepalen, voeg ik daar een lichte lookup toe op `findings` per project om te bepalen of er `reactie_ontvangen` aanwezig is.
+
+### Aanpassing 4: gedeelde badges/statuslabels corrigeren
+In `src/lib/badges.tsx` blijft de database-status `wacht_op_reactie` bestaan, maar de visuele tekst wordt waar nodig contextbewust gebruikt:
+- Projectstatus zonder reactie: **“Reactie EP-adviseur gevraagd”**
+- Project met ontvangen reacties: via fase/substatus **“Reactie ontvangen — beoordeling nodig”**
+- Findingstatus `reactie_ontvangen`: **“Reactie ontvangen”**
+
+### Bestanden
+Te wijzigen:
+- `src/pages/FindingBeoordeling.tsx`
+- `src/components/projecten/faseConfig.ts`
+- `src/components/dashboard/MedewerkerDashboard.tsx`
+- mogelijk `src/lib/badges.tsx` voor consistente labels
+
+### Resultaat
+In het overzicht is direct duidelijk of er nog op de EP-adviseur wordt gewacht, of dat de volgende actie bij Auditor/Tekenaar ligt. Op de beoordelingspagina ziet de Auditor vervolgens de originele bevinding, alle communicatie en eventuele bijlagen voordat hij akkoord of niet akkoord geeft.
