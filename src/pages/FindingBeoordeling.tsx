@@ -5,11 +5,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
-import { Mic, MicOff, Forward, Download } from "lucide-react";
+import { Mic, MicOff, Forward, Download, CheckCircle2, AlertTriangle, ChevronDown } from "lucide-react";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import AudioVisualizer from "@/components/AudioVisualizer";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Finding = Tables<"findings">;
@@ -35,6 +36,9 @@ export default function FindingBeoordeling() {
   const [tekenaars, setTekenaars] = useState<{ id: string; naam: string }[]>([]);
   const [selectedTekenaar, setSelectedTekenaar] = useState("");
   const [adviseurContext, setAdviseurContext] = useState<AdviseurContext | null>(null);
+  const [autoClosed, setAutoClosed] = useState(false);
+  const [modus, setModus] = useState<"keuze" | "niet_akkoord">("keuze");
+  const [andereActiesOpen, setAndereActiesOpen] = useState(false);
 
   const handleSpeech = useCallback((transcript: string) => {
     setOpmerking((prev) => (prev ? prev + " " + transcript : transcript));
@@ -51,6 +55,42 @@ export default function FindingBeoordeling() {
     if (isBeheer) loadMedewerkers();
     if (isAuditor) loadTekenaars();
   }, [id, isBeheer, isAuditor]);
+
+  const adviseurHeeftGeaccepteerd = () => {
+    if (!adviseurContext?.user_id) return false;
+    return messages.some(
+      (m) => m.afzender_id === adviseurContext.user_id && m.bericht.trim() === "Afwijking geaccepteerd"
+    );
+  };
+
+  const vereistAuditorActie = () => {
+    if (!finding) return false;
+    return finding.upload_vereist === true || finding.type_afwijking === "kritiek";
+  };
+
+  // Auto-afronden: als adviseur akkoord ging en geen auditoractie nodig is
+  useEffect(() => {
+    if (!finding || !adviseurContext) return;
+    if (finding.status !== "reactie_ontvangen") return;
+    if (!adviseurHeeftGeaccepteerd()) return;
+    if (vereistAuditorActie()) return;
+
+    (async () => {
+      const { error } = await supabase
+        .from("findings")
+        .update({ status: "reactie_goedgekeurd", goedgekeurd_op: new Date().toISOString() })
+        .eq("id", id!);
+      if (!error) {
+        setAutoClosed(true);
+        toast({
+          title: "Bevinding automatisch afgesloten",
+          description: "EP-adviseur ging akkoord met de afwijking — geen actie nodig.",
+        });
+        loadFinding();
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finding?.id, finding?.status, messages.length, adviseurContext?.user_id]);
 
   const loadMedewerkers = async () => {
     const { data: profiles } = await supabase.from("profiles").select("id, naam").eq("actief", true);
@@ -161,6 +201,9 @@ export default function FindingBeoordeling() {
     }
 
     loadFinding();
+    setModus("keuze");
+    setOpmerking("");
+    setUploadVereist(false);
     setLoading(false);
   };
 
@@ -172,6 +215,11 @@ export default function FindingBeoordeling() {
   };
 
   if (!finding) return <div className="p-4">Laden...</div>;
+
+  const adviseurAkkoord = adviseurHeeftGeaccepteerd();
+  const auditorActieNodig = vereistAuditorActie();
+  const showBeoordeling = finding.status === "reactie_ontvangen";
+  const isAfgesloten = finding.status === "reactie_goedgekeurd";
 
   return (
     <div className="max-w-3xl mx-auto p-4 space-y-4">
@@ -197,44 +245,6 @@ export default function FindingBeoordeling() {
           </div>
         )}
       </section>
-
-      {isBeheer && medewerkers.length > 0 && (
-        <div className="border rounded-lg bg-card p-3">
-          <label className="text-sm font-medium mb-1 block">Beoordelaar hertoewijzen</label>
-          <Select value={finding.toegewezen_beoordelaar ?? ""} onValueChange={hertoewijzen}>
-            <SelectTrigger className="h-9 text-sm">
-              <SelectValue placeholder="Selecteer medewerker" />
-            </SelectTrigger>
-            <SelectContent>
-              {medewerkers.map((m) => (
-                <SelectItem key={m.id} value={m.id}>{m.naam}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      {isAuditor && tekenaars.length > 0 && (
-        <div className="border rounded-lg bg-card p-3">
-          <label className="text-sm font-medium mb-1 block">Doorzetten naar tekenaar</label>
-          <div className="flex items-center gap-2">
-            <Select value={selectedTekenaar} onValueChange={setSelectedTekenaar}>
-              <SelectTrigger className="h-9 text-sm flex-1">
-                <SelectValue placeholder="Selecteer tekenaar" />
-              </SelectTrigger>
-              <SelectContent>
-                {tekenaars.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>{t.naam}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button size="sm" variant="outline" disabled={!selectedTekenaar || loading} onClick={doorzettenNaarTekenaar} className="gap-1.5 shrink-0">
-              <Forward className="h-4 w-4" />
-              Doorzetten
-            </Button>
-          </div>
-        </div>
-      )}
 
       <section className="border rounded-lg bg-card p-4 shadow-sm">
         <h2 className="font-semibold mb-1">Communicatie over deze bevinding</h2>
@@ -262,53 +272,158 @@ export default function FindingBeoordeling() {
         )}
       </section>
 
-      {finding.status === "reactie_ontvangen" && (
+      {isAfgesloten && adviseurAkkoord && (
+        <section className="border border-green-200 rounded-lg bg-green-50 p-4 shadow-sm">
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="h-5 w-5 text-green-700 mt-0.5 shrink-0" />
+            <div className="text-sm">
+              <p className="font-semibold text-green-900">Afwijking geaccepteerd door EP-adviseur</p>
+              <p className="text-green-800 mt-1">
+                {autoClosed
+                  ? "De adviseur ging akkoord met de afwijking. Omdat het geen kritieke bevinding is en er geen documentatie vereist was, is deze automatisch afgesloten — geen verdere actie nodig."
+                  : "Deze bevinding is afgesloten."}
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {showBeoordeling && adviseurAkkoord && auditorActieNodig && (
+        <section className="border border-yellow-200 rounded-lg bg-yellow-50 p-4 shadow-sm">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-yellow-700 mt-0.5 shrink-0" />
+            <div className="text-sm">
+              <p className="font-semibold text-yellow-900">Beoordeling blijft nodig</p>
+              <p className="text-yellow-800 mt-1">
+                De EP-adviseur heeft de afwijking geaccepteerd, maar deze is{" "}
+                {finding.type_afwijking === "kritiek" && finding.upload_vereist
+                  ? "kritiek én er was documentatie vereist"
+                  : finding.type_afwijking === "kritiek"
+                  ? "kritiek (KT)"
+                  : "documentatie-plichtig"}
+                . Beoordeel hieronder of je akkoord gaat.
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {showBeoordeling && (
         <section className="border rounded-lg bg-card p-4 shadow-sm space-y-3">
           <div>
             <h2 className="font-semibold">Beoordeling door Auditor</h2>
-            <p className="text-muted-foreground text-xs">Beoordeel hieronder de reactie en communicatie van de EP-adviseur.</p>
+            <p className="text-muted-foreground text-xs">Beoordeel de reactie van de EP-adviseur.</p>
           </div>
-          <div>
-            <label className="text-sm font-medium mb-1 block">Opmerking (optioneel)</label>
-            <div className="flex items-start gap-1">
-              <Textarea
-                value={opmerking}
-                onChange={(e) => setOpmerking(e.target.value)}
-                placeholder="Eventuele opmerking bij je beoordeling..."
-                rows={2}
-                className="text-sm"
-              />
-              {supported && (
-                <div className="flex items-center gap-1 shrink-0">
-                  <AudioVisualizer analyserNode={analyserNode} active={listening} />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className={`shrink-0 ${listening ? "text-destructive animate-pulse" : ""}`}
-                    onClick={toggle}
-                    title={listening ? "Stop opname" : "Spraak invoer"}
-                  >
-                    {listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+
+          {modus === "keuze" && (
+            <div className="flex gap-2">
+              <Button onClick={akkoord} disabled={loading} className="gap-1.5">
+                <CheckCircle2 className="h-4 w-4" /> Reactie goedkeuren
+              </Button>
+              <Button variant="outline" onClick={() => setModus("niet_akkoord")} disabled={loading}>
+                Niet akkoord
+              </Button>
+            </div>
+          )}
+
+          {modus === "niet_akkoord" && (
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium mb-1 block">Toelichting (optioneel)</label>
+                <div className="flex items-start gap-1">
+                  <Textarea
+                    value={opmerking}
+                    onChange={(e) => setOpmerking(e.target.value)}
+                    placeholder="Leg uit waarom je niet akkoord gaat..."
+                    rows={3}
+                    className="text-sm"
+                  />
+                  {supported && (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <AudioVisualizer analyserNode={analyserNode} active={listening} />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className={`shrink-0 ${listening ? "text-destructive animate-pulse" : ""}`}
+                        onClick={toggle}
+                        title={listening ? "Stop opname" : "Spraak invoer"}
+                      >
+                        {listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                {listening && interimText && (
+                  <p className="text-xs text-muted-foreground italic">{interimText}…</p>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox id="uploadVereist" checked={uploadVereist} onCheckedChange={(v) => setUploadVereist(v === true)} />
+                <label htmlFor="uploadVereist" className="text-sm cursor-pointer">
+                  Eis dat EP-adviseur extra documentatie uploadt
+                </label>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={nietAkkoord} disabled={loading}>
+                  Bevinding heropenen voor adviseur
+                </Button>
+                <Button variant="ghost" onClick={() => { setModus("keuze"); setOpmerking(""); setUploadVereist(false); }}>
+                  Annuleren
+                </Button>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {(isBeheer || isAuditor) && (
+        <Collapsible open={andereActiesOpen} onOpenChange={setAndereActiesOpen}>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
+              <ChevronDown className={`h-4 w-4 transition-transform ${andereActiesOpen ? "rotate-180" : ""}`} />
+              Andere acties
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-3 mt-2">
+            {isBeheer && medewerkers.length > 0 && (
+              <div className="border rounded-lg bg-card p-3">
+                <label className="text-sm font-medium mb-1 block">Beoordelaar hertoewijzen</label>
+                <Select value={finding.toegewezen_beoordelaar ?? ""} onValueChange={hertoewijzen}>
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue placeholder="Selecteer medewerker" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {medewerkers.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>{m.naam}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {isAuditor && tekenaars.length > 0 && (
+              <div className="border rounded-lg bg-card p-3">
+                <label className="text-sm font-medium mb-1 block">Doorzetten naar tekenaar</label>
+                <div className="flex items-center gap-2">
+                  <Select value={selectedTekenaar} onValueChange={setSelectedTekenaar}>
+                    <SelectTrigger className="h-9 text-sm flex-1">
+                      <SelectValue placeholder="Selecteer tekenaar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {tekenaars.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>{t.naam}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button size="sm" variant="outline" disabled={!selectedTekenaar || loading} onClick={doorzettenNaarTekenaar} className="gap-1.5 shrink-0">
+                    <Forward className="h-4 w-4" />
+                    Doorzetten
                   </Button>
                 </div>
-              )}
-            </div>
-            {listening && interimText && (
-              <p className="text-xs text-muted-foreground italic">{interimText}…</p>
+              </div>
             )}
-          </div>
-          <div className="flex items-center gap-2 mb-2">
-            <Checkbox id="uploadVereist" checked={uploadVereist} onCheckedChange={(v) => setUploadVereist(v === true)} />
-            <label htmlFor="uploadVereist" className="text-sm cursor-pointer">
-              Eis dat EP-adviseur extra documentatie uploadt
-            </label>
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={akkoord} disabled={loading}>Akkoord</Button>
-            <Button variant="outline" onClick={nietAkkoord} disabled={loading}>Niet akkoord</Button>
-          </div>
-        </section>
+          </CollapsibleContent>
+        </Collapsible>
       )}
 
       <Button variant="ghost" onClick={() => navigate(-1)}>
