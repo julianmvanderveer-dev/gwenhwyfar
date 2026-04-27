@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,8 @@ interface MijnProject {
 
 export default function MedewerkerDashboard() {
   const { user, hasRole } = useAuth();
+  const location = useLocation();
+  const navState = (location.state ?? {}) as { tab?: string };
   const [findings, setFindings] = useState<FindingRow[]>([]);
   const [projecten, setProjecten] = useState<MijnProject[]>([]);
   const [loading, setLoading] = useState(true);
@@ -190,7 +192,7 @@ export default function MedewerkerDashboard() {
   }
 
   return (
-    <Tabs defaultValue="findings" className="space-y-4">
+    <Tabs defaultValue={navState.tab === "projecten" ? "projecten" : "findings"} className="space-y-4">
       <TabsList>
         <TabsTrigger value="findings" className="gap-2">
           <ClipboardList className="h-4 w-4" />

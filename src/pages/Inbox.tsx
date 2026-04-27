@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,8 @@ type Finding = Tables<"findings"> & { projectnaam?: string; laatste_reactie?: st
 
 export default function Inbox() {
   const { user, roles, hasRole } = useAuth();
+  const location = useLocation();
+  const navState = (location.state ?? {}) as { view?: string; tab?: string };
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectFindings, setProjectFindings] = useState<Record<string, Finding[]>>({});
   const [findings, setFindings] = useState<Finding[]>([]);
@@ -457,7 +459,7 @@ export default function Inbox() {
       </div>
 
       {heeftTabbladen ? (
-        <Tabs defaultValue={beschikbareWeergaven[0].key} className="w-full">
+        <Tabs defaultValue={navState.view && beschikbareWeergaven.some(v => v.key === navState.view) ? navState.view : beschikbareWeergaven[0].key} className="w-full">
           <TabsList className="mb-4">
             {beschikbareWeergaven.map(v => (
               <TabsTrigger key={v.key} value={v.key}>{v.label}</TabsTrigger>
