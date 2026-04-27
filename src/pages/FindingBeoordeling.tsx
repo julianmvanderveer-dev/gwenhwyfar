@@ -426,7 +426,7 @@ export default function FindingBeoordeling() {
         </Collapsible>
       )}
 
-      <Button variant="ghost" onClick={() => navigate("/inbox", { state: { tab: "findings" } })}>
+      <Button variant="ghost" onClick={() => navigate("/inbox", { state: { view: "medewerker", tab: "findings" } })}>
         Terug
       </Button>
     </div>
