@@ -64,8 +64,12 @@ export function generateAuditReport({ project, findings, adviseurNaam, adviseurN
   // Summary counts
   const beoordeeld = findings.filter((f) => f.beoordeling);
   const goedCount = beoordeeld.filter((f) => f.beoordeling === "goed").length;
-  const nietGoedCount = beoordeeld.filter((f) => f.beoordeling === "niet_goed").length;
   const opmerkingCount = beoordeeld.filter((f) => f.beoordeling === "opmerking").length;
+  const nietGoedAll = beoordeeld.filter((f) => f.beoordeling === "niet_goed");
+  const weerlegdCount = nietGoedAll.filter(
+    (f) => f.status === "reactie_goedgekeurd" || f.status === "gesloten",
+  ).length;
+  const openAfwijkingCount = nietGoedAll.length - weerlegdCount;
 
   // EP2
   const ep2Start = project.ep2_startwaarde;
@@ -121,15 +125,14 @@ export function generateAuditReport({ project, findings, adviseurNaam, adviseurN
 
   const openstaandeBlok = openstaande.length > 0
     ? `
-    <div style="border:2px solid #b91c1c;border-radius:8px;background:#fef2f2;padding:14px 16px;margin-bottom:24px;page-break-inside:avoid;">
-      <h2 style="margin:0 0 8px;font-size:15px;font-weight:700;color:#b91c1c;display:flex;align-items:center;gap:8px;">
-        <span style="display:inline-block;background:#b91c1c;color:#fff;border-radius:9999px;font-size:11px;padding:2px 8px;">${openstaande.length}</span>
-        Openstaande afwijkingen
+    <div style="border:1px solid #b91c1c;border-radius:6px;background:#fef2f2;padding:12px 14px;margin-bottom:20px;page-break-inside:avoid;">
+      <h2 style="margin:0 0 6px;font-size:14px;font-weight:700;color:#b91c1c;">
+        Openstaande afwijkingen (${openstaande.length})
       </h2>
       <p style="margin:0 0 10px;font-size:12px;color:#7f1d1d;">Bevindingen die niet afdoende zijn weerlegd.</p>
-      <table style="width:100%;border-collapse:collapse;font-size:13px;background:#fff;border-radius:6px;overflow:hidden;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;background:#fff;">
         <thead>
-          <tr style="background:#b91c1c;color:#fff;">
+          <tr style="background:#1B2A4A;color:#fff;">
             <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;width:80px;">Code</th>
             <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Onderdeel</th>
             <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Controlepunt</th>
@@ -141,8 +144,8 @@ export function generateAuditReport({ project, findings, adviseurNaam, adviseurN
       </table>
     </div>`
     : `
-    <div style="border:2px solid #047857;border-radius:8px;background:#ecfdf5;padding:12px 16px;margin-bottom:24px;color:#065f46;font-size:13px;font-weight:600;">
-      ✓ Geen openstaande afwijkingen — alle bevindingen zijn afdoende weerlegd of goedgekeurd.
+    <div style="border:1px solid #7AB929;border-radius:6px;background:#f3faea;padding:10px 14px;margin-bottom:20px;color:#3d6b0f;font-size:13px;font-weight:600;">
+      Geen openstaande afwijkingen — alle bevindingen zijn afdoende weerlegd of goedgekeurd.
     </div>`;
 
   const logoHtml = logoUrl
@@ -182,17 +185,17 @@ export function generateAuditReport({ project, findings, adviseurNaam, adviseurN
             ${r.finding ? (statusLabel[r.finding.status] ?? r.finding.status) : "—"}
           </td>
         </tr>
-        ${r.finding?.toelichting ? `<tr style="background:#f3f4f6;"><td colspan="${colCount}" style="padding:4px 10px 8px 30px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#374151;font-style:italic;">📝 ${escapeHtml(r.finding.toelichting)}</td></tr>` : ""}
+        ${r.finding?.toelichting ? `<tr style="background:#f9fafb;"><td colspan="${colCount}" style="padding:4px 10px 8px 30px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#374151;"><span style="color:#6b7280;font-weight:500;">Toelichting:</span> ${escapeHtml(r.finding.toelichting)}</td></tr>` : ""}
       `;
           }
         )
         .join("");
 
       return `
-      <h3 style="margin:24px 0 8px;font-size:14px;font-weight:600;color:#1f2937;border-bottom:2px solid #0e4a8a;padding-bottom:4px;">${onderdeel}</h3>
-      <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px;">
+      <h3 style="margin:20px 0 6px;font-size:13px;font-weight:600;color:#1B2A4A;border-bottom:1px solid #1B2A4A;padding-bottom:4px;">${onderdeel}</h3>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px;">
         <thead>
-          <tr style="background:#0e4a8a;color:#fff;">
+          <tr style="background:#1B2A4A;color:#fff;">
             <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Code</th>
             <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Controlepunt</th>
             ${uitdraaiHeader}
@@ -218,78 +221,101 @@ export function generateAuditReport({ project, findings, adviseurNaam, adviseurN
     @media print { body { padding: 0; } }
     table { page-break-inside: auto; }
     tr { page-break-inside: avoid; }
+    h1, h2, h3 { font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
   </style>
 </head>
 <body>
   <!-- Header -->
-  <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #0e4a8a;padding-bottom:16px;margin-bottom:24px;gap:24px;">
-    <div style="display:flex;align-items:center;gap:16px;">
-      <div style="flex-shrink:0;">${logoHtml}</div>
-      <div>
-        <h1 style="margin:0;font-size:22px;color:#0e4a8a;font-weight:700;">Auditrapport</h1>
-        <p style="margin:4px 0 0;font-size:14px;color:#6b7280;">${escapeHtml(project.projectnaam)}</p>
-      </div>
-    </div>
-    <div style="text-align:right;font-size:12px;color:#6b7280;">
-      <div>Rapportdatum: <strong>${datum}</strong></div>
-    </div>
-  </div>
+  <table style="width:100%;border-collapse:collapse;border-bottom:2px solid #1B2A4A;margin-bottom:20px;">
+    <tr>
+      <td style="padding:0 0 14px 0;vertical-align:middle;width:160px;">${logoHtml}</td>
+      <td style="padding:0 0 14px 16px;vertical-align:middle;">
+        <h1 style="margin:0;font-size:20px;color:#1B2A4A;font-weight:700;">Auditrapport</h1>
+        <p style="margin:2px 0 0;font-size:13px;color:#6b7280;">${escapeHtml(project.projectnaam)}</p>
+      </td>
+      <td style="padding:0 0 14px 0;vertical-align:middle;text-align:right;font-size:12px;color:#6b7280;white-space:nowrap;">
+        Rapportdatum: <strong style="color:#1f2937;">${datum}</strong>
+      </td>
+    </tr>
+  </table>
 
   ${openstaandeBlok}
 
   <!-- Project info -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;">
-    <table style="font-size:13px;border-collapse:collapse;">
-      <tr><td style="padding:4px 12px 4px 0;color:#6b7280;font-weight:500;">Categorie</td><td style="padding:4px 0;font-weight:600;">${project.audit_categorie}</td></tr>
-      <tr><td style="padding:4px 12px 4px 0;color:#6b7280;font-weight:500;">Soort</td><td style="padding:4px 0;font-weight:600;">${project.audit_soort === "dossieraudit" ? "Dossieraudit" : "Projectaudit"}</td></tr>
-      <tr><td style="padding:4px 12px 4px 0;color:#6b7280;font-weight:500;">Toelatingsaudit</td><td style="padding:4px 0;font-weight:600;">${project.toelatingsaudit ? "Ja" : "Nee"}</td></tr>
-      <tr><td style="padding:4px 12px 4px 0;color:#6b7280;font-weight:500;">Prioriteit</td><td style="padding:4px 0;font-weight:600;">${project.prioriteit ? "Ja" : "Nee"}</td></tr>
-    </table>
-    <table style="font-size:13px;border-collapse:collapse;">
-      <tr><td style="padding:4px 12px 4px 0;color:#6b7280;font-weight:500;">EP-adviseur</td><td style="padding:4px 0;font-weight:600;">${adviseurNaam ? escapeHtml(adviseurNaam) : "—"}</td></tr>
-      <tr><td style="padding:4px 12px 4px 0;color:#6b7280;font-weight:500;">Status</td><td style="padding:4px 0;font-weight:600;">${projectStatusLabel[project.status] ?? project.status}</td></tr>
-      <tr><td style="padding:4px 12px 4px 0;color:#6b7280;font-weight:500;">Aangemaakt</td><td style="padding:4px 0;font-weight:600;">${aanmaakDatum}</td></tr>
-    </table>
-  </div>
+  <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:20px;">
+    <tr>
+      <td style="width:50%;vertical-align:top;padding-right:16px;">
+        <table style="width:100%;border-collapse:collapse;">
+          <tr><td style="padding:3px 12px 3px 0;color:#6b7280;font-weight:500;width:120px;">Categorie</td><td style="padding:3px 0;font-weight:600;">${project.audit_categorie}</td></tr>
+          <tr><td style="padding:3px 12px 3px 0;color:#6b7280;font-weight:500;">Soort</td><td style="padding:3px 0;font-weight:600;">${project.audit_soort === "dossieraudit" ? "Dossieraudit" : "Projectaudit"}</td></tr>
+          <tr><td style="padding:3px 12px 3px 0;color:#6b7280;font-weight:500;">Toelatingsaudit</td><td style="padding:3px 0;font-weight:600;">${project.toelatingsaudit ? "Ja" : "Nee"}</td></tr>
+          <tr><td style="padding:3px 12px 3px 0;color:#6b7280;font-weight:500;">Prioriteit</td><td style="padding:3px 0;font-weight:600;">${project.prioriteit ? "Ja" : "Nee"}</td></tr>
+        </table>
+      </td>
+      <td style="width:50%;vertical-align:top;padding-left:16px;border-left:1px solid #e5e7eb;">
+        <table style="width:100%;border-collapse:collapse;">
+          <tr><td style="padding:3px 12px 3px 0;color:#6b7280;font-weight:500;width:120px;">EP-adviseur</td><td style="padding:3px 0;font-weight:600;">${adviseurNaam ? escapeHtml(adviseurNaam) : "—"}</td></tr>
+          <tr><td style="padding:3px 12px 3px 0;color:#6b7280;font-weight:500;">Status</td><td style="padding:3px 0;font-weight:600;">${projectStatusLabel[project.status] ?? project.status}</td></tr>
+          <tr><td style="padding:3px 12px 3px 0;color:#6b7280;font-weight:500;">Aangemaakt</td><td style="padding:3px 0;font-weight:600;">${aanmaakDatum}</td></tr>
+        </table>
+      </td>
+    </tr>
+  </table>
 
   ${(ep2Start != null || ep2Eind != null) ? `
   <!-- EP2 Beoordeling -->
-  <div style="background:#f0f4ff;border:1px solid #bfdbfe;border-radius:8px;padding:16px;margin-bottom:24px;">
-    <h2 style="margin:0 0 12px;font-size:15px;font-weight:600;color:#0e4a8a;">EP2 Beoordeling</h2>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;font-size:13px;">
-      <div><span style="color:#6b7280;">Startwaarde</span><br><strong>${ep2Start ?? "—"} kWh/m²</strong></div>
-      <div><span style="color:#6b7280;">Eindwaarde</span><br><strong>${ep2Eind ?? "—"} kWh/m²</strong></div>
-      <div><span style="color:#6b7280;">Afwijking</span><br><strong>${afwijkingAbs != null ? afwijkingAbs.toFixed(2) + " kWh/m²" : "—"}${afwijkingPct != null ? ` (${afwijkingPct.toFixed(1)}%)` : ""}</strong></div>
-      <div><span style="color:#6b7280;">Beoordeling</span><br><strong>${project.ep2_beoordeling ? (project.ep2_beoordeling === "goed" ? "Goed" : "Niet goed") : "—"}</strong></div>
-    </div>
+  <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:12px 14px;margin-bottom:20px;">
+    <h2 style="margin:0 0 10px;font-size:13px;font-weight:600;color:#1B2A4A;">EP2 Beoordeling</h2>
+    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+      <tr>
+        <td style="width:25%;padding:4px 8px;"><div style="color:#6b7280;">Startwaarde</div><strong>${ep2Start ?? "—"} kWh/m²</strong></td>
+        <td style="width:25%;padding:4px 8px;"><div style="color:#6b7280;">Eindwaarde</div><strong>${ep2Eind ?? "—"} kWh/m²</strong></td>
+        <td style="width:25%;padding:4px 8px;"><div style="color:#6b7280;">Afwijking</div><strong>${afwijkingAbs != null ? afwijkingAbs.toFixed(2) + " kWh/m²" : "—"}${afwijkingPct != null ? ` (${afwijkingPct.toFixed(1)}%)` : ""}</strong></td>
+        <td style="width:25%;padding:4px 8px;"><div style="color:#6b7280;">Beoordeling</div><strong>${project.ep2_beoordeling ? (project.ep2_beoordeling === "goed" ? "Goed" : "Niet goed") : "—"}</strong></td>
+      </tr>
+    </table>
   </div>
   ` : ""}
 
   <!-- Samenvatting -->
-  <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:24px;">
-    <h2 style="margin:0 0 12px;font-size:15px;font-weight:600;color:#1f2937;">Samenvatting</h2>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center;font-size:13px;">
-      <div style="background:#d1fae5;border-radius:6px;padding:10px;">
-        <div style="font-size:22px;font-weight:700;color:#047857;">${goedCount}</div>
-        <div style="color:#047857;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Goed</div>
-      </div>
-      <div style="background:#fee2e2;border-radius:6px;padding:10px;">
-        <div style="font-size:22px;font-weight:700;color:#b91c1c;">${nietGoedCount}</div>
-        <div style="color:#b91c1c;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Niet goed</div>
-      </div>
-      <div style="background:#dbeafe;border-radius:6px;padding:10px;">
-        <div style="font-size:22px;font-weight:700;color:#1d4ed8;">${opmerkingCount}</div>
-        <div style="color:#1d4ed8;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Opmerkingen</div>
-      </div>
-    </div>
+  <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:12px 14px;margin-bottom:20px;">
+    <h2 style="margin:0 0 10px;font-size:13px;font-weight:600;color:#1B2A4A;">Samenvatting</h2>
+    <table style="width:100%;border-collapse:collapse;font-size:12px;text-align:center;">
+      <tr>
+        <td style="width:25%;padding:4px;">
+          <div style="background:#f3faea;border:1px solid #d6ebb5;border-radius:6px;padding:10px 8px;">
+            <div style="font-size:20px;font-weight:700;color:#3d6b0f;line-height:1.1;">${goedCount}</div>
+            <div style="color:#3d6b0f;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;margin-top:2px;">Goed</div>
+          </div>
+        </td>
+        <td style="width:25%;padding:4px;">
+          <div style="background:${openAfwijkingCount > 0 ? "#fef2f2" : "#f9fafb"};border:1px solid ${openAfwijkingCount > 0 ? "#fecaca" : "#e5e7eb"};border-radius:6px;padding:10px 8px;">
+            <div style="font-size:20px;font-weight:700;color:${openAfwijkingCount > 0 ? "#b91c1c" : "#9ca3af"};line-height:1.1;">${openAfwijkingCount}</div>
+            <div style="color:${openAfwijkingCount > 0 ? "#b91c1c" : "#6b7280"};font-size:10px;text-transform:uppercase;letter-spacing:0.05em;margin-top:2px;">Open afwijking</div>
+          </div>
+        </td>
+        <td style="width:25%;padding:4px;">
+          <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:10px 8px;">
+            <div style="font-size:20px;font-weight:700;color:#4b5563;line-height:1.1;">${weerlegdCount}</div>
+            <div style="color:#6b7280;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;margin-top:2px;">Weerlegd</div>
+          </div>
+        </td>
+        <td style="width:25%;padding:4px;">
+          <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:10px 8px;">
+            <div style="font-size:20px;font-weight:700;color:#1B2A4A;line-height:1.1;">${opmerkingCount}</div>
+            <div style="color:#1B2A4A;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;margin-top:2px;">Opmerkingen</div>
+          </div>
+        </td>
+      </tr>
+    </table>
   </div>
 
   <!-- Bevindingen per onderdeel -->
-  <h2 style="font-size:16px;font-weight:600;color:#1f2937;margin-bottom:4px;">Bevindingen</h2>
+  <h2 style="font-size:14px;font-weight:600;color:#1B2A4A;margin:0 0 6px;">Bevindingen</h2>
   ${onderdeelSections}
 
   <!-- Footer -->
-  <div style="margin-top:32px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:11px;color:#9ca3af;text-align:center;">
+  <div style="margin-top:28px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center;">
     Gegenereerd op ${datum}
   </div>
 </body>

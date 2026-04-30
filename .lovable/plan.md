@@ -1,52 +1,41 @@
 ## Doel
-Het downloadbare auditrapport (`src/lib/generateAuditReport.ts`) op drie punten verbeteren:
 
-### 1. Bestandsnaam / titel
-- Aanroep in `ProjectDetail.tsx` haalt nu alleen `naam` van de adviseur op. Uitbreiden zodat ook `nummer` wordt opgehaald.
-- Nummer wordt 3-cijferig zero-padded (consistent met de rest van de app, bv. `007`).
-- Het rapport wordt via `window.open` + `window.print()` gegenereerd. Browsers gebruiken de `<title>` als standaard PDF-bestandsnaam.
-- Nieuwe `<title>` (en daarmee voorgestelde bestandsnaam):
-  `007 Jan Jansen 7108AA12 EPW-B`
-  Opbouw: `{adviseurNummer} {adviseurNaam} {projectnaam} {audit_categorie}`.
-- Indien geen adviseur gekoppeld: alleen `{projectnaam} {audit_categorie}` als titel, zonder lege ruimtes ervoor.
+Het auditrapport (`src/lib/generateAuditReport.ts`) op twee punten verbeteren:
 
-### 2. Openstaande afwijkingen bovenaan
-- Bovenaan het rapport (direct onder de header/projectinfo, vóór EP2 en samenvatting) een nieuwe sectie **"Openstaande afwijkingen"**.
-- Definitie "blijven staan / niet afdoende weerlegd":
-  - `beoordeling = 'niet_goed'`
-  - `status NIET in ('reactie_goedgekeurd', 'gesloten')`
-  - alleen bevindingen die zichtbaar zijn voor de adviseur (`zichtbaar_voor_adviseur = true`)
-- Weergave als compacte tabel met: Code, Onderdeel, Controlepunt, Toelichting, Status.
-- Visueel benadrukt (rode rand/achtergrond) zodat het in één oogopslag duidelijk is.
-- Als er geen openstaande afwijkingen zijn: blok met groene melding "Geen openstaande afwijkingen".
-- De volledige checklist per onderdeel blijft daaronder gewoon staan (ongewijzigd).
+1. De grote "Niet goed"-teller bovenaan toont nu álle ooit geconstateerde afwijkingen, ook als ze inmiddels afdoende zijn weerlegd. Dat geeft een verkeerd beeld ("3 fout" terwijl alles in orde is).
+2. De opmaak oogt rommelig — te veel kleuren/blokken die om aandacht vechten, gridlay-out die in `window.print()` niet altijd betrouwbaar werkt, en dubbele informatie tussen "Openstaande afwijkingen" en de samenvatting.
 
-### 3. Logo BengCert bovenaan
-- In de header van het rapport (linksboven) het BengCert-logo tonen.
-- Bron:
-  - primair: `app_settings.org_logo_url` (indien gevuld) — al opgehaald via `useAppSettings`.
-  - fallback: ingebouwde inline SVG (zelfde tekening als `src/components/BengCertLogo.tsx`, geschikt voor printen).
-- Het logo wordt links naast de titel "Auditrapport" geplaatst, met de projectnaam eronder.
+## Wijzigingen in `src/lib/generateAuditReport.ts`
 
-## Wijzigingen per bestand
+### 1. Samenvatting: onderscheid open vs. weerlegd
 
-- `src/lib/generateAuditReport.ts`
-  - `ReportData` uitbreiden met `adviseurNummer?: number` en `logoUrl?: string`.
-  - `<title>` opbouwen volgens nieuwe formule.
-  - Nieuwe HTML-sectie "Openstaande afwijkingen" bovenaan, direct onder de header.
-  - Header herontwerpen met logo links (img-tag voor `logoUrl`, anders inline SVG).
+Tellingen uitsplitsen:
 
-- `src/pages/ProjectDetail.tsx` (rond regel 580–600)
-  - Bij ophalen adviseur ook `nummer` selecteren.
-  - `useAppSettings()` gebruiken om `org_logo_url` mee te geven.
-  - Beide doorgeven aan `generateAuditReport`.
+- **Goed**: `beoordeling === 'goed'` (ongewijzigd)
+- **Open afwijking**: `beoordeling === 'niet_goed'` én status níet in `['reactie_goedgekeurd','gesloten']` (= dezelfde set als de "Openstaande afwijkingen"-tabel bovenaan)
+- **Weerlegd**: `beoordeling === 'niet_goed'` én status in `['reactie_goedgekeurd','gesloten']`
+- **Opmerking**: ongewijzigd
 
-## Geen wijzigingen
-- Datamodel, RLS, edge functions: niets te wijzigen.
-- Andere weergaven (inbox, dashboard, projectdetail-UI) blijven ongewijzigd.
+De grote rode teller wordt dus alleen rood/prominent als er écht open afwijkingen zijn. "Weerlegd" krijgt een neutrale grijs/groen-tint zodat duidelijk is dat dit afgehandeld is.
 
-## Verificatie
-- Rapport genereren voor een afgerond project met openstaande niet-goed bevindingen → bovenaan rode tabel zichtbaar.
-- Rapport voor project zonder openstaande afwijkingen → groene "alles in orde" melding.
-- Bestandsnaamvoorstel in print-dialog komt overeen met `{nr} {naam} {projectnaam} {categorie}`.
-- Logo zichtbaar zowel met als zonder `org_logo_url` (fallback SVG).
+Wanneer `openAfwijkingen === 0`: het rode openstaande-blok valt sowieso al weg (bestaande logica) en de samenvatting laat een rustig overzicht zien zonder alarmerend rood.
+
+### 2. Opmaak opschonen
+
+- Vervang `display:grid` door `<table>`-layout in de project-info en samenvattingsblokken (betrouwbaarder bij `window.print()`).
+- Eén consistent kleurenpalet: BengCert-blauw `#1B2A4A` voor koppen/headers, BengCert-groen `#7AB929` voor "goed", rood `#b91c1c` alleen voor échte open afwijkingen, neutraal grijs voor de rest.
+- Strakkere ruimtebalans: uniforme `margin-bottom:20px` tussen secties, kleinere padding in samenvattingskaarten, dunnere randen (1px i.p.v. 2px) zodat het rapport rustiger oogt.
+- Header: logo en titel in één regel met vaste hoogte; rapportdatum rechts uitgelijnd onder elkaar zonder grid.
+- "Openstaande afwijkingen"-tabel: dezelfde kolomstijl/typografie als de bevindingen-tabellen verderop voor visuele consistentie.
+- Samenvatting krijgt 4 kolommen (Goed / Open afwijking / Weerlegd / Opmerking) i.p.v. 3, in dezelfde kaartstijl.
+- Verwijder het 📝-emoji bij toelichtingen; vervang door een nette grijze "Toelichting:"-prefix.
+
+### 3. Geen functionele wijzigingen elders
+
+Geen wijzigingen in `ProjectDetail.tsx` of de aanroep — alleen de interne renderlogica en HTML/CSS van de rapportgenerator.
+
+## Resultaat
+
+- Bij een project waar alle "niet goed"-bevindingen zijn weerlegd: bovenaan groene melding "Geen openstaande afwijkingen", samenvatting toont **0 open afwijking** en bv. **3 weerlegd** in een neutrale tint.
+- Bij openstaande afwijkingen: rode teller toont alleen het werkelijk openstaande aantal, weerlegde staan apart.
+- Algehele uitstraling rustiger en consistenter, beter geschikt voor PDF-print.
