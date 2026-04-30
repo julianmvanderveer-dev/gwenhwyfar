@@ -64,8 +64,12 @@ export function generateAuditReport({ project, findings, adviseurNaam, adviseurN
   // Summary counts
   const beoordeeld = findings.filter((f) => f.beoordeling);
   const goedCount = beoordeeld.filter((f) => f.beoordeling === "goed").length;
-  const nietGoedCount = beoordeeld.filter((f) => f.beoordeling === "niet_goed").length;
   const opmerkingCount = beoordeeld.filter((f) => f.beoordeling === "opmerking").length;
+  const nietGoedAll = beoordeeld.filter((f) => f.beoordeling === "niet_goed");
+  const weerlegdCount = nietGoedAll.filter(
+    (f) => f.status === "reactie_goedgekeurd" || f.status === "gesloten",
+  ).length;
+  const openAfwijkingCount = nietGoedAll.length - weerlegdCount;
 
   // EP2
   const ep2Start = project.ep2_startwaarde;
@@ -121,15 +125,14 @@ export function generateAuditReport({ project, findings, adviseurNaam, adviseurN
 
   const openstaandeBlok = openstaande.length > 0
     ? `
-    <div style="border:2px solid #b91c1c;border-radius:8px;background:#fef2f2;padding:14px 16px;margin-bottom:24px;page-break-inside:avoid;">
-      <h2 style="margin:0 0 8px;font-size:15px;font-weight:700;color:#b91c1c;display:flex;align-items:center;gap:8px;">
-        <span style="display:inline-block;background:#b91c1c;color:#fff;border-radius:9999px;font-size:11px;padding:2px 8px;">${openstaande.length}</span>
-        Openstaande afwijkingen
+    <div style="border:1px solid #b91c1c;border-radius:6px;background:#fef2f2;padding:12px 14px;margin-bottom:20px;page-break-inside:avoid;">
+      <h2 style="margin:0 0 6px;font-size:14px;font-weight:700;color:#b91c1c;">
+        Openstaande afwijkingen (${openstaande.length})
       </h2>
       <p style="margin:0 0 10px;font-size:12px;color:#7f1d1d;">Bevindingen die niet afdoende zijn weerlegd.</p>
-      <table style="width:100%;border-collapse:collapse;font-size:13px;background:#fff;border-radius:6px;overflow:hidden;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;background:#fff;">
         <thead>
-          <tr style="background:#b91c1c;color:#fff;">
+          <tr style="background:#1B2A4A;color:#fff;">
             <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;width:80px;">Code</th>
             <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Onderdeel</th>
             <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Controlepunt</th>
@@ -141,8 +144,8 @@ export function generateAuditReport({ project, findings, adviseurNaam, adviseurN
       </table>
     </div>`
     : `
-    <div style="border:2px solid #047857;border-radius:8px;background:#ecfdf5;padding:12px 16px;margin-bottom:24px;color:#065f46;font-size:13px;font-weight:600;">
-      ✓ Geen openstaande afwijkingen — alle bevindingen zijn afdoende weerlegd of goedgekeurd.
+    <div style="border:1px solid #7AB929;border-radius:6px;background:#f3faea;padding:10px 14px;margin-bottom:20px;color:#3d6b0f;font-size:13px;font-weight:600;">
+      Geen openstaande afwijkingen — alle bevindingen zijn afdoende weerlegd of goedgekeurd.
     </div>`;
 
   const logoHtml = logoUrl
