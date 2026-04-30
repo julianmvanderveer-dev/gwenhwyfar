@@ -1,69 +1,41 @@
-## Achtergrond — wat verandert er?
+## Probleem
 
-Vandaag wordt elke reactie **direct individueel** verwerkt:
-- EP-adviseur klikt per bevinding "Accepteren" of "Niet akkoord" → finding gaat meteen op `reactie_ontvangen`.
-- Auditor klikt per bevinding "Goedkeuren" of "Niet akkoord" → finding gaat direct op `reactie_goedgekeurd` of terug naar `open`.
+In de huidige batch-flow slaan 'Reactie goedkeuren' / 'Niet akkoord' alleen een **concept** op. De daadwerkelijke verzending kan op dit moment alleen via het projectoverzicht (`BatchVersturen`-paneel). Bij een project met maar 1 openstaande reactie (zoals 107B) voelt dat als een onnodige omweg en lijkt het alsof er niets gebeurt na het klikken.
 
-Dat maakt dat een project druppelsgewijs heen en weer gaat. We willen toe naar **batch-versturen**: pas als álle bevindingen zijn beantwoord, kun je ze in één keer versturen naar de andere partij.
+## Oplossing
 
-## Nieuw gedrag
+Hergebruik de bestaande batchlogica uit `BatchVersturen.tsx` op de individuele bevinding-pagina's, zodat de gebruiker direct vanaf de bevinding alle klaarstaande concepten van het hele project kan versturen — zónder de batch-architectuur te slopen.
 
-### EP-adviseur
-1. Per openstaande bevinding kiest hij **Accepteren** of **Niet akkoord** (met onderbouwing + evt. bijlage). Dit wordt opgeslagen als **concept-reactie** — finding blijft op `status = 'open'`.
-2. Onderaan het project ziet hij een teller: *"X van Y bevindingen beantwoord"*.
-3. Knop **"Alle reacties versturen naar auditor"** wordt pas actief als X = Y.
-4. Bij versturen: alle findings krijgen in één keer `status = 'reactie_ontvangen'`, projectstatus blijft `wacht_op_reactie` (of we maken het expliciet — zie technisch deel), en er gaat één notificatiemail naar de auditor.
+## Wijzigingen
 
-### Auditor
-1. Voor elke `reactie_ontvangen`-bevinding kiest hij **Goedkeuren** of **Niet akkoord** (toelichting + evt. upload-eis). Wordt opgeslagen als **concept-beoordeling** — finding blijft op `reactie_ontvangen`.
-2. Onderaan: *"X van Y reacties beoordeeld"*.
-3. Knop **"Alle beoordelingen versturen naar EP-adviseur"** pas actief bij volledig.
-4. Bij versturen:
-   - Goedgekeurde findings → `reactie_goedgekeurd`.
-   - Afgekeurde findings → `open` (heropend), nieuwe `reactie_deadline` op project, alle reminder-flags reset.
-   - Eén notificatiemail naar EP-adviseur als er heropende findings zijn.
-   - Als alles goedgekeurd → trigger sluit project automatisch (bestaand gedrag).
+### 1. Logica extraheren
+Refactor `src/components/projecten/BatchVersturen.tsx`: haal de twee verzend-functies (`verstuurAdviseur`, `verstuurAuditor`) en de tellogica (`wachtOpAdviseur`, `wachtOpAuditor`, `adviseurConcepten`, `auditorConcepten`) uit de component naar een nieuwe hook `src/hooks/useBatchVersturen.ts`. De hook accepteert `project` + `findings` + `onSent` en levert booleans (`klaar`, `busy`), tellers en de twee verzendfuncties.
 
-### Auto-acceptatie blijft werken
-Als adviseur "Akkoord" geeft op een niet-kritieke bevinding zonder uploadeis, mag hij die in zijn batch laten — auditor ziet ze als concept-goedgekeurd en hoeft alleen te bevestigen. Het bestaande `reactie_goedgekeurd`-automatisme verhuist van direct-bij-binnenkomst naar het verstuur-moment van de auditor.
+`BatchVersturen.tsx` blijft bestaan en gebruikt de hook (geen visuele verandering op het projectoverzicht).
 
-## Technisch
+### 2. Compacte verzendknop op finding-pagina
+Nieuwe component `src/components/projecten/BatchVersturenCompact.tsx`:
+- Laadt zelf alle findings van het project (`select * from findings where project_id = X`).
+- Gebruikt dezelfde `useBatchVersturen`-hook.
+- Toont een dunne, opvallende balk onderaan / bovenaan de bevinding-pagina:
+  - **EP-adviseur**: "X van Y reacties klaar in dit project" + knop **"Alle reacties versturen"** (disabled tot klaar).
+  - **Auditor**: "X van Y beoordelingen klaar (A goedgekeurd, B niet akkoord)" + knop **"Alle beoordelingen versturen"** (disabled tot klaar).
+- Na succes: roept `onSent` aan → navigeert terug naar het projectoverzicht.
 
-### Datamodel
-Twee nieuwe nullable kolommen op `findings`:
+### 3. Inhaken in de bevinding-pagina's
+- `src/pages/FindingReactie.tsx`: rendert `<BatchVersturenCompact projectId={finding.project_id} />` direct ná de actieknoppen (alleen tonen als gebruiker EP-adviseur is en project nog open reacties heeft).
+- `src/pages/FindingBeoordeling.tsx`: idem, alleen voor auditors/beheer wanneer `wachtOpAuditor.length > 0`.
+- De huidige groene 'Concept opgeslagen — Naar projectoverzicht'-banner kan blijven staan (extra route-optie), maar wordt minder belangrijk.
 
-| Kolom | Type | Doel |
-|---|---|---|
-| `concept_reactie` | jsonb | `{ type: 'akkoord' \| 'niet_akkoord', bericht?: string, bijlage_pad?: string, opgeslagen_op: timestamptz }` — concept van EP-adviseur |
-| `concept_beoordeling` | jsonb | `{ type: 'akkoord' \| 'niet_akkoord', toelichting?: string, upload_vereist?: boolean, opgeslagen_op: timestamptz }` — concept van auditor |
+### 4. Tekstuele verfijning
+- Wanneer er maar 1 openstaande reactie is, past het label aan naar **"Reactie nu versturen"** / **"Beoordeling nu versturen"** — geen 'alle' nodig.
 
-Bij het versturen wordt de jsonb omgezet naar een echte `messages`-rij + finding-statusupdate, en daarna leeggemaakt (`null`).
+## Wat NIET verandert
 
-Geen enum-wijzigingen nodig.
+- De batch-architectuur blijft intact: concepten, status-flow (`reactie_ontvangen` / `reactie_goedgekeurd`), notificaties en deadline-resets blijven werken zoals nu.
+- Het paneel `BatchVersturen` op het projectoverzicht blijft beschikbaar.
+- Geen databasewijzigingen nodig.
 
-### Bestanden
+## Resultaat
 
-- **`src/pages/FindingReactie.tsx`** — `accepteren`/`nietAkkoord` schrijven naar `concept_reactie` i.p.v. direct messages + status. Toon banner "Concept opgeslagen — versturen via projectoverzicht".
-- **`src/pages/FindingBeoordeling.tsx`** — `akkoord`/`nietAkkoord` schrijven naar `concept_beoordeling`. Auto-acceptatie-effect (regels 72-93) verplaatst de logica naar het concept i.p.v. directe statuswijziging.
-- **`src/pages/ProjectDetail.tsx`** — Nieuw paneel "Batch versturen":
-  - Voor EP-adviseur: teller open vs. concept; knop "Alle reacties versturen".
-  - Voor auditor (bij projectstatus die reacties bevat): teller `reactie_ontvangen` vs. concept; knop "Alle beoordelingen versturen".
-  - Verstuur-handlers doen één transactie: messages bulk-insert, findings bulk-update, project-update, notify-edge-function aanroepen.
-- **`src/components/projecten/FaseTabel.tsx`** — Toon per rij badge "Concept opgeslagen" (geel) zodat je in de tabel ziet welke al klaar zijn.
-- **`src/components/projecten/BeheerStandVanZaken.tsx`** — Aanpassen "bal ligt bij"-logica: als alle concepten gevuld → "Klaar om te versturen" (bal ligt nog steeds bij dezelfde partij maar met andere tint).
-
-### Migratie
-```sql
-ALTER TABLE public.findings
-  ADD COLUMN concept_reactie jsonb,
-  ADD COLUMN concept_beoordeling jsonb;
-```
-
-### Notificaties
-- `notify-adviseur` edge function blijft, wordt nog steeds eenmalig aangeroepen — nu alleen bij batch-verstuur (heropende findings) i.p.v. per "niet akkoord".
-- Voor de andere richting (adviseur → auditor) gebruiken we de bestaande in-app `notificaties` tabel + één bericht "Reacties EP-adviseur ontvangen voor project X".
-
-## Wat NIET in dit plan zit
-- Geen wijziging aan deadlines/herinneringen (blijft 2 weken vanaf eerste verstuurmoment, reset bij heropenen).
-- Geen wijziging aan correctie-modus voor auditor/tekenaar (blijft zoals het nu is).
-- Geen wijziging aan de eerste keer dat de auditor de audit afrondt en findings naar de adviseur stuurt — dat is al een batch-actie.
+Een auditor (of EP-adviseur) kan na het opslaan van het concept direct op dezelfde pagina op "Verzenden" klikken, zónder eerst naar het projectoverzicht te gaan. Bij projecten met meerdere bevindingen krijgt hij dezelfde voortgangsindicator en moet hij alsnog alle bevindingen afronden voor de knop actief wordt — de batch-regel blijft dus gerespecteerd.
