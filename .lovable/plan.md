@@ -1,41 +1,61 @@
-## Doel
+## Probleem
 
-Het auditrapport (`src/lib/generateAuditReport.ts`) op twee punten verbeteren:
+In het auditrapport tellen we nu alle `niet_goed`-bevindingen met status `reactie_goedgekeurd` of `gesloten` als "weerlegd". Maar dat klopt niet:
 
-1. De grote "Niet goed"-teller bovenaan toont nu álle ooit geconstateerde afwijkingen, ook als ze inmiddels afdoende zijn weerlegd. Dat geeft een verkeerd beeld ("3 fout" terwijl alles in orde is).
-2. De opmaak oogt rommelig — te veel kleuren/blokken die om aandacht vechten, gridlay-out die in `window.print()` niet altijd betrouwbaar werkt, en dubbele informatie tussen "Openstaande afwijkingen" en de samenvatting.
+- **Inhoudelijk weerlegd** = de EP-adviseur heeft beargumenteerd dat het tóch goed is, en de auditor/tekenaar gaat daarin mee → de afwijking vervalt en mag niet meer als fout gelden.
+- **Geaccepteerd** = de EP-adviseur erkent de fout ("Afwijking geaccepteerd") en de zaak wordt afgesloten → de fout blijft staan als terechte afwijking en hoort gewoon mee te tellen als open afwijking in het rapport.
 
-## Wijzigingen in `src/lib/generateAuditReport.ts`
+Op dit moment worden beide gevallen samengevoegd onder "weerlegd", waardoor terecht geconstateerde fouten ten onrechte uit de openstaande lijst en de rode teller verdwijnen.
 
-### 1. Samenvatting: onderscheid open vs. weerlegd
+## Detectie van "geaccepteerd door adviseur"
 
-Tellingen uitsplitsen:
+In `FindingBeoordeling.tsx` wordt al gewerkt met dit signaal:
 
-- **Goed**: `beoordeling === 'goed'` (ongewijzigd)
-- **Open afwijking**: `beoordeling === 'niet_goed'` én status níet in `['reactie_goedgekeurd','gesloten']` (= dezelfde set als de "Openstaande afwijkingen"-tabel bovenaan)
-- **Weerlegd**: `beoordeling === 'niet_goed'` én status in `['reactie_goedgekeurd','gesloten']`
-- **Opmerking**: ongewijzigd
+```ts
+messages.some(m =>
+  m.afzender_id === <adviseur user_id> &&
+  m.bericht.trim() === "Afwijking geaccepteerd"
+)
+```
 
-De grote rode teller wordt dus alleen rood/prominent als er écht open afwijkingen zijn. "Weerlegd" krijgt een neutrale grijs/groen-tint zodat duidelijk is dat dit afgehandeld is.
+We hergebruiken dezelfde detectie in het rapport: een afgesloten `niet_goed`-bevinding waarbij de adviseur een message met exact "Afwijking geaccepteerd" heeft achtergelaten = **geaccepteerde fout** (telt als afwijking). Anders = **inhoudelijk weerlegd** (telt niet als afwijking).
 
-Wanneer `openAfwijkingen === 0`: het rode openstaande-blok valt sowieso al weg (bestaande logica) en de samenvatting laat een rustig overzicht zien zonder alarmerend rood.
+## Wijzigingen
 
-### 2. Opmaak opschonen
+### 1. `src/pages/ProjectDetail.tsx`
 
-- Vervang `display:grid` door `<table>`-layout in de project-info en samenvattingsblokken (betrouwbaarder bij `window.print()`).
-- Eén consistent kleurenpalet: BengCert-blauw `#1B2A4A` voor koppen/headers, BengCert-groen `#7AB929` voor "goed", rood `#b91c1c` alleen voor échte open afwijkingen, neutraal grijs voor de rest.
-- Strakkere ruimtebalans: uniforme `margin-bottom:20px` tussen secties, kleinere padding in samenvattingskaarten, dunnere randen (1px i.p.v. 2px) zodat het rapport rustiger oogt.
-- Header: logo en titel in één regel met vaste hoogte; rapportdatum rechts uitgelijnd onder elkaar zonder grid.
-- "Openstaande afwijkingen"-tabel: dezelfde kolomstijl/typografie als de bevindingen-tabellen verderop voor visuele consistentie.
-- Samenvatting krijgt 4 kolommen (Goed / Open afwijking / Weerlegd / Opmerking) i.p.v. 3, in dezelfde kaartstijl.
-- Verwijder het 📝-emoji bij toelichtingen; vervang door een nette grijze "Toelichting:"-prefix.
+Bij het ophalen van data voor het rapport ook ophalen:
+- `messages` voor alle findings van dit project (`finding_id`, `afzender_id`, `bericht`)
+- `adviseurs.user_id` van de gekoppelde adviseur (om afzender te matchen)
 
-### 3. Geen functionele wijzigingen elders
+Doorgeven aan `generateAuditReport` als nieuwe velden `messages` en `adviseurUserId`.
 
-Geen wijzigingen in `ProjectDetail.tsx` of de aanroep — alleen de interne renderlogica en HTML/CSS van de rapportgenerator.
+### 2. `src/lib/generateAuditReport.ts`
+
+- Nieuwe interface-velden: `messages?: { finding_id: string; afzender_id: string; bericht: string }[]` en `adviseurUserId?: string`.
+- Helper `isAcceptedByAdviseur(findingId)`: true als er een message bestaat met `afzender_id === adviseurUserId` en `bericht.trim() === "Afwijking geaccepteerd"`.
+- Herclassificatie van `niet_goed`-bevindingen in **drie** groepen:
+  - **Open afwijking**: status NIET in `[reactie_goedgekeurd, gesloten]` → bestaande logica.
+  - **Geaccepteerde afwijking** (NIEUW): status in `[reactie_goedgekeurd, gesloten]` EN `isAcceptedByAdviseur` = true. Telt mee als terechte fout.
+  - **Weerlegd**: status in `[reactie_goedgekeurd, gesloten]` EN `isAcceptedByAdviseur` = false (= inhoudelijk weerlegd, fout vervalt).
+
+### 3. Rapport-weergave
+
+**Bovenaan ("Openstaande afwijkingen"-blok):**
+- Hernoemen naar **"Afwijkingen"**.
+- Bevat zowel openstaande als geaccepteerde afwijkingen samen, met een extra kolom of badge "Status afhandeling": `Open` / `Geaccepteerd door adviseur`.
+- De grote teller bovenaan = `openAfwijkingCount + geaccepteerdCount`. Rood als > 0.
+- Als beide 0: groene "Geen afwijkingen — alle 'niet goed'-bevindingen zijn inhoudelijk weerlegd" melding.
+
+**Samenvatting-tabel (4 kolommen):**
+- Goed (groen)
+- Afwijking (rood als > 0) = open + geaccepteerd, samen
+- Weerlegd (neutraal grijs) = alleen inhoudelijk weerlegd
+- Opmerkingen (blauw)
+
+Optioneel onder de afwijking-teller een klein bijschrift "waarvan X open, Y geaccepteerd" voor nuance, zonder visuele ruis toe te voegen.
 
 ## Resultaat
 
-- Bij een project waar alle "niet goed"-bevindingen zijn weerlegd: bovenaan groene melding "Geen openstaande afwijkingen", samenvatting toont **0 open afwijking** en bv. **3 weerlegd** in een neutrale tint.
-- Bij openstaande afwijkingen: rode teller toont alleen het werkelijk openstaande aantal, weerlegde staan apart.
-- Algehele uitstraling rustiger en consistenter, beter geschikt voor PDF-print.
+- Een fout die terecht was en door de adviseur is erkend, blijft zichtbaar bovenaan en telt mee in de rode teller — ook als de bevinding administratief is afgesloten.
+- Alleen wanneer de adviseur inhoudelijk gelijk kreeg (geen "Afwijking geaccepteerd"-message, wel afgesloten/goedgekeurd), valt de fout uit de afwijkingen en verschijnt onder "Weerlegd".
