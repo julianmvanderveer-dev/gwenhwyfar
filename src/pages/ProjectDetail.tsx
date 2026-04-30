@@ -359,15 +359,34 @@ export default function ProjectDetail() {
     await loadFindings();
     const { data: currentFindings } = await supabase
       .from("findings")
-      .select("id, onderdeel, deel, beoordeling")
+      .select("id, onderdeel, deel, beoordeling, zichtbaar_voor_adviseur")
       .eq("project_id", id!)
       .eq("onderdeel", onderdeel);
-    const ids = (currentFindings ?? [])
-      .filter((f) => canEditFindingByDeel(f.deel) && f.beoordeling !== "goed")
+    const eligible = (currentFindings ?? []).filter(
+      (f) => canEditFindingByDeel(f.deel) && f.beoordeling !== "goed",
+    );
+    if (eligible.length === 0) return;
+    // Niet-zichtbare bevindingen mogen direct op 'gesloten'; bevindingen die al
+    // naar de adviseur zijn gegaan houden hun bestaande status.
+    const idsAfsluiten = eligible
+      .filter((f) => !(f as any).zichtbaar_voor_adviseur)
       .map((f) => f.id);
-    if (ids.length === 0) return;
-    await supabase.from("findings").update({ beoordeling: "goed" as any }).in("id", ids);
-    toast({ title: "Alles goedgekeurd", description: `${ids.length} post(en) op goed gezet.` });
+    const idsAlleenBeoordeling = eligible
+      .filter((f) => (f as any).zichtbaar_voor_adviseur)
+      .map((f) => f.id);
+    if (idsAfsluiten.length > 0) {
+      await supabase
+        .from("findings")
+        .update({ beoordeling: "goed" as any, status: "gesloten" as any })
+        .in("id", idsAfsluiten);
+    }
+    if (idsAlleenBeoordeling.length > 0) {
+      await supabase
+        .from("findings")
+        .update({ beoordeling: "goed" as any })
+        .in("id", idsAlleenBeoordeling);
+    }
+    toast({ title: "Alles goedgekeurd", description: `${eligible.length} post(en) op goed gezet.` });
     loadFindings();
   };
 
