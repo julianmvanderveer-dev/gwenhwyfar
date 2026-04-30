@@ -178,7 +178,9 @@ export default function FaseTabel({
                       <td className="px-4 py-2.5 text-muted-foreground">{p.adviseurs?.naam ?? "—"}</td>
                       {showToewijzing && (
                         <td className="px-4 py-2.5">
-                          {canInlineReassign ? (
+                          {isAfgerondView ? (
+                            <span className="text-foreground">{p.auditor_naam ?? p.toegewezen_profiel?.naam ?? "—"}</span>
+                          ) : canInlineReassign ? (
                             // Inline mode: clickable name for reassignment
                             isEditing ? (
                               <div className="flex items-center gap-1.5">
