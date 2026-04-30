@@ -17,5 +17,7 @@ project_id = "lfguyngkvryaakkjqszc"
     verify_jwt = false
   [functions.process-email-queue]
     verify_jwt = true
+  [functions.reactie-herinneringen]
+    verify_jwt = false
   [functions.send-transactional-email]
     verify_jwt = false
