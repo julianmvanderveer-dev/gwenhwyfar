@@ -1,26 +1,35 @@
-Ik heb de oorzaak bevestigd: projecten 107b en 107c staan in de database nog echt op `wacht_op_reactie`, terwijl alle voor de adviseur zichtbare bevindingen al `reactie_goedgekeurd` zijn. De inbox toont dus de huidige data correct; het probleem is dat de projectstatus niet is meegegaan naar `afgerond`.
+1. Oorzaak gericht oplossen
+- In de database staat project 107c al correct op `afgerond`, maar op projectniveau staat `toewijzing = pool` en `toegewezen_aan = null`.
+- De tabel in Beheer > Projecten gebruikt nu voor de kolom Auditor nog steeds de projecttoewijzing. Daardoor verschijnt bij afgeronde projecten soms `Pool`, terwijl de echte beoordelaar alleen nog op finding-niveau staat (`toegewezen_beoordelaar`).
 
-Plan
+2. Afgerond-tabel aanpassen
+- De afgerond-weergave krijgt een aparte bron voor de kolom `Auditor`.
+- Voor afgeronde projecten bepaal ik de auditor op basis van de laatste afgeronde, adviseur-zichtbare bevinding:
+  - primair: de auditor van de meest recent goedgekeurde/afgesloten bevinding (`toegewezen_beoordelaar`)
+  - fallback: de projecttoewijzing (`toegewezen_aan`) als er geen bruikbare finding-data is
+  - laatste fallback: `—`
+- Daarmee toont 107c de naam van de echte auditor in plaats van `Pool`.
 
-1. Datastatus direct herstellen
-- Een veilige, idempotente backend-fix uitvoeren die projecten op `afgerond` zet wanneer alle adviseur-zichtbare bevindingen al in een eindstatus staan.
-- Daarbij 107b en 107c expliciet meenemen, en de query zo opzetten dat vergelijkbare vastgelopen projecten meteen ook worden meegenomen.
-- `gearchiveerd_op` invullen zodat ze ook in de juiste groep en zichtbaarheid vallen.
+3. Datalaag uitbreiden in Inbox
+- `src/pages/Inbox.tsx` uitbreiden zodat bij het laden van projecten ook de benodigde auditornaam voor afgeronde projecten wordt opgebouwd.
+- Dit gebeurt zonder de bestaande actieve werkstromen voor nieuw/bezig te veranderen.
+- Voor projecten zoals 107b, waar meerdere auditors op verschillende bevindingen kunnen hebben gewerkt, toon ik de auditor die de audit als laatste heeft afgerond (dus de meest recente afsluitende beoordeling).
 
-2. Afrondlogica robuuster maken
-- De bestaande afrondcontrole in `src/hooks/useBatchVersturen.ts` nalopen en aanscherpen zodat de projectstatus altijd wordt bijgewerkt zodra de laatste openstaande adviseur-bevinding is goedgekeurd.
-- Controleren of er nog een tweede pad bestaat waardoor een bevinding op `reactie_goedgekeurd` kan komen zonder dat de projectstatus wordt herberekend; als dat zo is, daar dezelfde reconciliatie toevoegen.
-- Voorkomen dat alleen losse bevindingen sluiten terwijl het project als geheel blijft hangen op `wacht_op_reactie`.
+4. Presentatie in FaseTabel corrigeren
+- `src/components/projecten/FaseTabel.tsx` aanpassen zodat in `isAfgerondView` de kolom `Auditor` niet meer de pool-/toewijzingsstatus toont, maar de afgeleide auditornaam.
+- De bestaande wijzigingen blijven behouden:
+  - geen kolommen `Labels` en `Toewijzing`
+  - kolom `Toegewezen aan` heet `Auditor`
+  - kolom `Afgerond` toont de afrondingsdatum
 
-3. Overzicht controleren
-- Verifiëren dat 107b en 107c daarna niet meer onder “Reactie EP-adviseur gevraagd” staan.
-- Controleren dat ze in de inbox onder “Afgerond” vallen en niet meer onterecht in de actieve projectlijst blijven hangen.
+5. Controle na implementatie
+- Specifiek verifiëren dat:
+  - 107c onder `Afgerond` niet meer `Pool` toont maar de auditornaam
+  - 107b ook een logische auditor toont
+  - actieve projecten hun huidige toewijzingsgedrag behouden
+  - er nergens onbedoeld `Pool` verschijnt in de afgerond-weergave
 
 Technische details
-- Huidige database-status:
-  - `7108AA107b, Wooldseweg, Woold` → `wacht_op_reactie`
-  - `7108AA107c, Wooldseweg, Woold` → `wacht_op_reactie`
-- Alle adviseur-zichtbare bevindingen voor deze twee projecten staan al op `reactie_goedgekeurd`.
-- In de code staat de bedoelde afrondlogica al in `src/hooks/useBatchVersturen.ts`, dus dit lijkt nu vooral een combinatie van vastgelopen data en mogelijk nog één route waarin die afrondcheck niet wordt geraakt.
-
-Na akkoord voer ik dit meteen door en controleer ik dat die twee projecten echt uit die foutieve status verdwijnen.
+- Bestanden: `src/pages/Inbox.tsx`, `src/components/projecten/FaseTabel.tsx`
+- Waarschijnlijk voeg ik een extra veld toe aan het viewmodel, bijvoorbeeld `afgerond_door_profiel` of vergelijkbaar.
+- Geen schemawijziging nodig; dit is vooral een correctie in hoe afgeronde projecten worden samengesteld en weergegeven.

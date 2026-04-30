@@ -16,7 +16,7 @@ import FaseTabel, { type ToewijsbarePersoon, type ProjectRow } from "@/component
 import ExportFilter from "@/components/projecten/ExportFilter";
 import MedewerkerDashboard from "@/components/dashboard/MedewerkerDashboard";
 
-type Project = Tables<"projects"> & { adviseurs: { naam: string } | null; toegewezen_profiel?: { naam: string } | null };
+type Project = Tables<"projects"> & { adviseurs: { naam: string } | null; toegewezen_profiel?: { naam: string } | null; auditor_naam?: string | null };
 type Finding = Tables<"findings"> & { projectnaam?: string; laatste_reactie?: string; laatste_bijlage?: string | null };
 
 export default function Inbox() {
@@ -66,6 +66,40 @@ export default function Inbox() {
         }));
       }
     }
+
+    // Bepaal voor afgeronde projecten de feitelijke auditor:
+    // de beoordelaar van de meest recent goedgekeurde adviseur-zichtbare bevinding.
+    if (hasRole("beheer") && loadedProjects.length > 0) {
+      const afgerondIds = loadedProjects.filter(p => p.status === "afgerond").map(p => p.id);
+      if (afgerondIds.length > 0) {
+        const { data: afgerondFindings } = await supabase
+          .from("findings")
+          .select("project_id, toegewezen_beoordelaar, goedgekeurd_op")
+          .in("project_id", afgerondIds)
+          .eq("zichtbaar_voor_adviseur", true)
+          .not("toegewezen_beoordelaar", "is", null)
+          .order("goedgekeurd_op", { ascending: false });
+
+        const auditorPerProject = new Map<string, string>();
+        (afgerondFindings ?? []).forEach((f: any) => {
+          if (!auditorPerProject.has(f.project_id) && f.toegewezen_beoordelaar) {
+            auditorPerProject.set(f.project_id, f.toegewezen_beoordelaar);
+          }
+        });
+
+        const auditorIds = [...new Set(auditorPerProject.values())];
+        if (auditorIds.length > 0) {
+          const { data: auditorProfiles } = await supabase.from("profiles").select("id, naam").in("id", auditorIds);
+          const naamMap = new Map((auditorProfiles ?? []).map(p => [p.id, p.naam]));
+          loadedProjects = loadedProjects.map(p => {
+            if (p.status !== "afgerond") return p;
+            const auditorId = auditorPerProject.get(p.id);
+            return { ...p, auditor_naam: auditorId ? naamMap.get(auditorId) ?? null : null };
+          });
+        }
+      }
+    }
+
     setProjects(loadedProjects);
 
     if (loadedProjects.length > 0) {
