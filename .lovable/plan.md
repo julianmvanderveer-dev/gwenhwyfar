@@ -1,70 +1,65 @@
-# Correctie backfill reactie_deadline
+## Antwoord op je vraag
 
-## Probleem
-Tijdens de vorige migratie zijn alle lopende projecten met status `wacht_op_reactie` op een nieuwe `reactie_deadline` van **+14 dagen vanaf nu** gezet. Dat is verkeerd: de regel is dat de deadline 2 weken ná de laatste actie ligt (originele audit afronding) of 1 week na een afkeuring. Voor Bruggenhoofd Nijkerk (en de twee Wooldseweg-projecten) ligt die laatste actie eind april 2026, dus de deadline zou nu al verstreken moeten zijn — en de adviseur had inmiddels herinneringsmails moeten ontvangen.
+**"Heeft een tekenaar gereageerd op de reactie van de EP-adviseur?"**
+In de database zie ik op project *Bruggenhoofd Nijkerk* alleen berichten van **Rob Harbers (EP-adviseur)** met "Afwijking geaccepteerd" (24-04-2026). Er staan **geen reacties van een tekenaar of auditor terug**. Dat verklaart waarom het project nog op `wacht_op_reactie` staat: de bal ligt feitelijk weer bij intern (auditor moet de adviseurreactie beoordelen).
 
-## Aanpak
+Op dit moment is dit alleen zichtbaar door per bevinding de berichtenhistorie open te klikken — er is nergens een centraal overzicht "bij wie ligt het". Dat gaan we toevoegen.
 
-Voor elk lopend project (`status = 'wacht_op_reactie'`) bepalen we de **laatste actie-datum** en zetten daar de juiste deadline op:
+## Plan: Beheer-paneel "Stand van zaken" op ProjectDetail
 
-1. **Bepaal "laatste actie"** per project = max van:
-   - `datum_aangemaakt` van het project
-   - `goedgekeurd_op` van findings (auditor heeft beoordeeld → start van de 2-weken-termijn)
-   - `datum` van de laatste `messages` afkomstig van een Auditor/Tekenaar/Beheer (auditor-reactie op adviseur → start van 1-weken-termijn)
+Aan de bovenkant van `ProjectDetail.tsx` (alleen zichtbaar voor rol **beheer**) komt één compact paneel met drie blokjes naast elkaar.
 
-2. **Bepaal termijn**:
-   - Standaard: 2 weken (originele audit-cyclus)
-   - Als de laatste actie een auditor-reactie ná een eerdere adviseur-reactie was: 1 week
+### 1. Bij wie ligt het nu?
+Eén regel per partij met aantal openstaande items:
 
-3. **Reset reminder-flags** opnieuw, maar realistisch:
-   - Als de berekende deadline al > 21 dagen verstreken: zet alle flags op `true` behalve de eindwaarschuwing → die laatste mag morgen vanzelf gestuurd worden.
-   - Beter (eenvoudiger en transparanter): zet álle reminder-flags op `false`. De cron-job die morgenochtend draait stuurt dan in één keer de juiste mail (T+7, T+14 of T+21) op basis van de échte deadline. Geen email-spam want elke flag wordt apart gecheckt en maar één mail per dag per project gestuurd.
+```
+Auditor/Tekenaar   3 reacties te beoordelen     (laatste actie: 24-04, EP-adviseur)
+EP-adviseur        7 bevindingen open           (deadline: 11-05, T-11d)
+Beheer             —
+```
 
-   Ik kies voor optie 2 (alle flags `false`) omdat het simpel en correct is.
+Logica:
+- **Bij intern** = aantal findings met `status = 'reactie_ontvangen'` (adviseur heeft gereageerd, wacht op auditor/tekenaar).
+- **Bij EP-adviseur** = aantal findings met `status = 'open'` én `zichtbaar_voor_adviseur = true`, zolang `project.status = 'wacht_op_reactie'`.
+- **Toegewezen aan** = naam uit `projects.toegewezen_aan` (profielnaam) + rol.
+- Reactiedeadline + tier (T-1d / overdue 1w / 2w / 3w) op basis van bestaande `reminder_*_sent` flags en `reactie_deadline`.
 
-## Concrete stappen
+### 2. Laatste activiteit (max 5 regels)
+Chronologische strip, nieuwste eerst, gebaseerd op `messages` van dit project:
 
-1. **SQL data-update** (via insert tool, geen migratie):
-   ```sql
-   WITH laatste_actie AS (
-     SELECT
-       p.id AS project_id,
-       GREATEST(
-         p.datum_aangemaakt,
-         COALESCE((SELECT MAX(f.goedgekeurd_op) FROM findings f WHERE f.project_id = p.id), p.datum_aangemaakt),
-         COALESCE((
-           SELECT MAX(m.datum)
-           FROM messages m
-           JOIN findings f ON f.id = m.finding_id
-           JOIN user_roles ur ON ur.user_id = m.afzender_id
-           WHERE f.project_id = p.id
-             AND ur.role IN ('auditor','tekenaar','beheer')
-         ), p.datum_aangemaakt)
-       ) AS actie_datum
-     FROM projects p
-     WHERE p.status = 'wacht_op_reactie'
-   )
-   UPDATE projects p
-   SET reactie_deadline = la.actie_datum + INTERVAL '14 days',
-       reminder_pre_sent = false,
-       reminder_overdue_1w_sent = false,
-       reminder_overdue_2w_sent = false,
-       reminder_overdue_3w_sent = false
-   FROM laatste_actie la
-   WHERE p.id = la.project_id;
-   ```
-   (Termijn 14 dagen voor de eenvoud — de exacte 7/14-onderscheid is moeilijk retroactief vast te stellen zonder duidelijke "afkeur"-trigger in de berichten-historie. Voor toekomstige cycli zorgt de bestaande code wél voor het juiste verschil.)
+```
+24-04 13:55  Rob Harbers (EP-adviseur)   "Afwijking geaccepteerd"        bevinding 1c
+24-04 13:54  Rob Harbers (EP-adviseur)   "Afwijking geaccepteerd"        bevinding 1d
+17-04 09:12  Jan de Vries (Auditor)      Bevinding gemarkeerd Niet goed  bevinding 4a
+...
+```
 
-2. **Verificatie**: na de update een SELECT draaien om te tonen welke deadlines en welke escalatie-tier (T-1, T+7, T+14, T+21) elk project nu heeft.
+Elke regel klikbaar → springt naar de tab van de betreffende bevinding.
 
-3. **Cron**: de bestaande dagelijkse cron `reactie-herinneringen-daily` (07:00 UTC) doet de rest — morgenochtend gaan er per project de juiste herinneringsmails uit (CC `julian@borgch.nl`).
+Per regel laten we de rol zien door `messages.afzender_id` te joinen met `user_roles`. Voor "stille" acties (goedkeuring, status­wijziging zonder bericht) tonen we ook `findings.goedgekeurd_op` als activiteit.
 
-## Resultaat na correctie
-- Bruggenhoofd Nijkerk: laatste auditor-actie ~24-4-2026 → deadline ~8-5-2026 → vandaag dus dichtbij T-1 of T+0.
-- Wooldseweg 107b: laatste actie ~29-4-2026 → deadline ~13-5-2026 → nog ruim binnen termijn.
-- Wooldseweg 107c: laatste actie ~23-4-2026 → deadline ~7-5-2026 → bijna T-1.
+### 3. Status & deadline
+Compacte regel: `Status: Reactie EP-adviseur gevraagd · Deadline: 11-05-2026 (over 11 dagen)` met de huidige escalatie-tier (groen/oranje/rood).
 
-(Exacte uitkomst hangt af van wie de laatste berichten stuurde — wordt zichtbaar in de verificatie-query.)
+### Visueel
+Eén `Card` boven het bestaande "Aandachtspunten adviseur" blok, met drie kolommen (op desktop). Houd het minimalistisch — geen extra tabs, geen extra pagina. Alleen zichtbaar voor `hasRole("beheer")`.
 
-## Wijzigingen in code
-Geen — alleen een data-correctie. De bestaande edge function en cron blijven ongewijzigd.
+## Technische details
+
+**Nieuw component**: `src/components/projecten/BeheerStandVanZaken.tsx`
+- Props: `project`, `findings`
+- Eigen query: laatste 5 messages voor dit project (join `findings` op `project_id`, join `profiles` + `user_roles` voor naam/rol).
+- Eigen query: profielnaam van `project.toegewezen_aan`.
+- Berekent tier uit `reactie_deadline` + huidige tijd (T-1, T+7, T+14, T+21).
+
+**Wijziging in `ProjectDetail.tsx`**: één regel toevoegen direct onder de header:
+```tsx
+{hasRole("beheer") && <BeheerStandVanZaken project={project} findings={findings} />}
+```
+
+**Geen DB-wijzigingen nodig** — alle benodigde data zit al in `messages`, `findings`, `projects`, `profiles`, `user_roles`.
+
+## Wat NIET in dit plan zit
+- Geen verandering aan workflow/statussen.
+- Geen aanpassing aan herinneringsmails.
+- Geen volledige audit trail-pagina (te ingewikkeld) — alleen laatste 5 acties.
