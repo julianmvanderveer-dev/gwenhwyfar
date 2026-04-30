@@ -481,7 +481,17 @@ export default function ProjectDetail() {
     return false;
   };
 
-  const canEditFinding = (f: Finding) => canEditFindingByDeel(f.deel);
+  // Correctiemodus: zolang adviseur nog niet heeft gereageerd mogen tekenaar (deel 1)
+  // of auditor (deel 2) een al-verstuurde bevinding nog corrigeren.
+  const canCorrectFinding = (f: Finding) => {
+    if (!f.zichtbaar_voor_adviseur) return false;
+    if (f.status !== "open") return false;
+    if (f.deel === 1 && hasRole("tekenaar")) return true;
+    if (f.deel === 2 && hasRole("auditor")) return true;
+    return false;
+  };
+
+  const canEditFinding = (f: Finding) => canEditFindingByDeel(f.deel) || canCorrectFinding(f);
   const canEditTemplate = (t: Template) => canEditFindingByDeel(t.deel);
   const canEditAny = canDeel1 || canDeel2;
 
