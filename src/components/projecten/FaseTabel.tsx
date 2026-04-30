@@ -31,6 +31,7 @@ export interface ProjectRow {
   toewijzing?: string;
   toegewezen_aan?: string | null;
   toegewezen_profiel?: { naam: string } | null;
+  gearchiveerd_op?: string | null;
   _fase?: FaseKey;
 }
 
@@ -51,6 +52,7 @@ interface FaseTabelProps {
   icon?: typeof import("lucide-react").FolderKanban;
   accentClass?: string;
   badge?: number;
+  isAfgerondView?: boolean;
 }
 
 function substatusBadgeClass(fase: FaseKey): string {
@@ -72,7 +74,7 @@ export default function FaseTabel({
   fase, faseIndex, projecten, canDelete, onDelete, defaultOpen = true,
   showToewijzing = false, showSubstatus = false, inlineToewijzing = false,
   toewijsbarePersonen, onReassign, onReturnToPool,
-  titel, icon, accentClass, badge,
+  titel, icon, accentClass, badge, isAfgerondView = false,
 }: FaseTabelProps) {
   const [open, setOpen] = useState(defaultOpen);
   const [hertoewijzingId, setHertoewijzingId] = useState<string | null>(null);
@@ -83,7 +85,7 @@ export default function FaseTabel({
   const displayAccent = accentClass ?? config.accentClass;
   const displayBadge = badge ?? projecten.length;
 
-  const canReassign = showToewijzing && !inlineToewijzing && toewijsbarePersonen && onReassign && onReturnToPool;
+  const canReassign = !isAfgerondView && showToewijzing && !inlineToewijzing && toewijsbarePersonen && onReassign && onReturnToPool;
   const canInlineReassign = inlineToewijzing && toewijsbarePersonen && onReassign;
 
   const getFilteredPersonen = (project: { status: string; audit_categorie: string }) => {
@@ -137,16 +139,21 @@ export default function FaseTabel({
                   <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Soort</th>
                   <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Adviseur</th>
                   {showToewijzing && (
-                    <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Toegewezen aan</th>
+                    <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">{isAfgerondView ? "Auditor" : "Toegewezen aan"}</th>
                   )}
                    <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Aangemaakt</th>
+                   {isAfgerondView && (
+                     <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Afgerond</th>
+                   )}
                    {showSubstatus && (
                      <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Substatus</th>
                    )}
                    {(fase === "wacht_op_reactie_ep" || (showSubstatus && projecten.some(p => p.reactie_deadline))) && (
                      <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Deadline</th>
                    )}
-                  <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-24">Labels</th>
+                  {!isAfgerondView && (
+                    <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-24">Labels</th>
+                  )}
                   {canReassign && <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-56">Toewijzing</th>}
                   {canDelete && <th className="w-10" />}
                 </tr>
@@ -225,6 +232,9 @@ export default function FaseTabel({
                         </td>
                       )}
                       <td className="px-4 py-2.5 text-muted-foreground">{formatDate(p.datum_aangemaakt)}</td>
+                      {isAfgerondView && (
+                        <td className="px-4 py-2.5 text-muted-foreground">{p.gearchiveerd_op ? formatDate(p.gearchiveerd_op) : "—"}</td>
+                      )}
                       {showSubstatus && (
                         <td className="px-4 py-2.5">
                           {p._fase ? (
@@ -241,16 +251,18 @@ export default function FaseTabel({
                           ) : "—"}
                         </td>
                       )}
-                      <td className="px-4 py-2.5">
-                        <div className="flex gap-1 flex-wrap">
-                          {p.prioriteit && (
-                            <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Prio</Badge>
-                          )}
-                          {p.toelatingsaudit && (
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Toelating</Badge>
-                          )}
-                        </div>
-                      </td>
+                      {!isAfgerondView && (
+                        <td className="px-4 py-2.5">
+                          <div className="flex gap-1 flex-wrap">
+                            {p.prioriteit && (
+                              <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Prio</Badge>
+                            )}
+                            {p.toelatingsaudit && (
+                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Toelating</Badge>
+                            )}
+                          </div>
+                        </td>
+                      )}
                       {canReassign && (
                         <td className="px-4 py-2.5">
                           {isEditing ? (
