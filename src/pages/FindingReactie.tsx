@@ -101,23 +101,23 @@ export default function FindingReactie() {
     if (!user || !finding) return;
     setLoading(true);
     try {
-      const [msgResult, updateResult] = await Promise.all([
-        supabase.from("messages").insert({
-          finding_id: id!,
-          afzender_id: user.id,
-          bericht: "Afwijking geaccepteerd",
-        }),
-        supabase.from("findings").update({ status: "reactie_ontvangen" }).eq("id", id!),
-      ]);
-      if (msgResult.error) throw msgResult.error;
-      if (updateResult.error) throw updateResult.error;
-
-      await checkRemainingFindings();
-      setBericht("");
-      loadMessages();
+      const concept = {
+        type: "akkoord",
+        bericht: "Afwijking geaccepteerd",
+        opgeslagen_op: new Date().toISOString(),
+      };
+      const { error } = await supabase
+        .from("findings")
+        .update({ concept_reactie: concept as any })
+        .eq("id", id!);
+      if (error) throw error;
+      toast({
+        title: "Concept opgeslagen",
+        description: "Verstuur al je reacties in één keer via het projectoverzicht.",
+      });
       loadFinding();
     } catch (err: any) {
-      toast({ title: "Fout bij accepteren", description: err.message, variant: "destructive" });
+      toast({ title: "Fout bij opslaan", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -133,52 +133,37 @@ export default function FindingReactie() {
         if (!bijlagePad) return;
       }
 
-      const [msgResult, updateResult] = await Promise.all([
-        supabase.from("messages").insert({
-          finding_id: id!,
-          afzender_id: user.id,
-          bericht: bericht.trim(),
-          bijlage_pad: bijlagePad,
-        }),
-        supabase.from("findings").update({ status: "reactie_ontvangen" }).eq("id", id!),
-      ]);
-      if (msgResult.error) throw msgResult.error;
-      if (updateResult.error) throw updateResult.error;
-
-      await checkRemainingFindings();
+      const concept = {
+        type: "niet_akkoord",
+        bericht: bericht.trim(),
+        bijlage_pad: bijlagePad,
+        opgeslagen_op: new Date().toISOString(),
+      };
+      const { error } = await supabase
+        .from("findings")
+        .update({ concept_reactie: concept as any })
+        .eq("id", id!);
+      if (error) throw error;
+      toast({
+        title: "Concept opgeslagen",
+        description: "Verstuur al je reacties in één keer via het projectoverzicht.",
+      });
       setBericht("");
       setBestand(null);
       setModus("keuze");
-      loadMessages();
       loadFinding();
     } catch (err: any) {
-      toast({ title: "Fout bij verzenden reactie", description: err.message, variant: "destructive" });
+      toast({ title: "Fout bij opslaan reactie", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
 
-  const checkRemainingFindings = async () => {
-    if (!finding) return;
-    const { data: remaining } = await supabase
-      .from("findings")
-      .select("id")
-      .eq("project_id", finding.project_id)
-      .eq("status", "open")
-      .eq("zichtbaar_voor_adviseur", true)
-      .neq("id", id!);
-
-    if (!remaining || remaining.length === 0) {
-      toast({
-        title: "Alles ingediend!",
-        description: "Alle findings voor dit project zijn beantwoord.",
-      });
-    } else {
-      toast({ title: "Reactie verzonden", description: `Nog ${remaining.length} finding(s) open.` });
-    }
-  };
-
   if (!finding) return <div className="p-4">Laden...</div>;
+  const concept = (finding as any).concept_reactie as
+    | { type: string; bericht?: string; bijlage_pad?: string | null; opgeslagen_op: string }
+    | null;
+  const hasConcept = !!concept;
 
   return (
     <div className="max-w-2xl mx-auto p-4">
@@ -218,6 +203,17 @@ export default function FindingReactie() {
 
       {finding.status !== "gesloten" && finding.status !== "reactie_ontvangen" && (
         <div>
+          {hasConcept && (
+            <div className="bg-blue-50 border border-blue-200 text-blue-900 rounded p-3 mb-3 text-sm">
+              <p className="font-medium">Concept-reactie opgeslagen</p>
+              <p className="text-xs mt-1">
+                {concept!.type === "akkoord" ? "Afwijking geaccepteerd" : "Niet akkoord"} —
+                opgeslagen op {new Date(concept!.opgeslagen_op).toLocaleString("nl-NL")}.
+                Ga naar het projectoverzicht om alle reacties in één keer te versturen. Je kunt deze
+                reactie hieronder nog wijzigen tot dat moment.
+              </p>
+            </div>
+          )}
           {(finding as any).upload_vereist && (
             <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded p-3 mb-3 text-sm">
               ⚠️ De beoordelaar vereist dat je een document uploadt bij je reactie.
