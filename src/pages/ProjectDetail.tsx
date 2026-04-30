@@ -282,14 +282,33 @@ export default function ProjectDetail() {
     loadFindings();
   };
 
+  // Plaats systeembericht in de berichtenhistorie bij een correctie van een
+  // al-verstuurde bevinding zodat de EP-adviseur en de audit-trail dit zien.
+  const logCorrectie = async (findingId: string, beschrijving: string) => {
+    if (!user) return;
+    await supabase.from("messages").insert({
+      finding_id: findingId,
+      afzender_id: user.id,
+      bericht: `[Correctie door ${hasRole("tekenaar") ? "tekenaar" : "auditor"}] ${beschrijving}`,
+    } as any);
+  };
+
   const handleBeoordeling = async (row: MergedRow, beoordeling: string) => {
     try {
       const fId = row.finding?.id ?? (await ensureFinding(row));
+      const wasCorrectie = !!row.finding && row.finding.zichtbaar_voor_adviseur && row.finding.status === "open";
+      const oudeBeoordeling = row.finding?.beoordeling ?? null;
       if (!beoordeling) {
         await supabase.from("findings").update({ beoordeling: null, type_afwijking: null } as any).eq("id", fId);
         loadFindings();
       } else {
         await updateBeoordeling(fId, beoordeling as Enums<"beoordeling_type">);
+      }
+      if (wasCorrectie && oudeBeoordeling !== (beoordeling || null)) {
+        const labels: Record<string, string> = { goed: "Goed", niet_goed: "Niet goed", opmerking: "Opmerking" };
+        const oud = oudeBeoordeling ? (labels[oudeBeoordeling] ?? oudeBeoordeling) : "—";
+        const nieuw = beoordeling ? (labels[beoordeling] ?? beoordeling) : "—";
+        await logCorrectie(fId, `Beoordeling gewijzigd van "${oud}" naar "${nieuw}".`);
       }
     } catch {
       // error already toasted
@@ -297,7 +316,14 @@ export default function ProjectDetail() {
   };
 
   const updateAfwijkingType = async (findingId: string, type: Enums<"afwijking_type">) => {
+    const huidig = findings.find((f) => f.id === findingId);
+    const wasCorrectie = !!huidig && huidig.zichtbaar_voor_adviseur && huidig.status === "open";
+    const oud = huidig?.type_afwijking ?? null;
     await supabase.from("findings").update({ type_afwijking: type }).eq("id", findingId);
+    if (wasCorrectie && oud !== type) {
+      const labels: Record<string, string> = { kritiek: "Kritiek", niet_kritiek: "Niet kritiek" };
+      await logCorrectie(findingId, `Type afwijking gewijzigd van "${oud ? (labels[oud] ?? oud) : "—"}" naar "${labels[type] ?? type}".`);
+    }
     loadFindings();
   };
 
@@ -481,7 +507,17 @@ export default function ProjectDetail() {
     return false;
   };
 
-  const canEditFinding = (f: Finding) => canEditFindingByDeel(f.deel);
+  // Correctiemodus: zolang adviseur nog niet heeft gereageerd mogen tekenaar (deel 1)
+  // of auditor (deel 2) een al-verstuurde bevinding nog corrigeren.
+  const canCorrectFinding = (f: Finding) => {
+    if (!f.zichtbaar_voor_adviseur) return false;
+    if (f.status !== "open") return false;
+    if (f.deel === 1 && hasRole("tekenaar")) return true;
+    if (f.deel === 2 && hasRole("auditor")) return true;
+    return false;
+  };
+
+  const canEditFinding = (f: Finding) => canEditFindingByDeel(f.deel) || canCorrectFinding(f);
   const canEditTemplate = (t: Template) => canEditFindingByDeel(t.deel);
   const canEditAny = canDeel1 || canDeel2;
 
@@ -690,6 +726,8 @@ export default function ProjectDetail() {
                       {rows.map((row, i) => {
                         const f = row.finding;
                         const editable = canEditTemplate(row);
+                        const inCorrectie = !!f && canCorrectFinding(f);
+                        const editableNow = editable || inCorrectie;
                         const uitdraaiValue = localUitdraaiData[row.code] ?? "";
                         const colSpan = hasUitdraaiData ? 6 : 5;
                         return (
@@ -717,7 +755,7 @@ export default function ProjectDetail() {
                                 </span>
                               </td>
                               <td className="px-3 py-2.5">
-                                {editable ? (
+                                {editableNow ? (
                                   <select
                                     className="border border-input rounded-md px-2 py-1 text-sm bg-background"
                                     value={f?.beoordeling ?? ""}
@@ -738,18 +776,24 @@ export default function ProjectDetail() {
                                   {hasRole("ep_adviseur") && f?.zichtbaar_voor_adviseur && f?.status === "open" && (
                                     <span className="inline-flex items-center rounded-full bg-accent/15 text-accent px-1.5 py-0.5 text-[10px] font-semibold">Actie</span>
                                   )}
+                                  {inCorrectie && (
+                                    <span className="inline-flex items-center rounded-full bg-amber-100 text-amber-800 px-1.5 py-0.5 text-[10px] font-semibold" title="Bevinding is al naar EP-adviseur verstuurd. Correcties worden gelogd.">
+                                      Correctie
+                                    </span>
+                                  )}
                                 </div>
                               </td>
                             </tr>
-                            {f && ((editable && (f.beoordeling === "niet_goed" || f.beoordeling === "opmerking")) || f.toelichting) && (
+                            {f && ((editableNow && (f.beoordeling === "niet_goed" || f.beoordeling === "opmerking")) || f.toelichting) && (
                               <tr className="border-b bg-muted/30">
                                 <td colSpan={colSpan} className="px-4 pb-2 pt-1">
                                   <FindingToelichting
                                     findingId={f.id}
                                     initialValue={f.toelichting}
-                                    editable={editable}
+                                    editable={editableNow}
+                                    logCorrectie={inCorrectie}
                                   />
-                                  {editable && f.beoordeling === "niet_goed" && (
+                                  {editableNow && f.beoordeling === "niet_goed" && (
                                     <label className="flex items-center gap-2 mt-2 cursor-pointer text-xs text-muted-foreground">
                                       <Checkbox
                                         checked={f.upload_vereist}
@@ -764,6 +808,9 @@ export default function ProjectDetail() {
                                             setFindings((prev) =>
                                               prev.map((fin) => fin.id === f.id ? { ...fin, upload_vereist: !!checked } : fin)
                                             );
+                                            if (inCorrectie) {
+                                              await logCorrectie(f.id, `Upload-vereist gewijzigd naar "${checked ? "ja" : "nee"}".`);
+                                            }
                                           }
                                         }}
                                       />
