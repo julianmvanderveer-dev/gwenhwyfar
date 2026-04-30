@@ -265,6 +265,8 @@ export type Database = {
       findings: {
         Row: {
           beoordeling: Database["public"]["Enums"]["beoordeling_type"] | null
+          concept_beoordeling: Json | null
+          concept_reactie: Json | null
           controlepunt: string
           created_at: string
           deadline: string | null
@@ -285,6 +287,8 @@ export type Database = {
         }
         Insert: {
           beoordeling?: Database["public"]["Enums"]["beoordeling_type"] | null
+          concept_beoordeling?: Json | null
+          concept_reactie?: Json | null
           controlepunt: string
           created_at?: string
           deadline?: string | null
@@ -305,6 +309,8 @@ export type Database = {
         }
         Update: {
           beoordeling?: Database["public"]["Enums"]["beoordeling_type"] | null
+          concept_beoordeling?: Json | null
+          concept_reactie?: Json | null
           controlepunt?: string
           created_at?: string
           deadline?: string | null
