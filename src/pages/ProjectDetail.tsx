@@ -16,6 +16,7 @@ import { generateAuditReport } from "@/lib/generateAuditReport";
 import AandachtspuntenAdviseur from "@/components/projecten/AandachtspuntenAdviseur";
 import BeheerStandVanZaken from "@/components/projecten/BeheerStandVanZaken";
 import BatchVersturen from "@/components/projecten/BatchVersturen";
+import { useAppSettings } from "@/hooks/useAppSettings";
 
 type Project = Tables<"projects">;
 type Finding = Tables<"findings">;
@@ -39,6 +40,7 @@ export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, hasRole } = useAuth();
+  const { settings: appSettings } = useAppSettings();
   const [project, setProject] = useState<Project | null>(null);
   const [findings, setFindings] = useState<Finding[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -579,18 +581,22 @@ export default function ProjectDetail() {
                 className="gap-1.5"
                 onClick={async () => {
                   let adviseurNaam: string | undefined;
+                  let adviseurNummer: number | undefined;
                   if (project.adviseur_id) {
                     const { data } = await supabase
                       .from("adviseurs")
-                      .select("naam")
+                      .select("naam, nummer")
                       .eq("id", project.adviseur_id)
-                      .single();
+                      .maybeSingle();
                     adviseurNaam = data?.naam;
+                    adviseurNummer = data?.nummer ?? undefined;
                   }
                   generateAuditReport({
                     project,
                     findings,
                     adviseurNaam,
+                    adviseurNummer,
+                    logoUrl: appSettings.org_logo_url || undefined,
                     templates,
                     uitdraaiData: hasUitdraaiData ? localUitdraaiData : undefined,
                   });
