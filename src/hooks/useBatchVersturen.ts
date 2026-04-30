@@ -196,10 +196,15 @@ export function useBatchVersturen(
       // Alle bevindingen moeten dan in een afgesloten status staan
       // (reactie_goedgekeurd of gesloten) — dan ronden we de audit af.
       if (heropenenIds.length === 0) {
+        // Alleen bevindingen die daadwerkelijk naar de adviseur zijn gegaan
+        // tellen mee voor "audit afgerond". Checklist-items met beoordeling "goed"
+        // of nog niet beoordeeld zijn niet zichtbaar voor de adviseur en hoeven
+        // niet de reactie-cyclus door.
         const { data: nogOpen } = await supabase
           .from("findings")
           .select("id")
           .eq("project_id", project.id)
+          .eq("zichtbaar_voor_adviseur", true)
           .not("status", "in", "(reactie_goedgekeurd,gesloten)");
 
         if (!nogOpen || nogOpen.length === 0) {
