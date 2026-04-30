@@ -32,6 +32,7 @@ export interface ProjectRow {
   toegewezen_aan?: string | null;
   toegewezen_profiel?: { naam: string } | null;
   gearchiveerd_op?: string | null;
+  auditor_naam?: string | null;
   _fase?: FaseKey;
 }
 
