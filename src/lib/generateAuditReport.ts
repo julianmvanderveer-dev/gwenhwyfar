@@ -8,6 +8,8 @@ interface ReportData {
   findings: Finding[];
   adviseurNaam?: string;
   adviseurNummer?: number;
+  adviseurUserId?: string;
+  messages?: { finding_id: string; afzender_id: string; bericht: string }[];
   logoUrl?: string;
   templates: { code: string; onderdeel: string; controlepunt: string; deel: number }[];
   uitdraaiData?: Record<string, string>;
@@ -44,9 +46,22 @@ const BENGCERT_LOGO_SVG = `
   <text x="46" y="27" font-family="'Poppins', system-ui, -apple-system, sans-serif" font-weight="700" font-size="18" fill="#28235D" letter-spacing="0.5">bengcert</text>
 </svg>`.trim();
 
-export function generateAuditReport({ project, findings, adviseurNaam, adviseurNummer, logoUrl, templates, uitdraaiData }: ReportData) {
+export function generateAuditReport({ project, findings, adviseurNaam, adviseurNummer, adviseurUserId, messages, logoUrl, templates, uitdraaiData }: ReportData) {
   const hasUitdraai = uitdraaiData && Object.keys(uitdraaiData).length > 0;
   const colCount = hasUitdraai ? 6 : 5;
+
+  // Detectie: heeft adviseur deze afwijking expliciet geaccepteerd?
+  const isAcceptedByAdviseur = (findingId: string): boolean => {
+    if (!adviseurUserId || !messages) return false;
+    return messages.some(
+      (m) =>
+        m.finding_id === findingId &&
+        m.afzender_id === adviseurUserId &&
+        (m.bericht ?? "").trim() === "Afwijking geaccepteerd",
+    );
+  };
+  const isAfgesloten = (f: Finding) =>
+    f.status === "reactie_goedgekeurd" || f.status === "gesloten";
 
   // Build merged rows: all templates with their findings
   const mergedRows = templates.map((t) => {
@@ -66,10 +81,16 @@ export function generateAuditReport({ project, findings, adviseurNaam, adviseurN
   const goedCount = beoordeeld.filter((f) => f.beoordeling === "goed").length;
   const opmerkingCount = beoordeeld.filter((f) => f.beoordeling === "opmerking").length;
   const nietGoedAll = beoordeeld.filter((f) => f.beoordeling === "niet_goed");
+  // Weerlegd = afgesloten EN niet expliciet door adviseur geaccepteerd (= adviseur kreeg inhoudelijk gelijk)
   const weerlegdCount = nietGoedAll.filter(
-    (f) => f.status === "reactie_goedgekeurd" || f.status === "gesloten",
+    (f) => isAfgesloten(f) && !isAcceptedByAdviseur(f.id),
   ).length;
-  const openAfwijkingCount = nietGoedAll.length - weerlegdCount;
+  // Geaccepteerd = afgesloten EN adviseur erkent fout → blijft tellen als afwijking
+  const geaccepteerdCount = nietGoedAll.filter(
+    (f) => isAfgesloten(f) && isAcceptedByAdviseur(f.id),
+  ).length;
+  const openCount = nietGoedAll.length - weerlegdCount - geaccepteerdCount;
+  const afwijkingCount = openCount + geaccepteerdCount;
 
   // EP2
   const ep2Start = project.ep2_startwaarde;
@@ -92,44 +113,51 @@ export function generateAuditReport({ project, findings, adviseurNaam, adviseurN
     .filter(Boolean);
   const documentTitle = titleParts.join(" ");
 
-  // Openstaande afwijkingen (niet afdoende weerlegd)
-  const openstaande = findings
+  // Afwijkingen = openstaand + geaccepteerd (blijven als fout staan)
+  const afwijkingen = findings
     .filter(
       (f) =>
         f.beoordeling === "niet_goed" &&
         f.zichtbaar_voor_adviseur === true &&
-        f.status !== "reactie_goedgekeurd" &&
-        f.status !== "gesloten",
+        (!isAfgesloten(f) || isAcceptedByAdviseur(f.id)),
     )
     .sort((a, b) =>
       (a.onderdeel || "").localeCompare(b.onderdeel || "", undefined, { numeric: true }) ||
       (a.controlepunt || "").localeCompare(b.controlepunt || "", undefined, { numeric: true }),
     );
 
-  const openstaandeRows = openstaande
+  const afwijkingRows = afwijkingen
     .map((f, i) => {
       const tpl = templates.find(
         (t) => t.onderdeel === f.onderdeel && t.controlepunt === f.controlepunt && t.deel === f.deel,
       );
       const code = tpl?.code ?? "—";
+      const accepted = isAcceptedByAdviseur(f.id);
+      const afhandeling = accepted
+        ? `<span style="display:inline-block;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;background:#fde8d4;color:#9a3412;">Geaccepteerd door adviseur</span>`
+        : `<span style="display:inline-block;padding:2px 8px;border-radius:9999px;font-size:11px;font-weight:600;background:#fee2e2;color:#b91c1c;">Open</span>`;
       return `
         <tr style="${i % 2 !== 0 ? "background:#fff5f5;" : ""}">
           <td style="padding:6px 10px;border-bottom:1px solid #fecaca;font-family:monospace;font-size:11px;color:#7f1d1d;">${escapeHtml(code)}</td>
           <td style="padding:6px 10px;border-bottom:1px solid #fecaca;font-size:12px;color:#1f2937;">${escapeHtml(f.onderdeel)}</td>
           <td style="padding:6px 10px;border-bottom:1px solid #fecaca;font-size:12px;color:#1f2937;">${escapeHtml(f.controlepunt)}</td>
           <td style="padding:6px 10px;border-bottom:1px solid #fecaca;font-size:12px;color:#374151;">${f.toelichting ? escapeHtml(f.toelichting) : "—"}</td>
-          <td style="padding:6px 10px;border-bottom:1px solid #fecaca;font-size:12px;color:#374151;">${statusLabel[f.status] ?? f.status}</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #fecaca;font-size:12px;color:#374151;">${afhandeling}</td>
         </tr>`;
     })
     .join("");
 
-  const openstaandeBlok = openstaande.length > 0
+  const subLabel = afwijkingen.length > 0
+    ? `Bevindingen die niet inhoudelijk zijn weerlegd${geaccepteerdCount > 0 ? ` — waarvan ${openCount} open en ${geaccepteerdCount} geaccepteerd door adviseur` : ""}.`
+    : "";
+
+  const openstaandeBlok = afwijkingen.length > 0
     ? `
     <div style="border:1px solid #b91c1c;border-radius:6px;background:#fef2f2;padding:12px 14px;margin-bottom:20px;page-break-inside:avoid;">
       <h2 style="margin:0 0 6px;font-size:14px;font-weight:700;color:#b91c1c;">
-        Openstaande afwijkingen (${openstaande.length})
+        Afwijkingen (${afwijkingen.length})
       </h2>
-      <p style="margin:0 0 10px;font-size:12px;color:#7f1d1d;">Bevindingen die niet afdoende zijn weerlegd.</p>
+      <p style="margin:0 0 10px;font-size:12px;color:#7f1d1d;">${subLabel}</p>
       <table style="width:100%;border-collapse:collapse;font-size:12px;background:#fff;">
         <thead>
           <tr style="background:#1B2A4A;color:#fff;">
@@ -137,15 +165,15 @@ export function generateAuditReport({ project, findings, adviseurNaam, adviseurN
             <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Onderdeel</th>
             <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Controlepunt</th>
             <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Toelichting</th>
-            <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;width:140px;">Status</th>
+            <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;width:180px;">Afhandeling</th>
           </tr>
         </thead>
-        <tbody>${openstaandeRows}</tbody>
+        <tbody>${afwijkingRows}</tbody>
       </table>
     </div>`
     : `
     <div style="border:1px solid #7AB929;border-radius:6px;background:#f3faea;padding:10px 14px;margin-bottom:20px;color:#3d6b0f;font-size:13px;font-weight:600;">
-      Geen openstaande afwijkingen — alle bevindingen zijn afdoende weerlegd of goedgekeurd.
+      Geen afwijkingen — alle 'niet goed'-bevindingen zijn inhoudelijk weerlegd.
     </div>`;
 
   const logoHtml = logoUrl
@@ -289,9 +317,9 @@ export function generateAuditReport({ project, findings, adviseurNaam, adviseurN
           </div>
         </td>
         <td style="width:25%;padding:4px;">
-          <div style="background:${openAfwijkingCount > 0 ? "#fef2f2" : "#f9fafb"};border:1px solid ${openAfwijkingCount > 0 ? "#fecaca" : "#e5e7eb"};border-radius:6px;padding:10px 8px;">
-            <div style="font-size:20px;font-weight:700;color:${openAfwijkingCount > 0 ? "#b91c1c" : "#9ca3af"};line-height:1.1;">${openAfwijkingCount}</div>
-            <div style="color:${openAfwijkingCount > 0 ? "#b91c1c" : "#6b7280"};font-size:10px;text-transform:uppercase;letter-spacing:0.05em;margin-top:2px;">Open afwijking</div>
+          <div style="background:${afwijkingCount > 0 ? "#fef2f2" : "#f9fafb"};border:1px solid ${afwijkingCount > 0 ? "#fecaca" : "#e5e7eb"};border-radius:6px;padding:10px 8px;">
+            <div style="font-size:20px;font-weight:700;color:${afwijkingCount > 0 ? "#b91c1c" : "#9ca3af"};line-height:1.1;">${afwijkingCount}</div>
+            <div style="color:${afwijkingCount > 0 ? "#b91c1c" : "#6b7280"};font-size:10px;text-transform:uppercase;letter-spacing:0.05em;margin-top:2px;">Afwijking</div>
           </div>
         </td>
         <td style="width:25%;padding:4px;">

@@ -582,20 +582,33 @@ export default function ProjectDetail() {
                 onClick={async () => {
                   let adviseurNaam: string | undefined;
                   let adviseurNummer: number | undefined;
+                  let adviseurUserId: string | undefined;
                   if (project.adviseur_id) {
                     const { data } = await supabase
                       .from("adviseurs")
-                      .select("naam, nummer")
+                      .select("naam, nummer, user_id")
                       .eq("id", project.adviseur_id)
                       .maybeSingle();
                     adviseurNaam = data?.naam;
                     adviseurNummer = data?.nummer ?? undefined;
+                    adviseurUserId = data?.user_id ?? undefined;
+                  }
+                  const findingIds = findings.map((f) => f.id);
+                  let messages: { finding_id: string; afzender_id: string; bericht: string }[] = [];
+                  if (findingIds.length > 0) {
+                    const { data: msgs } = await supabase
+                      .from("messages")
+                      .select("finding_id, afzender_id, bericht")
+                      .in("finding_id", findingIds);
+                    messages = msgs ?? [];
                   }
                   generateAuditReport({
                     project,
                     findings,
                     adviseurNaam,
                     adviseurNummer,
+                    adviseurUserId,
+                    messages,
                     logoUrl: appSettings.org_logo_url || undefined,
                     templates,
                     uitdraaiData: hasUitdraaiData ? localUitdraaiData : undefined,
