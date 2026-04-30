@@ -281,6 +281,17 @@ export default function ProjectDetail() {
       update.eigenaar_beoordeling = hasRole("tekenaar") ? "tekenaar" : "auditor";
       update.toegewezen_beoordelaar = user!.id;
     }
+    // Status afleiden: 'goed' sluit het controlepunt af, andere beoordelingen
+    // zetten het terug op 'open'. Alleen toepassen als het controlepunt nog
+    // niet in de adviseur-cyclus zit (zichtbaar_voor_adviseur = false).
+    const huidig = findings.find((f) => f.id === findingId);
+    if (huidig && !huidig.zichtbaar_voor_adviseur) {
+      if (beoordeling === "goed") {
+        update.status = "gesloten";
+      } else {
+        update.status = "open";
+      }
+    }
     await supabase.from("findings").update(update).eq("id", findingId);
     loadFindings();
   };
@@ -302,7 +313,12 @@ export default function ProjectDetail() {
       const wasCorrectie = !!row.finding && row.finding.zichtbaar_voor_adviseur && row.finding.status === "open";
       const oudeBeoordeling = row.finding?.beoordeling ?? null;
       if (!beoordeling) {
-        await supabase.from("findings").update({ beoordeling: null, type_afwijking: null } as any).eq("id", fId);
+        const huidig = row.finding;
+        const wisUpdate: any = { beoordeling: null, type_afwijking: null };
+        if (huidig && !huidig.zichtbaar_voor_adviseur) {
+          wisUpdate.status = "open";
+        }
+        await supabase.from("findings").update(wisUpdate).eq("id", fId);
         loadFindings();
       } else {
         await updateBeoordeling(fId, beoordeling as Enums<"beoordeling_type">);
