@@ -10,10 +10,14 @@ interface Props {
   findingId: string;
   initialValue: string | null;
   editable: boolean;
+  /** Indien true wordt elke opslag-actie ook als systeembericht gelogd (correctie van al-verstuurde bevinding) */
+  logCorrectie?: boolean;
+  onCorrectieGelogd?: () => void;
 }
 
-export default function FindingToelichting({ findingId, initialValue, editable }: Props) {
+export default function FindingToelichting({ findingId, initialValue, editable, logCorrectie, onCorrectieGelogd }: Props) {
   const [value, setValue] = useState(initialValue ?? "");
+  const [savedValue, setSavedValue] = useState(initialValue ?? "");
 
   const handleSpeech = useCallback(
     (transcript: string) => {
@@ -28,8 +32,21 @@ export default function FindingToelichting({ findingId, initialValue, editable }
 
   const { listening, toggle, supported, analyserNode, interimText } = useSpeechRecognition(handleSpeech);
 
-  const handleBlur = () => {
-    supabase.from("findings").update({ toelichting: value } as any).eq("id", findingId).then();
+  const handleBlur = async () => {
+    if (value === savedValue) return;
+    await supabase.from("findings").update({ toelichting: value } as any).eq("id", findingId);
+    if (logCorrectie) {
+      const { data: auth } = await supabase.auth.getUser();
+      if (auth?.user) {
+        await supabase.from("messages").insert({
+          finding_id: findingId,
+          afzender_id: auth.user.id,
+          bericht: `[Correctie] Toelichting aangepast.`,
+        } as any);
+        onCorrectieGelogd?.();
+      }
+    }
+    setSavedValue(value);
   };
 
   if (!editable && !value) return null;
