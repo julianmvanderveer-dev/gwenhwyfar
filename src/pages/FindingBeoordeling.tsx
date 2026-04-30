@@ -190,6 +190,20 @@ export default function FindingBeoordeling() {
   const nietAkkoord = async () => {
     setLoading(true);
     await supabase.from("findings").update({ status: "open", upload_vereist: uploadVereist }).eq("id", id!);
+
+    if (finding) {
+      const nieuweDeadline = new Date();
+      nieuweDeadline.setDate(nieuweDeadline.getDate() + 7);
+      await supabase.from("projects").update({
+        status: "wacht_op_reactie" as any,
+        reactie_deadline: nieuweDeadline.toISOString(),
+        reminder_pre_sent: false,
+        reminder_overdue_1w_sent: false,
+        reminder_overdue_2w_sent: false,
+        reminder_overdue_3w_sent: false,
+      }).eq("id", finding.project_id);
+    }
+
     toast({ title: "Niet akkoord", description: "Bevinding opnieuw geopend voor de adviseur" });
 
     if (finding) {
