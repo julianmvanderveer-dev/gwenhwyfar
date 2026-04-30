@@ -282,14 +282,33 @@ export default function ProjectDetail() {
     loadFindings();
   };
 
+  // Plaats systeembericht in de berichtenhistorie bij een correctie van een
+  // al-verstuurde bevinding zodat de EP-adviseur en de audit-trail dit zien.
+  const logCorrectie = async (findingId: string, beschrijving: string) => {
+    if (!user) return;
+    await supabase.from("messages").insert({
+      finding_id: findingId,
+      afzender_id: user.id,
+      bericht: `[Correctie door ${hasRole("tekenaar") ? "tekenaar" : "auditor"}] ${beschrijving}`,
+    } as any);
+  };
+
   const handleBeoordeling = async (row: MergedRow, beoordeling: string) => {
     try {
       const fId = row.finding?.id ?? (await ensureFinding(row));
+      const wasCorrectie = !!row.finding && row.finding.zichtbaar_voor_adviseur && row.finding.status === "open";
+      const oudeBeoordeling = row.finding?.beoordeling ?? null;
       if (!beoordeling) {
         await supabase.from("findings").update({ beoordeling: null, type_afwijking: null } as any).eq("id", fId);
         loadFindings();
       } else {
         await updateBeoordeling(fId, beoordeling as Enums<"beoordeling_type">);
+      }
+      if (wasCorrectie && oudeBeoordeling !== (beoordeling || null)) {
+        const labels: Record<string, string> = { goed: "Goed", niet_goed: "Niet goed", opmerking: "Opmerking" };
+        const oud = oudeBeoordeling ? (labels[oudeBeoordeling] ?? oudeBeoordeling) : "—";
+        const nieuw = beoordeling ? (labels[beoordeling] ?? beoordeling) : "—";
+        await logCorrectie(fId, `Beoordeling gewijzigd van "${oud}" naar "${nieuw}".`);
       }
     } catch {
       // error already toasted
@@ -297,7 +316,14 @@ export default function ProjectDetail() {
   };
 
   const updateAfwijkingType = async (findingId: string, type: Enums<"afwijking_type">) => {
+    const huidig = findings.find((f) => f.id === findingId);
+    const wasCorrectie = !!huidig && huidig.zichtbaar_voor_adviseur && huidig.status === "open";
+    const oud = huidig?.type_afwijking ?? null;
     await supabase.from("findings").update({ type_afwijking: type }).eq("id", findingId);
+    if (wasCorrectie && oud !== type) {
+      const labels: Record<string, string> = { kritiek: "Kritiek", niet_kritiek: "Niet kritiek" };
+      await logCorrectie(findingId, `Type afwijking gewijzigd van "${oud ? (labels[oud] ?? oud) : "—"}" naar "${labels[type] ?? type}".`);
+    }
     loadFindings();
   };
 
