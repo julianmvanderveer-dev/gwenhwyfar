@@ -581,18 +581,22 @@ export default function ProjectDetail() {
                 className="gap-1.5"
                 onClick={async () => {
                   let adviseurNaam: string | undefined;
+                  let adviseurNummer: number | undefined;
                   if (project.adviseur_id) {
                     const { data } = await supabase
                       .from("adviseurs")
-                      .select("naam")
+                      .select("naam, nummer")
                       .eq("id", project.adviseur_id)
-                      .single();
+                      .maybeSingle();
                     adviseurNaam = data?.naam;
+                    adviseurNummer = data?.nummer ?? undefined;
                   }
                   generateAuditReport({
                     project,
                     findings,
                     adviseurNaam,
+                    adviseurNummer,
+                    logoUrl: appSettings.org_logo_url || undefined,
                     templates,
                     uitdraaiData: hasUitdraaiData ? localUitdraaiData : undefined,
                   });
