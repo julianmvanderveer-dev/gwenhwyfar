@@ -189,7 +189,6 @@ export default function FindingReactie() {
         <p><strong>Controlepunt:</strong> {finding.controlepunt}</p>
         <p><strong>Beoordeling:</strong> {finding.beoordeling}</p>
         <p><strong>Type afwijking:</strong> {finding.type_afwijking ?? "—"}</p>
-        <p><strong>Deadline:</strong> {finding.deadline ? new Date(finding.deadline).toLocaleDateString("nl-NL") : "—"}</p>
         <p><strong>Status:</strong> {finding.status}</p>
         {finding.toelichting && <p><strong>Toelichting:</strong> {finding.toelichting}</p>}
       </div>

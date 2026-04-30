@@ -12,9 +12,17 @@ export interface TemplateEntry {
 import { template as auditAfgerond } from './audit-afgerond.tsx'
 import { template as nietAkkoord } from './niet-akkoord.tsx'
 import { template as platformUitnodiging } from './platform-uitnodiging.tsx'
+import { template as reactieHerinneringPre } from './reactie-herinnering-pre.tsx'
+import { template as reactieHerinneringOverdue } from './reactie-herinnering-overdue.tsx'
+import { template as reactieHerinneringWaarschuwing } from './reactie-herinnering-waarschuwing.tsx'
+import { template as reactieHerinneringEindwaarschuwing } from './reactie-herinnering-eindwaarschuwing.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'audit-afgerond': auditAfgerond,
   'niet-akkoord': nietAkkoord,
   'platform-uitnodiging': platformUitnodiging,
+  'reactie-herinnering-pre': reactieHerinneringPre,
+  'reactie-herinnering-overdue': reactieHerinneringOverdue,
+  'reactie-herinnering-waarschuwing': reactieHerinneringWaarschuwing,
+  'reactie-herinnering-eindwaarschuwing': reactieHerinneringEindwaarschuwing,
 }
