@@ -15,6 +15,7 @@ import { ArrowLeft, CheckCircle2, ClipboardCheck, ChevronLeft, ChevronRight, Dow
 import { generateAuditReport } from "@/lib/generateAuditReport";
 import AandachtspuntenAdviseur from "@/components/projecten/AandachtspuntenAdviseur";
 import BeheerStandVanZaken from "@/components/projecten/BeheerStandVanZaken";
+import BatchVersturen from "@/components/projecten/BatchVersturen";
 
 type Project = Tables<"projects">;
 type Finding = Tables<"findings">;
@@ -612,6 +613,16 @@ export default function ProjectDetail() {
       {hasRole("beheer") && (
         <BeheerStandVanZaken project={project} findings={findings} />
       )}
+
+      {/* Batch versturen reacties / beoordelingen */}
+      <BatchVersturen
+        project={project}
+        findings={findings}
+        onSent={() => {
+          loadProject();
+          loadFindings();
+        }}
+      />
 
       {/* Uitdraai upload */}
       {canEditAny && (
