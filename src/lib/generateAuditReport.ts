@@ -317,9 +317,9 @@ export function generateAuditReport({ project, findings, adviseurNaam, adviseurN
           </div>
         </td>
         <td style="width:25%;padding:4px;">
-          <div style="background:${openAfwijkingCount > 0 ? "#fef2f2" : "#f9fafb"};border:1px solid ${openAfwijkingCount > 0 ? "#fecaca" : "#e5e7eb"};border-radius:6px;padding:10px 8px;">
-            <div style="font-size:20px;font-weight:700;color:${openAfwijkingCount > 0 ? "#b91c1c" : "#9ca3af"};line-height:1.1;">${openAfwijkingCount}</div>
-            <div style="color:${openAfwijkingCount > 0 ? "#b91c1c" : "#6b7280"};font-size:10px;text-transform:uppercase;letter-spacing:0.05em;margin-top:2px;">Open afwijking</div>
+          <div style="background:${afwijkingCount > 0 ? "#fef2f2" : "#f9fafb"};border:1px solid ${afwijkingCount > 0 ? "#fecaca" : "#e5e7eb"};border-radius:6px;padding:10px 8px;">
+            <div style="font-size:20px;font-weight:700;color:${afwijkingCount > 0 ? "#b91c1c" : "#9ca3af"};line-height:1.1;">${afwijkingCount}</div>
+            <div style="color:${afwijkingCount > 0 ? "#b91c1c" : "#6b7280"};font-size:10px;text-transform:uppercase;letter-spacing:0.05em;margin-top:2px;">Afwijking</div>
           </div>
         </td>
         <td style="width:25%;padding:4px;">
