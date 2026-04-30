@@ -410,6 +410,7 @@ export default function Inbox() {
           titel="Afgerond"
           icon={CheckCircle2}
           accentClass="text-primary"
+          isAfgerondView
         />
       </div>
 
