@@ -1,52 +1,26 @@
-## Probleem
-Het tabblad **Bevindingen** in het Auditor-/Tekenaardashboard toont nu één platte lijst van losse bevindingen door alle projecten heen. Bij meerdere openstaande reacties per project verlies je het overzicht — je weet niet meer welke bevindingen bij elkaar horen, en de batch-flow ("eerst alles beoordelen, dan in één keer versturen") sluit daar slecht op aan.
+Ik heb de oorzaak bevestigd: projecten 107b en 107c staan in de database nog echt op `wacht_op_reactie`, terwijl alle voor de adviseur zichtbare bevindingen al `reactie_goedgekeurd` zijn. De inbox toont dus de huidige data correct; het probleem is dat de projectstatus niet is meegegaan naar `afgerond`.
 
-## Oplossing
-Hergroepeer de **Bevindingen**-tab per **project**. Eén regel per project, uitklapbaar naar de bijbehorende reacties. De auditor klikt eerst op een project, ziet daarbinnen alle te beoordelen reacties netjes onder elkaar, en kan vandaaruit doorklikken naar de individuele bevinding óf direct naar het projectoverzicht voor de batchverzending.
+Plan
 
-## Wijzigingen
+1. Datastatus direct herstellen
+- Een veilige, idempotente backend-fix uitvoeren die projecten op `afgerond` zet wanneer alle adviseur-zichtbare bevindingen al in een eindstatus staan.
+- Daarbij 107b en 107c expliciet meenemen, en de query zo opzetten dat vergelijkbare vastgelopen projecten meteen ook worden meegenomen.
+- `gearchiveerd_op` invullen zodat ze ook in de juiste groep en zichtbaarheid vallen.
 
-### 1. Groeperen per project in `MedewerkerDashboard.tsx`
-- Bestaande platte `findings`-lijst groeperen op `project_id`.
-- Per project één rij tonen met:
-  - Projectnaam (link naar `/project/:id`)
-  - EP-adviseur
-  - **Aantal te beoordelen reacties** (badge, bv. `2` of `2 — 1 concept klaar`)
-  - **Voortgangsindicator concept** (bijv. `1/2 beoordeeld`) — gebruikt dezelfde logica als `BatchVersturenCompact`
-  - Datum oudste / nieuwste reactie
-  - Knop **"Beoordelen"** → opent uitklap
+2. Afrondlogica robuuster maken
+- De bestaande afrondcontrole in `src/hooks/useBatchVersturen.ts` nalopen en aanscherpen zodat de projectstatus altijd wordt bijgewerkt zodra de laatste openstaande adviseur-bevinding is goedgekeurd.
+- Controleren of er nog een tweede pad bestaat waardoor een bevinding op `reactie_goedgekeurd` kan komen zonder dat de projectstatus wordt herberekend; als dat zo is, daar dezelfde reconciliatie toevoegen.
+- Voorkomen dat alleen losse bevindingen sluiten terwijl het project als geheel blijft hangen op `wacht_op_reactie`.
 
-### 2. Uitklapbare detailrijen per bevinding
-- Bij uitklappen verschijnt onder de projectregel een compacte sublijst met alle openstaande reacties van dat project:
-  - Onderdeel + controlepunt
-  - Korte preview van de adviseur-reactie (zoals nu)
-  - Status-badge: **"Nog beoordelen"** of **"Concept klaar"** (akkoord/niet akkoord)
-  - Datum
-  - Link **"Open"** → `/finding/:id/beoordeling`
-- Standaard ingeklapt; project met maar 1 bevinding mag eventueel auto-uitklappen of direct naar `/finding/:id/beoordeling` doorlinken.
+3. Overzicht controleren
+- Verifiëren dat 107b en 107c daarna niet meer onder “Reactie EP-adviseur gevraagd” staan.
+- Controleren dat ze in de inbox onder “Afgerond” vallen en niet meer onterecht in de actieve projectlijst blijven hangen.
 
-### 3. Snelle route naar batchverzenden
-Onderin de uitgeklapte sectie een knop **"Naar projectoverzicht"** → `/project/:id`, waar de bestaande `BatchVersturen`-balk staat zodra alle concepten klaar zijn. Geen losse verzendknop in deze tab; dat blijft consistent met de nieuwe batch-architectuur.
+Technische details
+- Huidige database-status:
+  - `7108AA107b, Wooldseweg, Woold` → `wacht_op_reactie`
+  - `7108AA107c, Wooldseweg, Woold` → `wacht_op_reactie`
+- Alle adviseur-zichtbare bevindingen voor deze twee projecten staan al op `reactie_goedgekeurd`.
+- In de code staat de bedoelde afrondlogica al in `src/hooks/useBatchVersturen.ts`, dus dit lijkt nu vooral een combinatie van vastgelopen data en mogelijk nog één route waarin die afrondcheck niet wordt geraakt.
 
-### 4. Lege-staat & teller
-- Tabnaam-badge toont niet langer het aantal losse bevindingen, maar het **aantal projecten met openstaande reacties** (bv. `2 projecten`).
-- Lege staat blijft hetzelfde.
-
-### 5. Kleine UI-bouwstenen
-- Gebruik `Collapsible` van shadcn (al in project) voor de uitklap.
-- Hergebruik `useBatchVersturen` of een lichte variant voor de `concept klaar`-telling per project, zodat de logica niet dubbel staat.
-
-## Wat NIET verandert
-- De Mijn projecten-tab blijft ongewijzigd.
-- De individuele bevinding-pagina (`FindingBeoordeling.tsx`) blijft hetzelfde, inclusief de compacte batchbalk.
-- De batch-architectuur en de databasestatussen blijven ongewijzigd — geen migraties nodig.
-- De adviseur-zijde (Inbox-tab voor EP-adviseur) wijzigt in deze stap niet; ik kan dezelfde grouping later op die tab toepassen als je dat ook wenst.
-
-## Resultaat
-De auditor opent **Bevindingen** en ziet bovenaan compact: *"Project 7108AA107C — 2 reacties te beoordelen — 1/2 concept klaar"*. Eén klik klapt het project open en toont de twee reacties netjes onder elkaar. Vanaf daar doorklikken naar de finding of naar het projectoverzicht om alles in één keer te versturen.
-
-## Technische details
-- Wijziging beperkt tot:
-  - `src/components/dashboard/MedewerkerDashboard.tsx` (groeperen + uitklap)
-  - mogelijk een kleine helper in `src/hooks/useBatchVersturen.ts` om concept-tellingen te delen
-- Geen DB-migratie, geen RLS-wijziging, geen edge-functie wijziging.
+Na akkoord voer ik dit meteen door en controleer ik dat die twee projecten echt uit die foutieve status verdwijnen.
