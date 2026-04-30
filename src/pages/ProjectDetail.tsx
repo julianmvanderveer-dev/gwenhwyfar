@@ -15,6 +15,7 @@ import { ArrowLeft, CheckCircle2, ClipboardCheck, ChevronLeft, ChevronRight, Dow
 import { generateAuditReport } from "@/lib/generateAuditReport";
 import AandachtspuntenAdviseur from "@/components/projecten/AandachtspuntenAdviseur";
 import BeheerStandVanZaken from "@/components/projecten/BeheerStandVanZaken";
+import BatchVersturen from "@/components/projecten/BatchVersturen";
 
 type Project = Tables<"projects">;
 type Finding = Tables<"findings">;
@@ -613,6 +614,16 @@ export default function ProjectDetail() {
         <BeheerStandVanZaken project={project} findings={findings} />
       )}
 
+      {/* Batch versturen reacties / beoordelingen */}
+      <BatchVersturen
+        project={project}
+        findings={findings}
+        onSent={() => {
+          loadProject();
+          loadFindings();
+        }}
+      />
+
       {/* Uitdraai upload */}
       {canEditAny && (
         <div className="border rounded-lg bg-card p-4 shadow-sm">
@@ -775,6 +786,16 @@ export default function ProjectDetail() {
                                   {f ? statusBadge(f.status) : <span className="text-muted-foreground">—</span>}
                                   {hasRole("ep_adviseur") && f?.zichtbaar_voor_adviseur && f?.status === "open" && (
                                     <span className="inline-flex items-center rounded-full bg-accent/15 text-accent px-1.5 py-0.5 text-[10px] font-semibold">Actie</span>
+                                  )}
+                                  {f && (f as any).concept_reactie && (
+                                    <span className="inline-flex items-center rounded-full bg-blue-100 text-blue-800 px-1.5 py-0.5 text-[10px] font-semibold" title="Concept-reactie EP-adviseur opgeslagen, nog niet verstuurd.">
+                                      Concept reactie
+                                    </span>
+                                  )}
+                                  {f && (f as any).concept_beoordeling && (
+                                    <span className="inline-flex items-center rounded-full bg-emerald-100 text-emerald-800 px-1.5 py-0.5 text-[10px] font-semibold" title="Concept-beoordeling auditor opgeslagen, nog niet verstuurd.">
+                                      Concept beoordeling
+                                    </span>
                                   )}
                                   {inCorrectie && (
                                     <span className="inline-flex items-center rounded-full bg-amber-100 text-amber-800 px-1.5 py-0.5 text-[10px] font-semibold" title="Bevinding is al naar EP-adviseur verstuurd. Correcties worden gelogd.">

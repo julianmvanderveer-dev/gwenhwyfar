@@ -140,8 +140,14 @@ export default function BeheerStandVanZaken({ project, findings }: { project: Pr
   }, [project.toegewezen_aan, project.adviseur_id]);
 
   const reactiesTeBeoordelen = findings.filter((f) => f.status === "reactie_ontvangen").length;
+  const conceptBeoordelingen = findings.filter(
+    (f) => f.status === "reactie_ontvangen" && (f as any).concept_beoordeling,
+  ).length;
   const openVoorAdviseur = findings.filter(
     (f) => f.status === "open" && f.zichtbaar_voor_adviseur,
+  ).length;
+  const conceptReacties = findings.filter(
+    (f) => f.status === "open" && f.zichtbaar_voor_adviseur && (f as any).concept_reactie,
   ).length;
   const wachtOpAdviseur = project.status === "wacht_op_reactie";
   const tier = wachtOpAdviseur ? deadlineTier(project.reactie_deadline) : null;
@@ -199,13 +205,17 @@ export default function BeheerStandVanZaken({ project, findings }: { project: Pr
             <div className="flex items-center justify-between border-b pb-1.5">
               <span>Reacties te beoordelen</span>
               <span className={`font-semibold ${reactiesTeBeoordelen > 0 ? "text-orange-700" : "text-muted-foreground"}`}>
-                {reactiesTeBeoordelen}
+                {conceptBeoordelingen > 0 && reactiesTeBeoordelen > 0
+                  ? `${conceptBeoordelingen}/${reactiesTeBeoordelen} concept`
+                  : reactiesTeBeoordelen}
               </span>
             </div>
             <div className="flex items-center justify-between border-b pb-1.5">
               <span>Bevindingen open bij EP-adviseur</span>
               <span className={`font-semibold ${openVoorAdviseur > 0 ? "text-blue-700" : "text-muted-foreground"}`}>
-                {openVoorAdviseur}
+                {conceptReacties > 0 && openVoorAdviseur > 0
+                  ? `${conceptReacties}/${openVoorAdviseur} concept`
+                  : openVoorAdviseur}
               </span>
             </div>
             {wachtOpAdviseur && project.reactie_deadline && (

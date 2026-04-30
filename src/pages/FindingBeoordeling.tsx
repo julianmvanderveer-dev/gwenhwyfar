@@ -68,24 +68,27 @@ export default function FindingBeoordeling() {
     return finding.upload_vereist === true || finding.type_afwijking === "kritiek";
   };
 
-  // Auto-afronden: als adviseur akkoord ging en geen auditoractie nodig is
+  // Auto-concept: als adviseur akkoord ging en geen auditoractie nodig is, vul automatisch
+  // een akkoord-concept zodat het in de batch meegenomen wordt door de auditor.
   useEffect(() => {
     if (!finding || !adviseurContext) return;
     if (finding.status !== "reactie_ontvangen") return;
     if (!adviseurHeeftGeaccepteerd()) return;
     if (vereistAuditorActie()) return;
+    if ((finding as any).concept_beoordeling) return;
 
     (async () => {
+      const concept = {
+        type: "akkoord",
+        toelichting: "Automatisch akkoord — adviseur accepteerde afwijking, geen kritieke punten.",
+        opgeslagen_op: new Date().toISOString(),
+      };
       const { error } = await supabase
         .from("findings")
-        .update({ status: "reactie_goedgekeurd", goedgekeurd_op: new Date().toISOString() })
+        .update({ concept_beoordeling: concept as any })
         .eq("id", id!);
       if (!error) {
         setAutoClosed(true);
-        toast({
-          title: "Bevinding automatisch afgesloten",
-          description: "EP-adviseur ging akkoord met de afwijking — geen actie nodig.",
-        });
         loadFinding();
       }
     })();
@@ -181,43 +184,50 @@ export default function FindingBeoordeling() {
 
   const akkoord = async () => {
     setLoading(true);
-    await supabase.from("findings").update({ status: "reactie_goedgekeurd", goedgekeurd_op: new Date().toISOString() }).eq("id", id!);
-    toast({ title: "Reactie goedgekeurd", description: "De reactie van de EP-adviseur is goedgekeurd." });
-    loadFinding();
+    const concept = {
+      type: "akkoord",
+      opgeslagen_op: new Date().toISOString(),
+    };
+    const { error } = await supabase
+      .from("findings")
+      .update({ concept_beoordeling: concept as any })
+      .eq("id", id!);
+    if (error) {
+      toast({ title: "Fout bij opslaan", description: error.message, variant: "destructive" });
+    } else {
+      toast({
+        title: "Concept opgeslagen",
+        description: "Verstuur al je beoordelingen in één keer via het projectoverzicht.",
+      });
+      loadFinding();
+    }
     setLoading(false);
   };
 
   const nietAkkoord = async () => {
     setLoading(true);
-    await supabase.from("findings").update({ status: "open", upload_vereist: uploadVereist }).eq("id", id!);
-
-    if (finding) {
-      const nieuweDeadline = new Date();
-      nieuweDeadline.setDate(nieuweDeadline.getDate() + 7);
-      await supabase.from("projects").update({
-        status: "wacht_op_reactie" as any,
-        reactie_deadline: nieuweDeadline.toISOString(),
-        reminder_pre_sent: false,
-        reminder_overdue_1w_sent: false,
-        reminder_overdue_2w_sent: false,
-        reminder_overdue_3w_sent: false,
-      }).eq("id", finding.project_id);
-    }
-
-    toast({ title: "Niet akkoord", description: "Bevinding opnieuw geopend voor de adviseur" });
-
-    if (finding) {
-      supabase.functions.invoke("notify-adviseur", {
-        body: { type: "niet_akkoord", project_id: finding.project_id, finding_id: id },
-      }).then(({ error }) => {
-        if (error) console.error("Notificatie fout:", error);
+    const concept = {
+      type: "niet_akkoord",
+      toelichting: opmerking.trim() || null,
+      upload_vereist: uploadVereist,
+      opgeslagen_op: new Date().toISOString(),
+    };
+    const { error } = await supabase
+      .from("findings")
+      .update({ concept_beoordeling: concept as any })
+      .eq("id", id!);
+    if (error) {
+      toast({ title: "Fout bij opslaan", description: error.message, variant: "destructive" });
+    } else {
+      toast({
+        title: "Concept opgeslagen",
+        description: "Verstuur al je beoordelingen in één keer via het projectoverzicht.",
       });
+      loadFinding();
+      setModus("keuze");
+      setOpmerking("");
+      setUploadVereist(false);
     }
-
-    loadFinding();
-    setModus("keuze");
-    setOpmerking("");
-    setUploadVereist(false);
     setLoading(false);
   };
 
@@ -327,6 +337,20 @@ export default function FindingBeoordeling() {
             <h2 className="font-semibold">Beoordeling door Auditor</h2>
             <p className="text-muted-foreground text-xs">Beoordeel de reactie van de EP-adviseur.</p>
           </div>
+          {(finding as any).concept_beoordeling && (
+            <div className="rounded border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
+              <p className="font-medium">
+                Concept-beoordeling opgeslagen:{" "}
+                {((finding as any).concept_beoordeling as any).type === "akkoord"
+                  ? "Goedgekeurd"
+                  : "Niet akkoord"}
+              </p>
+              <p className="mt-1">
+                Verstuur al je beoordelingen in één keer via het projectoverzicht. Je kunt deze
+                beoordeling hieronder nog wijzigen tot dat moment.
+              </p>
+            </div>
+          )}
 
           {modus === "keuze" && (
             <div className="flex gap-2">
