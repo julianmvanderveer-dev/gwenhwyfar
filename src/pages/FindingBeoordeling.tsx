@@ -337,6 +337,20 @@ export default function FindingBeoordeling() {
             <h2 className="font-semibold">Beoordeling door Auditor</h2>
             <p className="text-muted-foreground text-xs">Beoordeel de reactie van de EP-adviseur.</p>
           </div>
+          {(finding as any).concept_beoordeling && (
+            <div className="rounded border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
+              <p className="font-medium">
+                Concept-beoordeling opgeslagen:{" "}
+                {((finding as any).concept_beoordeling as any).type === "akkoord"
+                  ? "Goedgekeurd"
+                  : "Niet akkoord"}
+              </p>
+              <p className="mt-1">
+                Verstuur al je beoordelingen in één keer via het projectoverzicht. Je kunt deze
+                beoordeling hieronder nog wijzigen tot dat moment.
+              </p>
+            </div>
+          )}
 
           {modus === "keuze" && (
             <div className="flex gap-2">
