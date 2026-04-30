@@ -207,6 +207,43 @@ export default function MedewerkerDashboard() {
   const truncate = (text: string, max = 80) =>
     text.length > max ? text.slice(0, max) + "…" : text;
 
+  const projectGroepen: ProjectGroep[] = (() => {
+    const map = new Map<string, ProjectGroep>();
+    for (const f of findings) {
+      let g = map.get(f.project_id);
+      if (!g) {
+        g = {
+          project_id: f.project_id,
+          projectnaam: f.projectnaam,
+          adviseur_naam: f.adviseur_naam,
+          findings: [],
+          totaal: 0,
+          conceptKlaar: 0,
+          akkoordCount: 0,
+          nietAkkoordCount: 0,
+          laatsteReactie: null,
+        };
+        map.set(f.project_id, g);
+      }
+      g.findings.push(f);
+      g.totaal += 1;
+      if (f.concept_beoordeling) {
+        g.conceptKlaar += 1;
+        if (f.concept_beoordeling.type === "akkoord") g.akkoordCount += 1;
+        else if (f.concept_beoordeling.type === "niet_akkoord") g.nietAkkoordCount += 1;
+      }
+      if (f.reactie_datum && (!g.laatsteReactie || f.reactie_datum > g.laatsteReactie)) {
+        g.laatsteReactie = f.reactie_datum;
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => {
+      if (!a.laatsteReactie && !b.laatsteReactie) return a.projectnaam.localeCompare(b.projectnaam);
+      if (!a.laatsteReactie) return 1;
+      if (!b.laatsteReactie) return -1;
+      return b.laatsteReactie.localeCompare(a.laatsteReactie);
+    });
+  })();
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20 text-muted-foreground text-sm">
@@ -221,9 +258,9 @@ export default function MedewerkerDashboard() {
         <TabsTrigger value="findings" className="gap-2">
           <ClipboardList className="h-4 w-4" />
           Bevindingen
-          {findings.length > 0 && (
+          {projectGroepen.length > 0 && (
             <Badge variant="destructive" className="ml-1 text-xs px-1.5 py-0">
-              {findings.length}
+              {projectGroepen.length}
             </Badge>
           )}
         </TabsTrigger>
@@ -235,43 +272,117 @@ export default function MedewerkerDashboard() {
 
       {/* ─── Findings ─── */}
       <TabsContent value="findings">
-        {findings.length === 0 ? (
+        {projectGroepen.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <Inbox className="h-10 w-10 mb-3 opacity-40" />
             <p className="text-sm">Er zijn momenteel geen openstaande bevindingen.</p>
           </div>
         ) : (
-          <div className="border rounded-lg overflow-hidden bg-card shadow-sm">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-secondary/60 border-b">
-                  <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Project</th>
-                  <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">EP-adviseur</th>
-                  <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Reactie</th>
-                  <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Datum</th>
-                  <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Actie</th>
-                </tr>
-              </thead>
-              <tbody>
-                {findings.map((f, i) => (
-                  <tr key={f.id} className={`border-b last:border-0 ${i % 2 === 0 ? "bg-card" : "bg-background"}`}>
-                    <td className="px-4 py-2.5 font-medium">{f.projectnaam}</td>
-                    <td className="px-4 py-2.5">{f.adviseur_naam}</td>
-                    <td className="px-4 py-2.5 text-muted-foreground max-w-xs">
-                      {f.reactie_tekst ? truncate(f.reactie_tekst) : <span className="italic">Geen bericht</span>}
-                    </td>
-                    <td className="px-4 py-2.5 whitespace-nowrap">
-                      {f.reactie_datum ? new Date(f.reactie_datum).toLocaleDateString("nl-NL") : "—"}
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <Link to={`/finding/${f.id}/beoordeling`} className="text-primary hover:underline font-medium">
-                        Beoordelen
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="space-y-2">
+            {projectGroepen.map((g) => {
+              const klaar = g.conceptKlaar === g.totaal;
+              return (
+                <Collapsible key={g.project_id} defaultOpen={projectGroepen.length === 1}>
+                  <div className="border rounded-lg bg-card shadow-sm overflow-hidden">
+                    <CollapsibleTrigger asChild>
+                      <button
+                        type="button"
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/40 transition-colors group"
+                      >
+                        <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-90" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-sm truncate">{g.projectnaam}</span>
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                              {g.adviseur_naam}
+                            </Badge>
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            {g.totaal} reactie{g.totaal === 1 ? "" : "s"} te beoordelen
+                            {g.laatsteReactie && (
+                              <span className="ml-2">
+                                · laatste {new Date(g.laatsteReactie).toLocaleDateString("nl-NL")}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="shrink-0 flex items-center gap-2">
+                          <Badge
+                            variant={klaar ? "default" : "outline"}
+                            className={`text-xs ${klaar ? "bg-emerald-600 hover:bg-emerald-600" : ""}`}
+                          >
+                            {g.conceptKlaar}/{g.totaal} beoordeeld
+                          </Badge>
+                        </div>
+                      </button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="border-t bg-background/40">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b bg-secondary/40">
+                              <th className="text-left px-4 py-2 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground">Onderdeel / controlepunt</th>
+                              <th className="text-left px-4 py-2 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground">Reactie EP-adviseur</th>
+                              <th className="text-left px-4 py-2 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground">Datum</th>
+                              <th className="text-left px-4 py-2 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground">Status</th>
+                              <th className="text-left px-4 py-2 font-semibold text-[11px] uppercase tracking-wider text-muted-foreground">Actie</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {g.findings.map((f, i) => {
+                              const c = f.concept_beoordeling;
+                              const conceptStatus = !c ? null : c.type === "akkoord" ? "akkoord" : "niet_akkoord";
+                              return (
+                                <tr key={f.id} className={`border-b last:border-0 ${i % 2 === 0 ? "bg-card" : "bg-background"}`}>
+                                  <td className="px-4 py-2.5">
+                                    <div className="font-medium">{f.controlepunt}</div>
+                                    <div className="text-xs text-muted-foreground">{f.onderdeel}</div>
+                                  </td>
+                                  <td className="px-4 py-2.5 text-muted-foreground max-w-md">
+                                    {f.reactie_tekst ? truncate(f.reactie_tekst, 100) : <span className="italic">Geen bericht</span>}
+                                  </td>
+                                  <td className="px-4 py-2.5 whitespace-nowrap text-xs text-muted-foreground">
+                                    {f.reactie_datum ? new Date(f.reactie_datum).toLocaleDateString("nl-NL") : "—"}
+                                  </td>
+                                  <td className="px-4 py-2.5">
+                                    {conceptStatus === "akkoord" ? (
+                                      <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700">
+                                        <CheckCircle2 className="h-3.5 w-3.5" /> Concept goedgekeurd
+                                      </span>
+                                    ) : conceptStatus === "niet_akkoord" ? (
+                                      <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700">
+                                        <XCircle className="h-3.5 w-3.5" /> Concept niet akkoord
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
+                                        <Circle className="h-3.5 w-3.5" /> Nog beoordelen
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="px-4 py-2.5">
+                                    <Link to={`/finding/${f.id}/beoordeling`} className="text-primary hover:underline font-medium text-sm">
+                                      Open
+                                    </Link>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                        <div className="flex items-center justify-end gap-2 px-4 py-2.5 bg-muted/20 border-t">
+                          <Link to={`/project/${g.project_id}`}>
+                            <Button size="sm" variant="outline" className="gap-1.5 text-xs">
+                              Naar projectoverzicht
+                              <ArrowRight className="h-3.5 w-3.5" />
+                            </Button>
+                          </Link>
+                        </div>
+                      </div>
+                    </CollapsibleContent>
+                  </div>
+                </Collapsible>
+              );
+            })}
           </div>
         )}
       </TabsContent>
