@@ -9,6 +9,7 @@ import { Mic, MicOff, Upload, FileText, Download, Check, X } from "lucide-react"
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 
 import type { Tables } from "@/integrations/supabase/types";
+import BatchVersturenCompact from "@/components/projecten/BatchVersturenCompact";
 
 type Finding = Tables<"findings">;
 type Message = Tables<"messages">;
@@ -330,6 +331,12 @@ export default function FindingReactie() {
 
       {finding.status === "reactie_ontvangen" && (
         <p className="text-sm text-muted-foreground">Je reactie is ingediend en wordt beoordeeld.</p>
+      )}
+
+      {finding.project_id && (
+        <div className="mt-4">
+          <BatchVersturenCompact projectId={finding.project_id} />
+        </div>
       )}
 
       <Button variant="ghost" className="mt-4" onClick={() => navigate(-1)}>
