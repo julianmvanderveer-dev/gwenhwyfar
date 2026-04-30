@@ -208,6 +208,7 @@ export function useBatchVersturen(
     wachtOpAuditor,
     auditorConcepten,
     auditorKlaar,
+    verstuurAuditor,
     akkoordCount,
     nietAkkoordCount,
   };
