@@ -16,6 +16,7 @@ import { generateAuditReport } from "@/lib/generateAuditReport";
 import AandachtspuntenAdviseur from "@/components/projecten/AandachtspuntenAdviseur";
 import BeheerStandVanZaken from "@/components/projecten/BeheerStandVanZaken";
 import BatchVersturen from "@/components/projecten/BatchVersturen";
+import { useAppSettings } from "@/hooks/useAppSettings";
 
 type Project = Tables<"projects">;
 type Finding = Tables<"findings">;
@@ -39,6 +40,7 @@ export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, hasRole } = useAuth();
+  const { settings: appSettings } = useAppSettings();
   const [project, setProject] = useState<Project | null>(null);
   const [findings, setFindings] = useState<Finding[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
