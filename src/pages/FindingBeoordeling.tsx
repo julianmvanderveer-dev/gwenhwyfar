@@ -235,7 +235,6 @@ export default function FindingBeoordeling() {
           <p><strong>Controlepunt:</strong> {finding.controlepunt}</p>
           <p><strong>Beoordeling:</strong> {formatValue(finding.beoordeling)}</p>
           <p><strong>Type afwijking:</strong> {formatValue(finding.type_afwijking)}</p>
-          <p><strong>Deadline:</strong> {finding.deadline ? new Date(finding.deadline).toLocaleDateString("nl-NL") : "—"}</p>
           <p><strong>Status:</strong> {formatValue(finding.status)}</p>
         </div>
         {finding.toelichting && (
