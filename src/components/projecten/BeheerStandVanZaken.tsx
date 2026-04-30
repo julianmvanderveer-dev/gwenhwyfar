@@ -120,7 +120,7 @@ export default function BeheerStandVanZaken({ project, findings }: { project: Pr
         ]);
         if (!cancelled) {
           setToegewezenNaam(prof?.naam ?? null);
-          const userRollen = (rollen ?? []).map((r) => r.role);
+          const userRollen = (rollen ?? []).map((r) => r.role as string);
           const hoofd = rolPrioriteit.find((r) => userRollen.includes(r));
           setToegewezenRol(hoofd ? rolLabel[hoofd] : null);
         }
