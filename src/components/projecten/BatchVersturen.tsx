@@ -27,6 +27,7 @@ export default function BatchVersturen({ project, findings, onSent }: Props) {
     wachtOpAuditor,
     auditorConcepten,
     auditorKlaar,
+    verstuurAuditor,
     akkoordCount,
     nietAkkoordCount,
   } = useBatchVersturen(project, findings, onSent);
