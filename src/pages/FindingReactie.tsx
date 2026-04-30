@@ -220,21 +220,47 @@ export default function FindingReactie() {
             </div>
           )}
 
-          {modus === "keuze" && (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">Kies je reactie op deze afwijking:</p>
-              <div className="flex gap-2">
-                {!(finding as any).upload_vereist && (
-                  <Button onClick={accepteren} disabled={loading} className="gap-1">
-                    <Check className="h-4 w-4" /> Accepteren
+          {modus === "keuze" && (() => {
+            const isAkkoord = concept?.type === "akkoord";
+            const isNietAkkoord = concept?.type === "niet_akkoord";
+            return (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  {hasConcept ? "Wijzig je concept-reactie of laat zoals hij is:" : "Kies je reactie op deze afwijking:"}
+                </p>
+                <div className="flex gap-2">
+                  {!(finding as any).upload_vereist && (
+                    <Button
+                      onClick={accepteren}
+                      disabled={loading || isAkkoord}
+                      variant={isAkkoord ? "secondary" : "default"}
+                      className="gap-1"
+                    >
+                      <Check className="h-4 w-4" /> {isAkkoord ? "Geaccepteerd (concept)" : "Accepteren"}
+                    </Button>
+                  )}
+                  <Button
+                    variant={isNietAkkoord ? "secondary" : "outline"}
+                    onClick={() => setModus("niet_akkoord")}
+                    disabled={loading}
+                    className="gap-1"
+                  >
+                    <X className="h-4 w-4" /> {isNietAkkoord ? "Wijzig: niet akkoord" : "Niet akkoord"}
+                  </Button>
+                </div>
+                {hasConcept && finding.project_id && (
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 text-blue-700 underline"
+                    onClick={() => navigate(`/project/${finding.project_id}`)}
+                  >
+                    Naar projectoverzicht om alles te versturen →
                   </Button>
                 )}
-                <Button variant="outline" onClick={() => setModus("niet_akkoord")} disabled={loading} className="gap-1">
-                  <X className="h-4 w-4" /> Niet akkoord
-                </Button>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {modus === "niet_akkoord" && (
             <div className="space-y-3">
