@@ -513,6 +513,10 @@ export type Database = {
           prioriteit: boolean
           projectnaam: string
           reactie_deadline: string | null
+          reminder_overdue_1w_sent: boolean
+          reminder_overdue_2w_sent: boolean
+          reminder_overdue_3w_sent: boolean
+          reminder_pre_sent: boolean
           status: Database["public"]["Enums"]["project_status"]
           toegewezen_aan: string | null
           toegewezen_op: string | null
@@ -533,6 +537,10 @@ export type Database = {
           prioriteit?: boolean
           projectnaam: string
           reactie_deadline?: string | null
+          reminder_overdue_1w_sent?: boolean
+          reminder_overdue_2w_sent?: boolean
+          reminder_overdue_3w_sent?: boolean
+          reminder_pre_sent?: boolean
           status?: Database["public"]["Enums"]["project_status"]
           toegewezen_aan?: string | null
           toegewezen_op?: string | null
@@ -553,6 +561,10 @@ export type Database = {
           prioriteit?: boolean
           projectnaam?: string
           reactie_deadline?: string | null
+          reminder_overdue_1w_sent?: boolean
+          reminder_overdue_2w_sent?: boolean
+          reminder_overdue_3w_sent?: boolean
+          reminder_pre_sent?: boolean
           status?: Database["public"]["Enums"]["project_status"]
           toegewezen_aan?: string | null
           toegewezen_op?: string | null
