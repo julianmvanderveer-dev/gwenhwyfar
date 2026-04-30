@@ -338,30 +338,58 @@ export default function FindingBeoordeling() {
             <p className="text-muted-foreground text-xs">Beoordeel de reactie van de EP-adviseur.</p>
           </div>
           {(finding as any).concept_beoordeling && (
-            <div className="rounded border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
-              <p className="font-medium">
-                Concept-beoordeling opgeslagen:{" "}
-                {((finding as any).concept_beoordeling as any).type === "akkoord"
-                  ? "Goedgekeurd"
-                  : "Niet akkoord"}
-              </p>
-              <p className="mt-1">
-                Verstuur al je beoordelingen in één keer via het projectoverzicht. Je kunt deze
-                beoordeling hieronder nog wijzigen tot dat moment.
-              </p>
+            <div className="rounded border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900 flex items-start gap-3">
+              <CheckCircle2 className="h-5 w-5 text-emerald-700 mt-0.5 shrink-0" />
+              <div className="flex-1">
+                <p className="font-semibold">
+                  Concept opgeslagen —{" "}
+                  {((finding as any).concept_beoordeling as any).type === "akkoord"
+                    ? "Goedgekeurd"
+                    : "Niet akkoord (heropenen voor adviseur)"}
+                </p>
+                <p className="mt-1 text-xs">
+                  Nog niet verstuurd. Ga naar het projectoverzicht om alle beoordelingen in één keer te
+                  versturen, of pas hieronder je keuze aan.
+                </p>
+                {finding.project_id && (
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 mt-1 text-emerald-900 underline"
+                    onClick={() => navigate(`/project/${finding.project_id}`)}
+                  >
+                    Naar projectoverzicht →
+                  </Button>
+                )}
+              </div>
             </div>
           )}
 
-          {modus === "keuze" && (
-            <div className="flex gap-2">
-              <Button onClick={akkoord} disabled={loading} className="gap-1.5">
-                <CheckCircle2 className="h-4 w-4" /> Reactie goedkeuren
-              </Button>
-              <Button variant="outline" onClick={() => setModus("niet_akkoord")} disabled={loading}>
-                Niet akkoord
-              </Button>
-            </div>
-          )}
+          {modus === "keuze" && (() => {
+            const concept = (finding as any).concept_beoordeling as { type: string } | null;
+            const isAkkoord = concept?.type === "akkoord";
+            const isNietAkkoord = concept?.type === "niet_akkoord";
+            return (
+              <div className="flex gap-2">
+                <Button
+                  onClick={akkoord}
+                  disabled={loading || isAkkoord}
+                  variant={isAkkoord ? "secondary" : "default"}
+                  className="gap-1.5"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  {isAkkoord ? "Goedgekeurd (concept)" : "Reactie goedkeuren"}
+                </Button>
+                <Button
+                  variant={isNietAkkoord ? "secondary" : "outline"}
+                  onClick={() => setModus("niet_akkoord")}
+                  disabled={loading}
+                >
+                  {isNietAkkoord ? "Wijzig: niet akkoord" : "Niet akkoord"}
+                </Button>
+              </div>
+            );
+          })()}
 
           {modus === "niet_akkoord" && (
             <div className="space-y-3">
