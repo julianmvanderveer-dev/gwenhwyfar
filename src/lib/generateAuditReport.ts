@@ -185,7 +185,7 @@ export function generateAuditReport({ project, findings, adviseurNaam, adviseurN
             ${r.finding ? (statusLabel[r.finding.status] ?? r.finding.status) : "—"}
           </td>
         </tr>
-        ${r.finding?.toelichting ? `<tr style="background:#f3f4f6;"><td colspan="${colCount}" style="padding:4px 10px 8px 30px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#374151;font-style:italic;">📝 ${escapeHtml(r.finding.toelichting)}</td></tr>` : ""}
+        ${r.finding?.toelichting ? `<tr style="background:#f9fafb;"><td colspan="${colCount}" style="padding:4px 10px 8px 30px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#374151;"><span style="color:#6b7280;font-weight:500;">Toelichting:</span> ${escapeHtml(r.finding.toelichting)}</td></tr>` : ""}
       `;
           }
         )
