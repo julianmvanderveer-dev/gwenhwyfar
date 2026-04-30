@@ -5,7 +5,17 @@ import { Link, useLocation } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ClipboardList, FolderOpen, Inbox } from "lucide-react";
+import {
+  ClipboardList,
+  FolderOpen,
+  Inbox,
+  ChevronRight,
+  CheckCircle2,
+  XCircle,
+  Circle,
+  ArrowRight,
+} from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface FindingRow {
   id: string;
@@ -16,6 +26,19 @@ interface FindingRow {
   adviseur_naam: string;
   reactie_tekst: string | null;
   reactie_datum: string | null;
+  concept_beoordeling: { type?: string } | null;
+}
+
+interface ProjectGroep {
+  project_id: string;
+  projectnaam: string;
+  adviseur_naam: string;
+  findings: FindingRow[];
+  totaal: number;
+  conceptKlaar: number;
+  akkoordCount: number;
+  nietAkkoordCount: number;
+  laatsteReactie: string | null;
 }
 
 interface MijnProject {
@@ -53,7 +76,7 @@ export default function MedewerkerDashboard() {
     // 1. Get findings assigned to this role with status reactie_ontvangen
     const { data: findingData } = await supabase
       .from("findings")
-      .select("id, controlepunt, onderdeel, project_id")
+      .select("id, controlepunt, onderdeel, project_id, concept_beoordeling")
       .eq("toegewezen_beoordelaar", user!.id)
       .eq("status", "reactie_ontvangen");
 
@@ -102,6 +125,7 @@ export default function MedewerkerDashboard() {
         adviseur_naam: proj?.adviseur_naam ?? "Onbekend",
         reactie_tekst: msg?.bericht ?? null,
         reactie_datum: msg?.datum ?? null,
+        concept_beoordeling: (f as any).concept_beoordeling ?? null,
       };
     });
 
