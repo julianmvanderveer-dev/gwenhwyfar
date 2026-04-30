@@ -14,6 +14,7 @@ import { statusBadge, beoordelingBadge } from "@/lib/badges";
 import { ArrowLeft, CheckCircle2, ClipboardCheck, ChevronLeft, ChevronRight, Download, Upload, Loader2, FileText } from "lucide-react";
 import { generateAuditReport } from "@/lib/generateAuditReport";
 import AandachtspuntenAdviseur from "@/components/projecten/AandachtspuntenAdviseur";
+import BeheerStandVanZaken from "@/components/projecten/BeheerStandVanZaken";
 
 type Project = Tables<"projects">;
 type Finding = Tables<"findings">;
@@ -569,6 +570,11 @@ export default function ProjectDetail() {
       {/* Aandachtspunten adviseur */}
       {project.adviseur_id && (hasRole("beheer") || hasRole("tekenaar") || hasRole("auditor")) && (
         <AandachtspuntenAdviseur adviseurId={project.adviseur_id} projectId={project.id} />
+      )}
+
+      {/* Stand van zaken (alleen beheer) */}
+      {hasRole("beheer") && (
+        <BeheerStandVanZaken project={project} findings={findings} />
       )}
 
       {/* Uitdraai upload */}
