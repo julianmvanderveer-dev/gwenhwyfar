@@ -191,6 +191,42 @@ export function useBatchVersturen(
         title: "Beoordelingen verstuurd",
         description: `${akkoordIds.length} goedgekeurd, ${heropenenIds.length} heropend.`,
       });
+
+      // Als er geen heropende bevindingen zijn, controleer of het hele project nu klaar is.
+      // Alle bevindingen moeten dan in een afgesloten status staan
+      // (reactie_goedgekeurd of gesloten) — dan ronden we de audit af.
+      if (heropenenIds.length === 0) {
+        const { data: nogOpen } = await supabase
+          .from("findings")
+          .select("id")
+          .eq("project_id", project.id)
+          .not("status", "in", "(reactie_goedgekeurd,gesloten)");
+
+        if (!nogOpen || nogOpen.length === 0) {
+          await supabase
+            .from("projects")
+            .update({
+              status: "afgerond" as any,
+              gearchiveerd_op: new Date().toISOString(),
+            })
+            .eq("id", project.id);
+
+          // Notificeer EP-adviseur dat de audit is afgerond
+          supabase.functions
+            .invoke("notify-adviseur", {
+              body: { type: "audit_afgerond", project_id: project.id },
+            })
+            .then(({ error }) => {
+              if (error) console.error("Notificatie audit afgerond fout:", error);
+            });
+
+          toast({
+            title: "Audit afgerond",
+            description: "Alle bevindingen zijn goedgekeurd. De EP-adviseur is geïnformeerd.",
+          });
+        }
+      }
+
       onSent?.();
     } catch (err: any) {
       toast({ title: "Versturen mislukt", description: err.message, variant: "destructive" });
