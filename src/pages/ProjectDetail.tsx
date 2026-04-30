@@ -344,13 +344,12 @@ export default function ProjectDetail() {
     const now = new Date();
     const nietGoedFindings = findings.filter(f => f.beoordeling === "niet_goed");
     const opmerkingFindings = findings.filter(f => f.beoordeling === "opmerking");
-    const deadline3m = addMonths(now, 3).toISOString();
+    const reactieDeadline = addDays(now, 14).toISOString();
 
     const nietGoedIds = nietGoedFindings.map(f => f.id);
 
     await Promise.all([
       nietGoedIds.length > 0 && supabase.from("findings").update({
-        deadline: deadline3m,
         zichtbaar_voor_adviseur: true,
         status: "open" as any,
       }).in("id", nietGoedIds),
@@ -370,9 +369,13 @@ export default function ProjectDetail() {
     if (hasNietGoed) {
       await supabase.from("projects").update({
         status: "wacht_op_reactie" as any,
-        reactie_deadline: deadline3m,
+        reactie_deadline: reactieDeadline,
+        reminder_pre_sent: false,
+        reminder_overdue_1w_sent: false,
+        reminder_overdue_2w_sent: false,
+        reminder_overdue_3w_sent: false,
       }).eq("id", id!);
-      toast({ title: "Audit afgerond", description: "Status naar 'Wacht op reactie', deadline berekend" });
+      toast({ title: "Audit afgerond", description: "Status naar 'Wacht op reactie'. Reactietermijn: 2 weken." });
     } else {
       await supabase.from("projects").update({
         status: "afgerond" as any,
