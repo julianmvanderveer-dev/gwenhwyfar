@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import type { Tables } from "@/integrations/supabase/types";
+import BatchVersturenCompact from "@/components/projecten/BatchVersturenCompact";
 
 type Finding = Tables<"findings">;
 type Message = Tables<"messages">;
@@ -494,6 +495,10 @@ export default function FindingBeoordeling() {
       <Button variant="ghost" onClick={() => navigate("/inbox", { state: { view: "medewerker", tab: "findings" } })}>
         Terug
       </Button>
+
+      {finding.project_id && (
+        <BatchVersturenCompact projectId={finding.project_id} />
+      )}
     </div>
   );
 }
