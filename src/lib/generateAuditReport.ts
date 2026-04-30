@@ -7,6 +7,8 @@ interface ReportData {
   project: Project;
   findings: Finding[];
   adviseurNaam?: string;
+  adviseurNummer?: number;
+  logoUrl?: string;
   templates: { code: string; onderdeel: string; controlepunt: string; deel: number }[];
   uitdraaiData?: Record<string, string>;
 }
@@ -35,7 +37,14 @@ const projectStatusLabel: Record<string, string> = {
   gesloten: "Gesloten",
 };
 
-export function generateAuditReport({ project, findings, adviseurNaam, templates, uitdraaiData }: ReportData) {
+const BENGCERT_LOGO_SVG = `
+<svg width="140" height="40" viewBox="0 0 140 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M6,18 L14,26 L30,8" fill="none" stroke="#4a9e24" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M14,18 L22,26 L38,8" fill="none" stroke="#5AAF2D" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="46" y="27" font-family="'Poppins', system-ui, -apple-system, sans-serif" font-weight="700" font-size="18" fill="#28235D" letter-spacing="0.5">bengcert</text>
+</svg>`.trim();
+
+export function generateAuditReport({ project, findings, adviseurNaam, adviseurNummer, logoUrl, templates, uitdraaiData }: ReportData) {
   const hasUitdraai = uitdraaiData && Object.keys(uitdraaiData).length > 0;
   const colCount = hasUitdraai ? 6 : 5;
 
@@ -71,6 +80,74 @@ export function generateAuditReport({ project, findings, adviseurNaam, templates
   });
 
   const aanmaakDatum = new Date(project.datum_aangemaakt).toLocaleDateString("nl-NL");
+
+  // Bestandsnaam / titel: "{nr} {adviseur} {projectnaam} {categorie}"
+  const nrStr = adviseurNummer != null ? String(adviseurNummer).padStart(3, "0") : "";
+  const titleParts = [nrStr, adviseurNaam ?? "", project.projectnaam, project.audit_categorie]
+    .map((s) => (s ?? "").toString().trim())
+    .filter(Boolean);
+  const documentTitle = titleParts.join(" ");
+
+  // Openstaande afwijkingen (niet afdoende weerlegd)
+  const openstaande = findings
+    .filter(
+      (f) =>
+        f.beoordeling === "niet_goed" &&
+        f.zichtbaar_voor_adviseur === true &&
+        f.status !== "reactie_goedgekeurd" &&
+        f.status !== "gesloten",
+    )
+    .sort((a, b) =>
+      (a.onderdeel || "").localeCompare(b.onderdeel || "", undefined, { numeric: true }) ||
+      (a.controlepunt || "").localeCompare(b.controlepunt || "", undefined, { numeric: true }),
+    );
+
+  const openstaandeRows = openstaande
+    .map((f, i) => {
+      const tpl = templates.find(
+        (t) => t.onderdeel === f.onderdeel && t.controlepunt === f.controlepunt && t.deel === f.deel,
+      );
+      const code = tpl?.code ?? "—";
+      return `
+        <tr style="${i % 2 !== 0 ? "background:#fff5f5;" : ""}">
+          <td style="padding:6px 10px;border-bottom:1px solid #fecaca;font-family:monospace;font-size:11px;color:#7f1d1d;">${escapeHtml(code)}</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #fecaca;font-size:12px;color:#1f2937;">${escapeHtml(f.onderdeel)}</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #fecaca;font-size:12px;color:#1f2937;">${escapeHtml(f.controlepunt)}</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #fecaca;font-size:12px;color:#374151;">${f.toelichting ? escapeHtml(f.toelichting) : "—"}</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #fecaca;font-size:12px;color:#374151;">${statusLabel[f.status] ?? f.status}</td>
+        </tr>`;
+    })
+    .join("");
+
+  const openstaandeBlok = openstaande.length > 0
+    ? `
+    <div style="border:2px solid #b91c1c;border-radius:8px;background:#fef2f2;padding:14px 16px;margin-bottom:24px;page-break-inside:avoid;">
+      <h2 style="margin:0 0 8px;font-size:15px;font-weight:700;color:#b91c1c;display:flex;align-items:center;gap:8px;">
+        <span style="display:inline-block;background:#b91c1c;color:#fff;border-radius:9999px;font-size:11px;padding:2px 8px;">${openstaande.length}</span>
+        Openstaande afwijkingen
+      </h2>
+      <p style="margin:0 0 10px;font-size:12px;color:#7f1d1d;">Bevindingen die niet afdoende zijn weerlegd.</p>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;background:#fff;border-radius:6px;overflow:hidden;">
+        <thead>
+          <tr style="background:#b91c1c;color:#fff;">
+            <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;width:80px;">Code</th>
+            <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Onderdeel</th>
+            <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Controlepunt</th>
+            <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Toelichting</th>
+            <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;width:140px;">Status</th>
+          </tr>
+        </thead>
+        <tbody>${openstaandeRows}</tbody>
+      </table>
+    </div>`
+    : `
+    <div style="border:2px solid #047857;border-radius:8px;background:#ecfdf5;padding:12px 16px;margin-bottom:24px;color:#065f46;font-size:13px;font-weight:600;">
+      ✓ Geen openstaande afwijkingen — alle bevindingen zijn afdoende weerlegd of goedgekeurd.
+    </div>`;
+
+  const logoHtml = logoUrl
+    ? `<img src="${escapeHtml(logoUrl)}" alt="BengCert" style="height:40px;width:auto;display:block;" />`
+    : BENGCERT_LOGO_SVG;
 
   const uitdraaiHeader = hasUitdraai
     ? `<th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Uitdraai</th>`
@@ -134,7 +211,7 @@ export function generateAuditReport({ project, findings, adviseurNaam, templates
 <html lang="nl">
 <head>
   <meta charset="UTF-8">
-  <title>Auditrapport – ${escapeHtml(project.projectnaam)}</title>
+  <title>${escapeHtml(documentTitle)}</title>
   <style>
     @page { margin: 15mm 12mm; size: A4 landscape; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1f2937; margin: 0; padding: 20px; }
@@ -145,15 +222,20 @@ export function generateAuditReport({ project, findings, adviseurNaam, templates
 </head>
 <body>
   <!-- Header -->
-  <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #0e4a8a;padding-bottom:16px;margin-bottom:24px;">
-    <div>
-      <h1 style="margin:0;font-size:22px;color:#0e4a8a;font-weight:700;">Auditrapport</h1>
-      <p style="margin:4px 0 0;font-size:14px;color:#6b7280;">${escapeHtml(project.projectnaam)}</p>
+  <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #0e4a8a;padding-bottom:16px;margin-bottom:24px;gap:24px;">
+    <div style="display:flex;align-items:center;gap:16px;">
+      <div style="flex-shrink:0;">${logoHtml}</div>
+      <div>
+        <h1 style="margin:0;font-size:22px;color:#0e4a8a;font-weight:700;">Auditrapport</h1>
+        <p style="margin:4px 0 0;font-size:14px;color:#6b7280;">${escapeHtml(project.projectnaam)}</p>
+      </div>
     </div>
     <div style="text-align:right;font-size:12px;color:#6b7280;">
       <div>Rapportdatum: <strong>${datum}</strong></div>
     </div>
   </div>
+
+  ${openstaandeBlok}
 
   <!-- Project info -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;">

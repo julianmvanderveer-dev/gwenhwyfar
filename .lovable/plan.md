@@ -1,35 +1,52 @@
-1. Oorzaak gericht oplossen
-- In de database staat project 107c al correct op `afgerond`, maar op projectniveau staat `toewijzing = pool` en `toegewezen_aan = null`.
-- De tabel in Beheer > Projecten gebruikt nu voor de kolom Auditor nog steeds de projecttoewijzing. Daardoor verschijnt bij afgeronde projecten soms `Pool`, terwijl de echte beoordelaar alleen nog op finding-niveau staat (`toegewezen_beoordelaar`).
+## Doel
+Het downloadbare auditrapport (`src/lib/generateAuditReport.ts`) op drie punten verbeteren:
 
-2. Afgerond-tabel aanpassen
-- De afgerond-weergave krijgt een aparte bron voor de kolom `Auditor`.
-- Voor afgeronde projecten bepaal ik de auditor op basis van de laatste afgeronde, adviseur-zichtbare bevinding:
-  - primair: de auditor van de meest recent goedgekeurde/afgesloten bevinding (`toegewezen_beoordelaar`)
-  - fallback: de projecttoewijzing (`toegewezen_aan`) als er geen bruikbare finding-data is
-  - laatste fallback: `—`
-- Daarmee toont 107c de naam van de echte auditor in plaats van `Pool`.
+### 1. Bestandsnaam / titel
+- Aanroep in `ProjectDetail.tsx` haalt nu alleen `naam` van de adviseur op. Uitbreiden zodat ook `nummer` wordt opgehaald.
+- Nummer wordt 3-cijferig zero-padded (consistent met de rest van de app, bv. `007`).
+- Het rapport wordt via `window.open` + `window.print()` gegenereerd. Browsers gebruiken de `<title>` als standaard PDF-bestandsnaam.
+- Nieuwe `<title>` (en daarmee voorgestelde bestandsnaam):
+  `007 Jan Jansen 7108AA12 EPW-B`
+  Opbouw: `{adviseurNummer} {adviseurNaam} {projectnaam} {audit_categorie}`.
+- Indien geen adviseur gekoppeld: alleen `{projectnaam} {audit_categorie}` als titel, zonder lege ruimtes ervoor.
 
-3. Datalaag uitbreiden in Inbox
-- `src/pages/Inbox.tsx` uitbreiden zodat bij het laden van projecten ook de benodigde auditornaam voor afgeronde projecten wordt opgebouwd.
-- Dit gebeurt zonder de bestaande actieve werkstromen voor nieuw/bezig te veranderen.
-- Voor projecten zoals 107b, waar meerdere auditors op verschillende bevindingen kunnen hebben gewerkt, toon ik de auditor die de audit als laatste heeft afgerond (dus de meest recente afsluitende beoordeling).
+### 2. Openstaande afwijkingen bovenaan
+- Bovenaan het rapport (direct onder de header/projectinfo, vóór EP2 en samenvatting) een nieuwe sectie **"Openstaande afwijkingen"**.
+- Definitie "blijven staan / niet afdoende weerlegd":
+  - `beoordeling = 'niet_goed'`
+  - `status NIET in ('reactie_goedgekeurd', 'gesloten')`
+  - alleen bevindingen die zichtbaar zijn voor de adviseur (`zichtbaar_voor_adviseur = true`)
+- Weergave als compacte tabel met: Code, Onderdeel, Controlepunt, Toelichting, Status.
+- Visueel benadrukt (rode rand/achtergrond) zodat het in één oogopslag duidelijk is.
+- Als er geen openstaande afwijkingen zijn: blok met groene melding "Geen openstaande afwijkingen".
+- De volledige checklist per onderdeel blijft daaronder gewoon staan (ongewijzigd).
 
-4. Presentatie in FaseTabel corrigeren
-- `src/components/projecten/FaseTabel.tsx` aanpassen zodat in `isAfgerondView` de kolom `Auditor` niet meer de pool-/toewijzingsstatus toont, maar de afgeleide auditornaam.
-- De bestaande wijzigingen blijven behouden:
-  - geen kolommen `Labels` en `Toewijzing`
-  - kolom `Toegewezen aan` heet `Auditor`
-  - kolom `Afgerond` toont de afrondingsdatum
+### 3. Logo BengCert bovenaan
+- In de header van het rapport (linksboven) het BengCert-logo tonen.
+- Bron:
+  - primair: `app_settings.org_logo_url` (indien gevuld) — al opgehaald via `useAppSettings`.
+  - fallback: ingebouwde inline SVG (zelfde tekening als `src/components/BengCertLogo.tsx`, geschikt voor printen).
+- Het logo wordt links naast de titel "Auditrapport" geplaatst, met de projectnaam eronder.
 
-5. Controle na implementatie
-- Specifiek verifiëren dat:
-  - 107c onder `Afgerond` niet meer `Pool` toont maar de auditornaam
-  - 107b ook een logische auditor toont
-  - actieve projecten hun huidige toewijzingsgedrag behouden
-  - er nergens onbedoeld `Pool` verschijnt in de afgerond-weergave
+## Wijzigingen per bestand
 
-Technische details
-- Bestanden: `src/pages/Inbox.tsx`, `src/components/projecten/FaseTabel.tsx`
-- Waarschijnlijk voeg ik een extra veld toe aan het viewmodel, bijvoorbeeld `afgerond_door_profiel` of vergelijkbaar.
-- Geen schemawijziging nodig; dit is vooral een correctie in hoe afgeronde projecten worden samengesteld en weergegeven.
+- `src/lib/generateAuditReport.ts`
+  - `ReportData` uitbreiden met `adviseurNummer?: number` en `logoUrl?: string`.
+  - `<title>` opbouwen volgens nieuwe formule.
+  - Nieuwe HTML-sectie "Openstaande afwijkingen" bovenaan, direct onder de header.
+  - Header herontwerpen met logo links (img-tag voor `logoUrl`, anders inline SVG).
+
+- `src/pages/ProjectDetail.tsx` (rond regel 580–600)
+  - Bij ophalen adviseur ook `nummer` selecteren.
+  - `useAppSettings()` gebruiken om `org_logo_url` mee te geven.
+  - Beide doorgeven aan `generateAuditReport`.
+
+## Geen wijzigingen
+- Datamodel, RLS, edge functions: niets te wijzigen.
+- Andere weergaven (inbox, dashboard, projectdetail-UI) blijven ongewijzigd.
+
+## Verificatie
+- Rapport genereren voor een afgerond project met openstaande niet-goed bevindingen → bovenaan rode tabel zichtbaar.
+- Rapport voor project zonder openstaande afwijkingen → groene "alles in orde" melding.
+- Bestandsnaamvoorstel in print-dialog komt overeen met `{nr} {naam} {projectnaam} {categorie}`.
+- Logo zichtbaar zowel met als zonder `org_logo_url` (fallback SVG).
