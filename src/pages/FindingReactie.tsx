@@ -202,7 +202,7 @@ export default function FindingReactie() {
         </div>
       )}
 
-      {finding.status !== "gesloten" && finding.status !== "reactie_ontvangen" && (
+      {finding.status !== "gesloten" && finding.status !== "reactie_ontvangen" && finding.status !== "reactie_goedgekeurd" && (
         <div>
           {hasConcept && (
             <div className="bg-blue-50 border border-blue-200 text-blue-900 rounded p-3 mb-3 text-sm">
@@ -331,6 +331,13 @@ export default function FindingReactie() {
 
       {finding.status === "reactie_ontvangen" && (
         <p className="text-sm text-muted-foreground">Je reactie is ingediend en wordt beoordeeld.</p>
+      )}
+
+      {finding.status === "reactie_goedgekeurd" && (
+        <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-900">
+          <p className="font-semibold">Reactie goedgekeurd door auditor</p>
+          <p className="text-xs mt-1">Deze bevinding is afgesloten. Verdere actie is niet meer nodig.</p>
+        </div>
       )}
 
       {finding.project_id && (
