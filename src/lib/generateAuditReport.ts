@@ -106,9 +106,9 @@ export function generateAuditReport({ project, findings, adviseurNaam, adviseurN
 
   const aanmaakDatum = new Date(project.datum_aangemaakt).toLocaleDateString("nl-NL");
 
-  // Bestandsnaam / titel: "{nr} {adviseur} {projectnaam} {categorie}"
-  const nrStr = adviseurNummer != null ? String(adviseurNummer).padStart(3, "0") : "";
-  const titleParts = [nrStr, adviseurNaam ?? "", project.projectnaam, project.audit_categorie]
+  // Bestandsnaam / titel: "1{nr} {adviseur} {projectnaam}"
+  const nrStr = adviseurNummer != null ? `1${String(adviseurNummer).padStart(3, "0")}` : "";
+  const titleParts = [nrStr, adviseurNaam ?? "", project.projectnaam]
     .map((s) => (s ?? "").toString().trim())
     .filter(Boolean);
   const documentTitle = titleParts.join(" ");
