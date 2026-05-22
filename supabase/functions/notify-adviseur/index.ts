@@ -145,7 +145,6 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           templateName,
           recipientEmail: adviseur.email,
-          cc: "julian@borgch.nl",
           idempotencyKey,
           templateData: {
             adviseurNaam: adviseur.naam,
