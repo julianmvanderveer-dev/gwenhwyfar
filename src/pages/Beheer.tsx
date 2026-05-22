@@ -725,18 +725,20 @@ export default function Beheer() {
                              <Mail className="h-4 w-4" />
                            </Button>
                          )}
-                         <Button
-                           size="icon"
-                           variant="ghost"
-                           className="h-7 w-7 text-destructive hover:bg-destructive/10 border border-destructive/30"
-                           disabled={p.id === user?.id}
-                           aria-label="Verwijderen"
-                           title={p.id === user?.id ? "Je kunt je eigen account niet verwijderen" : "Verwijderen"}
-                           onClick={() => deleteProfile(p.id, p.naam)}
-                         >
-                           <Trash2 className="h-4 w-4" />
-                         </Button>
                        </div>
+                     </td>
+                     <td className="text-center px-3 py-2.5">
+                       <Button
+                         size="icon"
+                         variant="ghost"
+                         className="h-7 w-7 text-destructive hover:bg-destructive/10 border border-destructive/30 mx-auto"
+                         disabled={p.id === user?.id}
+                         aria-label="Verwijderen"
+                         title={p.id === user?.id ? "Je kunt je eigen account niet verwijderen" : "Verwijderen"}
+                         onClick={() => deleteProfile(p.id, p.naam)}
+                       >
+                         <Trash2 className="h-4 w-4" />
+                       </Button>
                      </td>
                   </tr>
                 ))}
