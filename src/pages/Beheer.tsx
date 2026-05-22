@@ -572,7 +572,7 @@ export default function Beheer() {
                     </th>
                   ))}
                    <th className="text-center px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-16">Actief</th>
-                   <th className="w-12" />
+                   <th className="text-center px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-32">Acties</th>
                 </tr>
               </thead>
               <tbody>
@@ -698,7 +698,7 @@ export default function Beheer() {
                        </button>
                      </td>
                      <td className="text-center px-3 py-2.5">
-                       <div className="flex gap-1 justify-center">
+                       <div className="flex gap-1 justify-center whitespace-nowrap">
                          <Button
                            size="icon"
                            variant="ghost"
@@ -724,8 +724,9 @@ export default function Beheer() {
                          <Button
                            size="icon"
                            variant="ghost"
-                           className="h-7 w-7 text-destructive"
+                           className="h-7 w-7 text-destructive hover:bg-destructive/10 border border-destructive/30"
                            disabled={p.id === user?.id}
+                           aria-label="Verwijderen"
                            title={p.id === user?.id ? "Je kunt je eigen account niet verwijderen" : "Verwijderen"}
                            onClick={() => deleteProfile(p.id, p.naam)}
                          >
