@@ -551,12 +551,12 @@ export default function Beheer() {
                    <th colSpan={3} className="text-center px-2 py-2 text-xs font-bold uppercase tracking-wider text-accent border-l border-r">
                      Projectrollen
                    </th>
-                    <th colSpan={6} className="text-center px-2 py-2 text-xs font-bold uppercase tracking-wider text-accent border-r">
-                      Checklistbevoegdheden
-                    </th>
-                    <th className="text-center px-2 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">Wachtwoord</th>
-                    <th colSpan={2} />
-                  </tr>
+                   <th colSpan={6} className="text-center px-2 py-2 text-xs font-bold uppercase tracking-wider text-accent border-r">
+                     Checklistbevoegdheden
+                   </th>
+                   <th className="text-center px-2 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">Wachtwoord</th>
+                   <th />
+                 </tr>
                 {/* Column headers */}
                 <tr className="border-b bg-secondary/40">
                   <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Naam</th>
@@ -572,8 +572,7 @@ export default function Beheer() {
                     </th>
                   ))}
                    <th className="text-center px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-16">Actief</th>
-                   <th className="text-center px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-24">Wachtwoord</th>
-                   <th className="text-center px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-20">Verwijderen</th>
+                   <th className="text-center px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-32">Acties</th>
                 </tr>
               </thead>
               <tbody>
@@ -652,14 +651,11 @@ export default function Beheer() {
                         <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setAddingMember(false); setMemberForm({ naam: "", email: "", password: "", roles: [], auditCategorieen: [] }); setShowPassword(false); setInviteMode(true); }}><X className="h-4 w-4" /></Button>
                       </div>
                     </td>
-                    <td />
                   </tr>
                 )}
                 {profiles.map((p, i) => (
                   <tr key={p.id} className={`border-b last:border-0 hover:bg-muted/50 transition-colors ${i % 2 === 0 ? '' : 'bg-muted/20'}`}>
-                    <td className="px-4 py-2.5 font-medium">
-                      {p.naam}
-                    </td>
+                    <td className="px-4 py-2.5 font-medium">{p.naam}</td>
                     <td className="px-4 py-2.5 text-muted-foreground">{p.email}</td>
                     {PROJECT_ROLES.map((role) => {
                       const has = p.roles.includes(role);
@@ -725,20 +721,18 @@ export default function Beheer() {
                              <Mail className="h-4 w-4" />
                            </Button>
                          )}
+                         <Button
+                           size="icon"
+                           variant="ghost"
+                           className="h-7 w-7 text-destructive hover:bg-destructive/10 border border-destructive/30"
+                           disabled={p.id === user?.id}
+                           aria-label="Verwijderen"
+                           title={p.id === user?.id ? "Je kunt je eigen account niet verwijderen" : "Verwijderen"}
+                           onClick={() => deleteProfile(p.id, p.naam)}
+                         >
+                           <Trash2 className="h-4 w-4" />
+                         </Button>
                        </div>
-                     </td>
-                     <td className="text-center px-3 py-2.5">
-                       <Button
-                         size="icon"
-                         variant="ghost"
-                         className="h-7 w-7 text-destructive hover:bg-destructive/10 border border-destructive/30 mx-auto"
-                         disabled={p.id === user?.id}
-                         aria-label="Verwijderen"
-                         title={p.id === user?.id ? "Je kunt je eigen account niet verwijderen" : "Verwijderen"}
-                         onClick={() => deleteProfile(p.id, p.naam)}
-                       >
-                         <Trash2 className="h-4 w-4" />
-                       </Button>
                      </td>
                   </tr>
                 ))}
