@@ -1,19 +1,18 @@
-# Plan
-
 ## Probleem
-Op **Beheer → Projectteam** bestaat het prullenbakje wel, maar het staat in de laatste kolom helemaal rechts (na Projectrollen, Checklistbevoegdheden, Wachtwoord en Actief). Op jouw scherm valt die kolom buiten beeld, dus je ziet hem niet.
+Het prullenbakje staat nu rommelig naast de naam. Liever netjes uitgelijnd in een eigen kolom rechts van de "Wachtwoord"-kolom.
 
 ## Oplossing
-Een tweede, altijd zichtbaar prullenbakje **direct achter de naam** in de eerste kolom van de Projectteam-tabel. De bevestigingsvraag en de verwijderlogica die er al zijn worden hergebruikt.
+In `src/pages/Beheer.tsx`, Projectteam-tabel:
 
-## Wat ik aanpas
-- Bestand: `src/pages/Beheer.tsx`, tab `Projectteam`, in de rij `{profiles.map(...)}` (regel 656-737)
-- In de eerste cel (`<td>` met `p.naam`) een klein rood prullenbakje toevoegen, rechts naast de naam
-- Klik → bestaande `deleteProfile(p.id, p.naam)` (regel 377), die toont al een bevestigingsvraag waarin staat dat inlogaccount, rollen en categorieën worden gewist
-- Knop is uitgeschakeld voor je eigen account (`p.id === user?.id`), zelfde regel als de bestaande knop
+1. **Inline trash naast naam weghalen** (regels 661-671 in de naam-`<td>`).
+2. **Acties-cel splitsen in twee kolommen:**
+   - Kolom "Wachtwoord": Send-icoon (+ Mail-icoon als account onbevestigd).
+   - Nieuwe kolom "Verwijderen": het rode prullenbakje, gecentreerd.
+3. **Kolomkoppen bijwerken:**
+   - Header rij 2: "Acties" → "Wachtwoord", en een nieuwe kop "Verwijderen" erachter.
+   - Header rij 1: laatste `<th />` van colSpan 1 naar colSpan 2 zodat de bovenrij blijft kloppen.
 
-## Optioneel
-De bestaande prullenbak-knop rechts in de actiekolom laten staan (consistent met de adviseurslijst), zodat niets verandert voor wie wél naar rechts scrollt. Als jij liever hebt dat die weg gaat, zeg het.
+Verwijderlogica (`deleteProfile`) en de "kan eigen account niet verwijderen"-regel blijven ongewijzigd.
 
 ## Resultaat
-In het Projectteam-overzicht verschijnt direct achter elke naam een rood prullenbakje. Klik → bevestigingsvraag → verwijderen. Voor je eigen account is hij uitgeschakeld.
+Elke rij toont het prullenbakje in een eigen, smalle kolom helemaal rechts, netjes uitgelijnd onder kop "Verwijderen", direct achter "Wachtwoord". Rustiger beeld, geen knop meer naast de naam.
