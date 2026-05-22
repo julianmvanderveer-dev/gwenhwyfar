@@ -1,51 +1,45 @@
 ## Doel
-1. **Auditor krijgt automatisch een e-mail** zodra:
-   - de EP-adviseur zijn reacties heeft verstuurd, en
-   - een audit als 'afgerond' wordt afgesloten.
-2. **Testfase-BCC**: zolang de huidige datum vóór **1 augustus 2026** ligt, ontvangt `julian@borgch.nl` automatisch een kopie van élke transactionele e-mail die het platform verstuurt.
 
----
+Bij **Beheer → Projectteam** moet je een persoon volledig kunnen verwijderen. De huidige prullenbak-knop verwijdert alleen het profiel en de rollen, maar laat het onderliggende inlogaccount bestaan. Daardoor kun je hetzelfde e‑mailadres later niet opnieuw uitnodigen, en blijft de persoon "spookachtig" bestaan.
+
+## Wat er nu gebeurt
+
+In `src/pages/Beheer.tsx` (`deleteProfile`) wordt alleen:
+- `user_roles` verwijderd voor de gebruiker
+- `profiles` verwijderd
+
+Het auth-account (`auth.users`) blijft staan en kan niet vanuit de client worden verwijderd (vereist service‑role).
 
 ## Wijzigingen
 
-### 1. Nieuwe e-mailtemplates (voor de auditor)
-Twee nieuwe React Email templates in `supabase/functions/_shared/transactional-email-templates/`:
+### 1. Edge function uitbreiden
+`supabase/functions/create-team-member/index.ts` krijgt een extra `action: "delete_user"`:
+- Input: `{ action: "delete_user", user_id }`
+- Controleert dat de aanroeper zelf `beheer` heeft en niet zichzelf verwijdert
+- Controleert of de gebruiker nog gekoppeld is aan zaken die verwijdering blokkeren:
+  - `projects.toegewezen_aan = user_id` (actieve toewijzing) → blokkeren met duidelijke melding ("eerst hertoewijzen of terug naar pool")
+  - `findings.toegewezen_beoordelaar = user_id` → idem
+  - `adviseurs.user_id = user_id` → koppeling losmaken (`user_id = null`) zodat de EP‑adviseur blijft bestaan
+  - `projects.aangemaakt_door`, `messages.afzender_id`, `feedback.user_id`, `project_uitdraai.uploaded_by`, `externe_rapportages.geimporteerd_door`, `notificaties.user_id`: NIET blokkerend — historische data blijft, FK is nullable/los, of records worden meegenomen volgens onderstaande regels
+- Verwijdert in deze volgorde (service‑role):
+  1. `user_roles`, `user_audit_categorieen`, `notificaties` voor deze user
+  2. `adviseurs.user_id` op `null` zetten
+  3. `profiles` rij
+  4. `auth.admin.deleteUser(user_id)`
 
-- **`reactie-ontvangen-auditor.tsx`** — "EP-adviseur heeft gereageerd op audit {projectnaam}". Bevat link naar het project, naam EP-adviseur en aantal reacties.
-- **`audit-afgerond-auditor.tsx`** — "Audit {projectnaam} is afgerond". Korte bevestiging voor de auditor.
+### 2. Frontend (`src/pages/Beheer.tsx`)
+- `deleteProfile` aanpassen zodat het de edge function aanroept met `action: "delete_user"` in plaats van directe DB‑deletes.
+- Bevestigingsdialoog vervangen door `AlertDialog` (consistent met `FaseTabel`), tekst: *"Weet je zeker dat je {naam} volledig wilt verwijderen? Inlogaccount, rollen en audit‑categorieën worden gewist. Eventuele EP‑adviseur‑koppeling wordt losgemaakt; historische audits/berichten blijven bestaan."*
+- Foutmeldingen van de edge function (bv. "nog toegewezen aan project X") tonen via toast.
+- Na succes: profielenlijst opnieuw laden.
 
-Beide registreren in `registry.ts`.
+### 3. Geen DB‑migratie nodig
+Alle benodigde tabellen bestaan; we doen alleen data‑mutaties via service‑role in de edge function.
 
-### 2. Nieuwe Edge Function `notify-auditor`
-Analoog aan de bestaande `notify-adviseur`, maar gericht op de auditor:
-- input: `{ type: "reactie_ontvangen" | "audit_afgerond", project_id }`
-- haalt `projects.toegewezen_aan` op → e-mailadres uit `profiles`
-- stuurt het juiste template via `send-transactional-email`
-- valt stil terug (geen fout) als er geen auditor is toegewezen
-- registreren in `supabase/config.toml` met `verify_jwt = false`
+## Veiligheidsregels
+- Alleen `beheer` mag deze actie uitvoeren (server‑side check via JWT + `has_role`).
+- Eigen account verwijderen blijft geblokkeerd (knop al `disabled`, plus server‑check).
+- Laatste actieve `beheer`‑gebruiker mag niet verwijderd worden (extra check in edge function, conform bestaande memory "Beheer Beperkingen").
 
-### 3. Aanroepen van `notify-auditor`
-In `src/hooks/useBatchVersturen.ts`:
-- **`verstuurAdviseur`** — na succesvol versturen van reacties: `supabase.functions.invoke("notify-auditor", { body: { type: "reactie_ontvangen", project_id: project.id }})` (fire-and-forget).
-- **`verstuurAuditor`** — in het bestaande "Audit afgerond"-blok (na het updaten van `projects.status = 'afgerond'`): extra invoke met `type: "audit_afgerond"`.
-
-### 4. Globale test-BCC tot 1 augustus 2026
-In `supabase/functions/send-transactional-email/index.ts`:
-- Constante `TEST_BCC = "julian@borgch.nl"` en `TEST_BCC_UNTIL = new Date("2026-08-01T00:00:00Z")`.
-- Direct voor de Resend-call: als `new Date() < TEST_BCC_UNTIL`, voeg `TEST_BCC` toe aan de `cc`-array, mits het adres niet al de ontvanger of al in `cc` zit (case-insensitive dedupe).
-- Hiermee verdwijnt de hardcoded `cc: "julian@borgch.nl"` in `notify-adviseur` (overbodig en zorgt anders voor dubbele kopieën) → die regel verwijderen. Ook de speciale "invite-notify" extra fetch naar Julian in `notify-adviseur` wordt overbodig en kan blijven of vereenvoudigd; in dit plan **laten staan** om bestaand gedrag niet te breken.
-- Edge function herdeployen na wijziging.
-
-### 5. Geen DB-wijzigingen
-Er zijn geen schema-aanpassingen nodig. Auditor wordt via `projects.toegewezen_aan` + `profiles.email` gevonden.
-
----
-
-## Technische details
-- `notify-auditor` gebruikt service-role om `profiles` te lezen (RLS-bypass), net als `notify-adviseur`.
-- Idempotency-key per send: `auditor-{type}-{project_id}-{timestamp}`.
-- BCC-logica is bewust **CC** (niet BCC) zodat het exact aansluit op het bestaande `cc`-veld in `send-transactional-email` en de logging in `email_send_log` ongewijzigd blijft. Functioneel resultaat (Julian krijgt elke mail) is gelijk; alleen zichtbaar in de header.
-- Na 1 augustus 2026 stopt de kopie automatisch — geen handmatige actie nodig.
-
-## Open vraag
-Wil je dat de extra kopie naar Julian als **CC** (zichtbaar voor ontvanger) of als **BCC** (onzichtbaar) gaat? Het huidige `send-transactional-email`-endpoint ondersteunt alleen CC; voor BCC moet ik dat veld toevoegen (kleine extra wijziging).
+## Openstaande vraag
+De prullenbak‑knop staat er al — klopt het dat je hem wel ziet maar dat "verwijderen" niet helemaal het gewenste effect heeft (account blijft bestaan, e‑mail niet opnieuw uitnodigbaar)? Of zie je de knop überhaupt niet? Bij dat laatste kijk ik eerst naar zichtbaarheids‑/rol‑issues vóór bovenstaande uitbreiding.

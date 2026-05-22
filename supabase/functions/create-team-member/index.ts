@@ -77,6 +77,96 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Action: delete user (volledig: auth + profile + rollen + categorieen + notificaties)
+    if (body.action === "delete_user") {
+      const targetId: string | undefined = body.user_id;
+      if (!targetId) {
+        return new Response(JSON.stringify({ error: "user_id is verplicht" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (targetId === userId) {
+        return new Response(JSON.stringify({ error: "Je kunt je eigen account niet verwijderen" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Voorkom dat laatste actieve beheerder verdwijnt
+      const { data: targetRoles } = await adminClient
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", targetId);
+      const targetIsBeheer = (targetRoles ?? []).some((r: any) => r.role === "beheer");
+      if (targetIsBeheer) {
+        const { data: allBeheer } = await adminClient
+          .from("user_roles")
+          .select("user_id")
+          .eq("role", "beheer");
+        const uniqueBeheer = new Set((allBeheer ?? []).map((r: any) => r.user_id));
+        if (uniqueBeheer.size <= 1) {
+          return new Response(JSON.stringify({ error: "Dit is de laatste beheerder; verwijderen niet toegestaan." }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
+      // Blokkerende koppelingen: actieve projecttoewijzingen / openstaande beoordelingen
+      const { data: blokProjects } = await adminClient
+        .from("projects")
+        .select("id, projectnaam")
+        .eq("toegewezen_aan", targetId)
+        .limit(5);
+      if (blokProjects && blokProjects.length > 0) {
+        const namen = blokProjects.map((p: any) => p.projectnaam).join(", ");
+        return new Response(
+          JSON.stringify({ error: `Nog toegewezen aan project(en): ${namen}. Eerst hertoewijzen of terug naar pool.` }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const { data: blokFindings } = await adminClient
+        .from("findings")
+        .select("id")
+        .eq("toegewezen_beoordelaar", targetId)
+        .limit(1);
+      if (blokFindings && blokFindings.length > 0) {
+        return new Response(
+          JSON.stringify({ error: "Nog toegewezen als beoordelaar van openstaande bevindingen. Eerst hertoewijzen." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // EP-adviseur koppeling losmaken (record blijft bestaan)
+      await adminClient.from("adviseurs").update({ user_id: null }).eq("user_id", targetId);
+
+      // Opruimen
+      await adminClient.from("user_audit_categorieen").delete().eq("user_id", targetId);
+      await adminClient.from("user_roles").delete().eq("user_id", targetId);
+      await adminClient.from("notificaties").delete().eq("user_id", targetId);
+      const { error: profileDelErr } = await adminClient.from("profiles").delete().eq("id", targetId);
+      if (profileDelErr) {
+        return new Response(JSON.stringify({ error: profileDelErr.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { error: authDelErr } = await adminClient.auth.admin.deleteUser(targetId);
+      if (authDelErr) {
+        return new Response(JSON.stringify({ error: authDelErr.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Action: resend invite
     if (body.resend_invite) {
       const { email } = body;
