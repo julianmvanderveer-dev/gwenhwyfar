@@ -551,12 +551,12 @@ export default function Beheer() {
                    <th colSpan={3} className="text-center px-2 py-2 text-xs font-bold uppercase tracking-wider text-accent border-l border-r">
                      Projectrollen
                    </th>
-                   <th colSpan={6} className="text-center px-2 py-2 text-xs font-bold uppercase tracking-wider text-accent border-r">
-                     Checklistbevoegdheden
-                   </th>
-                   <th className="text-center px-2 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">Wachtwoord</th>
-                   <th />
-                 </tr>
+                    <th colSpan={6} className="text-center px-2 py-2 text-xs font-bold uppercase tracking-wider text-accent border-r">
+                      Checklistbevoegdheden
+                    </th>
+                    <th className="text-center px-2 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">Wachtwoord</th>
+                    <th colSpan={2} />
+                  </tr>
                 {/* Column headers */}
                 <tr className="border-b bg-secondary/40">
                   <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Naam</th>
@@ -572,7 +572,8 @@ export default function Beheer() {
                     </th>
                   ))}
                    <th className="text-center px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-16">Actief</th>
-                   <th className="text-center px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-32">Acties</th>
+                   <th className="text-center px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-24">Wachtwoord</th>
+                   <th className="text-center px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-20">Verwijderen</th>
                 </tr>
               </thead>
               <tbody>
