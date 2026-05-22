@@ -377,10 +377,11 @@ export default function Beheer() {
   const deleteProfile = async (userId: string, naam: string) => {
     if (!confirm(`Weet je zeker dat je "${naam}" wilt verwijderen?`)) return;
     try {
-      const { error: roleError } = await supabase.from("user_roles").delete().eq("user_id", userId);
-      if (roleError) throw roleError;
-      const { error: profileError } = await supabase.from("profiles").delete().eq("id", userId);
-      if (profileError) throw profileError;
+      const { data, error } = await supabase.functions.invoke("create-team-member", {
+        body: { action: "delete_user", user_id: userId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       loadUsers();
       toast({ title: "Medewerker verwijderd" });
     } catch (err: any) {
