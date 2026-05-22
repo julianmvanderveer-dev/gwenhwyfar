@@ -572,7 +572,7 @@ export default function Beheer() {
                     </th>
                   ))}
                    <th className="text-center px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-16">Actief</th>
-                   <th className="w-12" />
+                   <th className="text-center px-3 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground w-32">Acties</th>
                 </tr>
               </thead>
               <tbody>
