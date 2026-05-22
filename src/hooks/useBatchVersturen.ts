@@ -84,6 +84,14 @@ export function useBatchVersturen(
         });
       }
 
+      supabase.functions
+        .invoke("notify-auditor", {
+          body: { type: "reactie_ontvangen", project_id: project.id },
+        })
+        .then(({ error }) => {
+          if (error) console.error("Notificatie auditor fout:", error);
+        });
+
       toast({
         title: "Reacties verstuurd",
         description: `${ids.length} reactie(s) verzonden naar de auditor.`,
@@ -223,6 +231,15 @@ export function useBatchVersturen(
             })
             .then(({ error }) => {
               if (error) console.error("Notificatie audit afgerond fout:", error);
+            });
+
+          // Notificeer ook de auditor
+          supabase.functions
+            .invoke("notify-auditor", {
+              body: { type: "audit_afgerond", project_id: project.id },
+            })
+            .then(({ error }) => {
+              if (error) console.error("Notificatie auditor audit afgerond fout:", error);
             });
 
           toast({

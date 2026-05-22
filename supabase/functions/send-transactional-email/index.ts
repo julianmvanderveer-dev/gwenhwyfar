@@ -5,6 +5,11 @@ import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 
 const FROM_ADDRESS = 'BengCert <noreply@bengaudit.nl>'
 
+// Tijdens de testfase ontvangt dit adres een kopie van elke verstuurde e-mail.
+// Stopt automatisch op 1 augustus 2026.
+const TEST_CC = 'julian@borgch.nl'
+const TEST_CC_UNTIL = new Date('2026-08-01T00:00:00Z')
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers':
@@ -118,6 +123,17 @@ Deno.serve(async (req) => {
 
   const messageId = crypto.randomUUID()
 
+  // Voeg testfase-kopie toe (case-insensitive dedupe t.o.v. ontvanger en bestaande cc)
+  let effectiveCc: string[] | undefined = cc ? [...cc] : undefined
+  if (new Date() < TEST_CC_UNTIL) {
+    const lower = TEST_CC.toLowerCase()
+    const recipLower = effectiveRecipient.toLowerCase()
+    const existing = (effectiveCc ?? []).map((a) => a.toLowerCase())
+    if (recipLower !== lower && !existing.includes(lower)) {
+      effectiveCc = [...(effectiveCc ?? []), TEST_CC]
+    }
+  }
+
   // Send via Resend API
   try {
     const resendResponse = await fetch('https://api.resend.com/emails', {
@@ -129,7 +145,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from: FROM_ADDRESS,
         to: [effectiveRecipient],
-        ...(cc && cc.length > 0 ? { cc } : {}),
+        ...(effectiveCc && effectiveCc.length > 0 ? { cc: effectiveCc } : {}),
         subject: resolvedSubject,
         html,
         text: plainText,
