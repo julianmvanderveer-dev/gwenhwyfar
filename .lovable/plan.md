@@ -1,28 +1,19 @@
 # Plan
 
-## Doel
-Zorgen dat de prullenbakjes zichtbaar zijn op de plek die jij bedoelt: **Projectdetail teamnamen**.
+## Probleem
+Op **Beheer → Projectteam** bestaat het prullenbakje wel, maar het staat in de laatste kolom helemaal rechts (na Projectrollen, Checklistbevoegdheden, Wachtwoord en Actief). Op jouw scherm valt die kolom buiten beeld, dus je ziet hem niet.
 
-## Wat ik ga doen
-1. Controleren waarom jij ze niet ziet ondanks dat de UI al in `BeheerStandVanZaken` staat.
-2. De zichtbaarheid corrigeren op basis van de echte oorzaak:
-   - verkeerde scherm/route
-   - alleen zichtbaar voor `beheer`
-   - alleen zichtbaar als er echt een gekoppelde gebruiker/adviseur is
-   - component staat in een beheer-only blok en verschijnt daarom niet in jouw huidige weergave
-3. Daarna de knop exact op de teamregel laten tonen met bevestigingsvraag voor verwijderen/loskoppelen.
-4. In de preview valideren dat de knop zichtbaar is op een bestaand projectdetail en niet alleen in code aanwezig is.
+## Oplossing
+Een tweede, altijd zichtbaar prullenbakje **direct achter de naam** in de eerste kolom van de Projectteam-tabel. De bevestigingsvraag en de verwijderlogica die er al zijn worden hergebruikt.
 
-## Verwachte aanpassing
-Waarschijnlijk moet ik niet de logica van het prullenbakje zelf opnieuw bouwen, maar de **render-voorwaarden** of de **plek waar de component wordt getoond** aanpassen, zodat jij hem ook echt ziet in het scherm waar je kijkt.
+## Wat ik aanpas
+- Bestand: `src/pages/Beheer.tsx`, tab `Projectteam`, in de rij `{profiles.map(...)}` (regel 656-737)
+- In de eerste cel (`<td>` met `p.naam`) een klein rood prullenbakje toevoegen, rechts naast de naam
+- Klik → bestaande `deleteProfile(p.id, p.naam)` (regel 377), die toont al een bevestigingsvraag waarin staat dat inlogaccount, rollen en categorieën worden gewist
+- Knop is uitgeschakeld voor je eigen account (`p.id === user?.id`), zelfde regel als de bestaande knop
 
-## Technische details
-- Bestaande component: `src/components/projecten/BeheerStandVanZaken.tsx`
-- Huidige inbouw: `src/pages/ProjectDetail.tsx`
-- Huidige voorwaarden:
-  - `Stand van zaken` wordt alleen gerenderd voor `hasRole("beheer")`
-  - knop verschijnt alleen als `project.toegewezen_aan` of `project.adviseur_id` gevuld is
-- Ik verifieer dit op een bestaand projectdetail in de preview, niet alleen via code.
+## Optioneel
+De bestaande prullenbak-knop rechts in de actiekolom laten staan (consistent met de adviseurslijst), zodat niets verandert voor wie wél naar rechts scrollt. Als jij liever hebt dat die weg gaat, zeg het.
 
 ## Resultaat
-Na implementatie moet op de projectdetailpagina achter de teamnaam een prullenbakje staan, met een bevestigingsvraag voordat de koppeling wordt verwijderd.
+In het Projectteam-overzicht verschijnt direct achter elke naam een rood prullenbakje. Klik → bevestigingsvraag → verwijderen. Voor je eigen account is hij uitgeschakeld.
