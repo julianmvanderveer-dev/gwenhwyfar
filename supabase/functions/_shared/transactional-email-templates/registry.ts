@@ -16,6 +16,8 @@ import { template as reactieHerinneringPre } from './reactie-herinnering-pre.tsx
 import { template as reactieHerinneringOverdue } from './reactie-herinnering-overdue.tsx'
 import { template as reactieHerinneringWaarschuwing } from './reactie-herinnering-waarschuwing.tsx'
 import { template as reactieHerinneringEindwaarschuwing } from './reactie-herinnering-eindwaarschuwing.tsx'
+import { template as reactieOntvangenAuditor } from './reactie-ontvangen-auditor.tsx'
+import { template as auditAfgerondAuditor } from './audit-afgerond-auditor.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'audit-afgerond': auditAfgerond,
@@ -25,4 +27,6 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'reactie-herinnering-overdue': reactieHerinneringOverdue,
   'reactie-herinnering-waarschuwing': reactieHerinneringWaarschuwing,
   'reactie-herinnering-eindwaarschuwing': reactieHerinneringEindwaarschuwing,
+  'reactie-ontvangen-auditor': reactieOntvangenAuditor,
+  'audit-afgerond-auditor': auditAfgerondAuditor,
 }
