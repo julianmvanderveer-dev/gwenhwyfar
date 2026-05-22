@@ -652,25 +652,13 @@ export default function Beheer() {
                         <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setAddingMember(false); setMemberForm({ naam: "", email: "", password: "", roles: [], auditCategorieen: [] }); setShowPassword(false); setInviteMode(true); }}><X className="h-4 w-4" /></Button>
                       </div>
                     </td>
+                    <td />
                   </tr>
                 )}
                 {profiles.map((p, i) => (
                   <tr key={p.id} className={`border-b last:border-0 hover:bg-muted/50 transition-colors ${i % 2 === 0 ? '' : 'bg-muted/20'}`}>
                     <td className="px-4 py-2.5 font-medium">
-                      <div className="flex items-center gap-1.5">
-                        <span>{p.naam}</span>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6 text-destructive hover:bg-destructive/10 shrink-0"
-                          disabled={p.id === user?.id}
-                          aria-label="Medewerker verwijderen"
-                          title={p.id === user?.id ? "Je kunt je eigen account niet verwijderen" : "Medewerker verwijderen"}
-                          onClick={() => deleteProfile(p.id, p.naam)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
+                      {p.naam}
                     </td>
                     <td className="px-4 py-2.5 text-muted-foreground">{p.email}</td>
                     {PROJECT_ROLES.map((role) => {
