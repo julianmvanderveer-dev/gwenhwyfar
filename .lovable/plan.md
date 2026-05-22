@@ -1,51 +1,29 @@
 ## Doel
-1. **Auditor krijgt automatisch een e-mail** zodra:
-   - de EP-adviseur zijn reacties heeft verstuurd, en
-   - een audit als 'afgerond' wordt afgesloten.
-2. **Testfase-BCC**: zolang de huidige datum vóór **1 augustus 2026** ligt, ontvangt `julian@borgch.nl` automatisch een kopie van élke transactionele e-mail die het platform verstuurt.
+EP-adviseurs (geregistreerde accounts via `link_user_to_adviseur`) verschijnen nu ook in tab **Projectteam** van /beheer. Dat moet niet — Projectteam is alleen voor intern personeel.
 
----
+**Regel**: een gebruiker hoort alleen in *Projectteam* thuis als zijn e-mailadres eindigt op `@borgch.nl`. Anders mag het profiel alleen in de tab *EP-adviseurs* zichtbaar zijn (via de `adviseurs`-tabel).
 
-## Wijzigingen
+## Wijziging
+**`src/pages/Beheer.tsx` — `loadUsers()` (regel 104-120)**
 
-### 1. Nieuwe e-mailtemplates (voor de auditor)
-Twee nieuwe React Email templates in `supabase/functions/_shared/transactional-email-templates/`:
+Filter de geladen `profiles` op `email` (case-insensitive) zodat alleen rijen met domein `@borgch.nl` overblijven:
 
-- **`reactie-ontvangen-auditor.tsx`** — "EP-adviseur heeft gereageerd op audit {projectnaam}". Bevat link naar het project, naam EP-adviseur en aantal reacties.
-- **`audit-afgerond-auditor.tsx`** — "Audit {projectnaam} is afgerond". Korte bevestiging voor de auditor.
+```ts
+const teamProfiles = (profileData ?? []).filter(
+  (p) => p.email?.toLowerCase().endsWith("@borgch.nl"),
+);
+```
 
-Beide registreren in `registry.ts`.
+De rest (mapping van `roles` + `auditCategorieen`, sortering) blijft ongewijzigd, maar werkt op deze gefilterde lijst.
 
-### 2. Nieuwe Edge Function `notify-auditor`
-Analoog aan de bestaande `notify-adviseur`, maar gericht op de auditor:
-- input: `{ type: "reactie_ontvangen" | "audit_afgerond", project_id }`
-- haalt `projects.toegewezen_aan` op → e-mailadres uit `profiles`
-- stuurt het juiste template via `send-transactional-email`
-- valt stil terug (geen fout) als er geen auditor is toegewezen
-- registreren in `supabase/config.toml` met `verify_jwt = false`
+## Bewust niet wijzigen
+- **`link_user_to_adviseur` trigger / `handle_new_user`**: blijven werken zoals nu. Een EP-adviseur die zich registreert krijgt nog steeds een profiel + rol `ep_adviseur` — alleen wordt dat profiel in de Beheer-UI uitgefilterd uit Projectteam. Hij blijft normaal werken (RLS, login, dashboard) en blijft zichtbaar in tab *EP-adviseurs* via de `adviseurs`-tabel.
+- **`adviseurs`-tabel & EP-adviseurs-tab**: hier verandert niets. Iemand met `@borgch.nl` mag wel in beide lijsten staan (bv. interne tester met dubbele rol).
+- **CSV-export Projectteam**: gebruikt dezelfde `profiles`-state, dus exporteert automatisch de gefilterde lijst.
+- **Bestaande Projectteam-acties** (rol toekennen, activeren, verwijderen): blijven werken, alleen niet meer toepasbaar op EP-adviseur-accounts via deze UI — dat is gewenst gedrag.
 
-### 3. Aanroepen van `notify-auditor`
-In `src/hooks/useBatchVersturen.ts`:
-- **`verstuurAdviseur`** — na succesvol versturen van reacties: `supabase.functions.invoke("notify-auditor", { body: { type: "reactie_ontvangen", project_id: project.id }})` (fire-and-forget).
-- **`verstuurAuditor`** — in het bestaande "Audit afgerond"-blok (na het updaten van `projects.status = 'afgerond'`): extra invoke met `type: "audit_afgerond"`.
-
-### 4. Globale test-BCC tot 1 augustus 2026
-In `supabase/functions/send-transactional-email/index.ts`:
-- Constante `TEST_BCC = "julian@borgch.nl"` en `TEST_BCC_UNTIL = new Date("2026-08-01T00:00:00Z")`.
-- Direct voor de Resend-call: als `new Date() < TEST_BCC_UNTIL`, voeg `TEST_BCC` toe aan de `cc`-array, mits het adres niet al de ontvanger of al in `cc` zit (case-insensitive dedupe).
-- Hiermee verdwijnt de hardcoded `cc: "julian@borgch.nl"` in `notify-adviseur` (overbodig en zorgt anders voor dubbele kopieën) → die regel verwijderen. Ook de speciale "invite-notify" extra fetch naar Julian in `notify-adviseur` wordt overbodig en kan blijven of vereenvoudigd; in dit plan **laten staan** om bestaand gedrag niet te breken.
-- Edge function herdeployen na wijziging.
-
-### 5. Geen DB-wijzigingen
-Er zijn geen schema-aanpassingen nodig. Auditor wordt via `projects.toegewezen_aan` + `profiles.email` gevonden.
-
----
-
-## Technische details
-- `notify-auditor` gebruikt service-role om `profiles` te lezen (RLS-bypass), net als `notify-adviseur`.
-- Idempotency-key per send: `auditor-{type}-{project_id}-{timestamp}`.
-- BCC-logica is bewust **CC** (niet BCC) zodat het exact aansluit op het bestaande `cc`-veld in `send-transactional-email` en de logging in `email_send_log` ongewijzigd blijft. Functioneel resultaat (Julian krijgt elke mail) is gelijk; alleen zichtbaar in de header.
-- Na 1 augustus 2026 stopt de kopie automatisch — geen handmatige actie nodig.
+## Geen DB-migratie nodig
+Pure UI-filter; geen schema- of policy-wijziging.
 
 ## Open vraag
-Wil je dat de extra kopie naar Julian als **CC** (zichtbaar voor ontvanger) of als **BCC** (onzichtbaar) gaat? Het huidige `send-transactional-email`-endpoint ondersteunt alleen CC; voor BCC moet ik dat veld toevoegen (kleine extra wijziging).
+Wil je ook dat bestaande EP-adviseur-profielen (zonder `@borgch.nl`) die per ongeluk al een extra interne rol hebben gekregen (bv. `auditor`) een waarschuwing tonen of automatisch worden opgeschoond? Standaard doe ik daar niets aan — alleen het verbergen uit de lijst.
