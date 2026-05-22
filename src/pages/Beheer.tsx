@@ -375,7 +375,7 @@ export default function Beheer() {
   };
 
   const deleteProfile = async (userId: string, naam: string) => {
-    if (!confirm(`Weet je zeker dat je "${naam}" wilt verwijderen?`)) return;
+    if (!confirm(`Weet je zeker dat je "${naam}" volledig wilt verwijderen?\n\nInlogaccount, rollen en audit-categorieën worden gewist. Een eventuele EP-adviseur-koppeling wordt losgemaakt; historische audits en berichten blijven bestaan.`)) return;
     try {
       const { data, error } = await supabase.functions.invoke("create-team-member", {
         body: { action: "delete_user", user_id: userId },
