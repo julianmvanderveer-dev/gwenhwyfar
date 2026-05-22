@@ -2,7 +2,10 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
-import { UserCog, UserCheck, Clock, Activity } from "lucide-react";
+import { UserCog, UserCheck, Clock, Activity, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "@/hooks/use-toast";
 
 type Project = Tables<"projects">;
 type Finding = Tables<"findings">;
@@ -49,6 +52,7 @@ function deadlineTier(deadlineIso: string | null): { label: string; className: s
 }
 
 export default function BeheerStandVanZaken({ project, findings }: { project: Project; findings: Finding[] }) {
+  const { hasRole } = useAuth();
   const [activiteit, setActiviteit] = useState<ActiviteitRegel[]>([]);
   const [toegewezenNaam, setToegewezenNaam] = useState<string | null>(null);
   const [toegewezenRol, setToegewezenRol] = useState<string | null>(null);
@@ -152,6 +156,44 @@ export default function BeheerStandVanZaken({ project, findings }: { project: Pr
   const wachtOpAdviseur = project.status === "wacht_op_reactie";
   const tier = wachtOpAdviseur ? deadlineTier(project.reactie_deadline) : null;
 
+  const loskoppelToewijzing = async () => {
+    if (!project.toegewezen_aan) return;
+    const naam = toegewezenNaam ?? "deze persoon";
+    if (!confirm(`Toewijzing van "${naam}" loskoppelen? Het project komt terug in de pool.`)) return;
+    const oudeId = project.toegewezen_aan;
+    const { error } = await supabase
+      .from("projects")
+      .update({ toegewezen_aan: null, toegewezen_op: null })
+      .eq("id", project.id);
+    if (error) {
+      toast({ title: "Loskoppelen mislukt", description: error.message, variant: "destructive" });
+      return;
+    }
+    await supabase.from("notificaties").insert({
+      user_id: oudeId,
+      bericht: `Project "${project.projectnaam}" is bij je weggehaald en teruggeplaatst in de pool.`,
+    });
+    setToegewezenNaam(null);
+    setToegewezenRol(null);
+    toast({ title: "Toewijzing losgekoppeld" });
+  };
+
+  const loskoppelAdviseur = async () => {
+    if (!project.adviseur_id) return;
+    const naam = adviseurNaam ?? "deze EP-adviseur";
+    if (!confirm(`EP-adviseur "${naam}" loskoppelen van dit project?`)) return;
+    const { error } = await supabase
+      .from("projects")
+      .update({ adviseur_id: null })
+      .eq("id", project.id);
+    if (error) {
+      toast({ title: "Loskoppelen mislukt", description: error.message, variant: "destructive" });
+      return;
+    }
+    setAdviseurNaam(null);
+    toast({ title: "EP-adviseur losgekoppeld" });
+  };
+
   // Bepaal "bal ligt bij"
   let balLigtBij: string;
   if (reactiesTeBeoordelen > 0) {
@@ -181,18 +223,46 @@ export default function BeheerStandVanZaken({ project, findings }: { project: Pr
           <div className="pt-1 space-y-1.5 text-xs">
             <div className="flex items-start gap-2">
               <UserCog className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
-              <div>
+              <div className="flex-1 min-w-0">
                 <div className="text-muted-foreground">Toegewezen</div>
-                <div className="font-medium">
-                  {toegewezenNaam ? `${toegewezenNaam}${toegewezenRol ? ` (${toegewezenRol})` : ""}` : <span className="text-muted-foreground italic">Pool — nog niet geclaimd</span>}
+                <div className="font-medium flex items-center gap-1">
+                  <span className="truncate">
+                    {toegewezenNaam ? `${toegewezenNaam}${toegewezenRol ? ` (${toegewezenRol})` : ""}` : <span className="text-muted-foreground italic">Pool — nog niet geclaimd</span>}
+                  </span>
+                  {hasRole("beheer") && project.toegewezen_aan && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-destructive hover:bg-destructive/10 shrink-0"
+                      aria-label="Toewijzing loskoppelen"
+                      title="Toewijzing loskoppelen"
+                      onClick={loskoppelToewijzing}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
             <div className="flex items-start gap-2">
               <UserCheck className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
-              <div>
+              <div className="flex-1 min-w-0">
                 <div className="text-muted-foreground">EP-adviseur</div>
-                <div className="font-medium">{adviseurNaam ?? "—"}</div>
+                <div className="font-medium flex items-center gap-1">
+                  <span className="truncate">{adviseurNaam ?? "—"}</span>
+                  {hasRole("beheer") && project.adviseur_id && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-destructive hover:bg-destructive/10 shrink-0"
+                      aria-label="EP-adviseur loskoppelen"
+                      title="EP-adviseur loskoppelen"
+                      onClick={loskoppelAdviseur}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
