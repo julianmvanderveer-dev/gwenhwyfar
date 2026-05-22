@@ -233,6 +233,15 @@ export function useBatchVersturen(
               if (error) console.error("Notificatie audit afgerond fout:", error);
             });
 
+          // Notificeer ook de auditor
+          supabase.functions
+            .invoke("notify-auditor", {
+              body: { type: "audit_afgerond", project_id: project.id },
+            })
+            .then(({ error }) => {
+              if (error) console.error("Notificatie auditor audit afgerond fout:", error);
+            });
+
           toast({
             title: "Audit afgerond",
             description: "Alle bevindingen zijn goedgekeurd. De EP-adviseur is geïnformeerd.",
