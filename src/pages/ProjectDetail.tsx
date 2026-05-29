@@ -82,26 +82,37 @@ export default function ProjectDetail() {
     }
   }, [uitdraai]);
 
-  // Poll for uitdraai status when extracting
+  // Realtime subscription for uitdraai status
   useEffect(() => {
     if (!uitdraai || uitdraai.status !== "extracting") return;
-    const interval = setInterval(async () => {
-      const { data } = await supabase
-        .from("project_uitdraai")
-        .select("*")
-        .eq("id", uitdraai.id)
-        .single();
-      if (data && (data as any).status !== "extracting") {
-        setUitdraai(data as any);
-        clearInterval(interval);
-        if ((data as any).status === "klaar") {
-          toast({ title: "Uitdraai verwerkt", description: "De AI-extractie is voltooid." });
-        } else if ((data as any).status === "fout") {
-          toast({ title: "Fout bij extractie", description: "De AI kon het document niet verwerken.", variant: "destructive" });
+
+    const channel = supabase
+      .channel(`project_uitdraai_${uitdraai.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "project_uitdraai",
+          filter: `id=eq.${uitdraai.id}`,
+        },
+        (payload) => {
+          const updated = payload.new as any;
+          if (updated.status !== "extracting") {
+            setUitdraai(updated);
+            if (updated.status === "klaar") {
+              toast({ title: "Uitdraai verwerkt", description: "De AI-extractie is voltooid." });
+            } else if (updated.status === "fout") {
+              toast({ title: "Fout bij extractie", description: "De AI kon het document niet verwerken.", variant: "destructive" });
+            }
+          }
         }
-      }
-    }, 3000);
-    return () => clearInterval(interval);
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [uitdraai?.id, uitdraai?.status]);
 
   const loadProject = async () => {
