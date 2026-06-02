@@ -149,17 +149,30 @@ export default function Beheer() {
   const sendPlatformInvite = async (key: string, email: string, naam: string) => {
     setSendingPlatformInvite(key);
     try {
+      // Stap 1: maak (indien nodig) het auth-account aan met standaardwachtwoord
+      const { data: accData, error: accErr } = await supabase.functions.invoke("create-team-member", {
+        body: { action: "create_adviseur_account", email, naam },
+      });
+      if (accErr) throw accErr;
+      if (accData?.error) throw new Error(accData.error);
+      const bestaatAl = !!accData?.exists;
+
+      // Stap 2: stuur uitnodigingsmail met juiste instructies
       const { data, error } = await supabase.functions.invoke("send-transactional-email", {
         body: {
           templateName: "platform-uitnodiging",
           recipientEmail: email,
-          templateData: { naam },
+          templateData: { naam, bestaatAl },
           cc: "julian@borgch.nl",
         },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      toast({ title: `Platform-uitnodiging verstuurd naar ${email}` });
+      toast({
+        title: bestaatAl
+          ? `Uitnodiging verstuurd naar ${email} (account bestond al)`
+          : `Account aangemaakt en uitnodiging verstuurd naar ${email}`,
+      });
     } catch (err: any) {
       toast({ title: "Fout bij versturen platform-uitnodiging", description: err.message, variant: "destructive" });
     } finally {
