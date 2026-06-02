@@ -547,7 +547,7 @@ export default function ProjectDetail() {
   );
   const allTabs = [...onderdelen, "__ep2__"];
 
-  const canDeel1 = hasRole("tekenaar") && (project.status === "nog_niet_begonnen" || project.status === "deel1_bezig");
+  const canDeel1 = (hasRole("tekenaar") || hasRole("auditor")) && (project.status === "nog_niet_begonnen" || project.status === "deel1_bezig");
   const canDeel2 = hasRole("auditor") && (project.status === "deel1_afgerond" || project.status === "deel2_bezig");
 
   const canEditFindingByDeel = (deel: number) => {
@@ -561,7 +561,7 @@ export default function ProjectDetail() {
   const canCorrectFinding = (f: Finding) => {
     if (!f.zichtbaar_voor_adviseur) return false;
     if (f.status !== "open") return false;
-    if (f.deel === 1 && hasRole("tekenaar")) return true;
+    if (f.deel === 1 && (hasRole("tekenaar") || hasRole("auditor"))) return true;
     if (f.deel === 2 && hasRole("auditor")) return true;
     return false;
   };
