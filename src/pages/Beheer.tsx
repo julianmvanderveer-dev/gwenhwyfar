@@ -732,7 +732,7 @@ export default function Beheer() {
                            variant="ghost"
                            className="h-7 w-7 text-accent"
                            disabled={sendingPlatformInvite === p.id}
-                           title="Platform-uitnodiging sturen (uitleg account aanmaken via wachtwoord vergeten)"
+                           title="Platform-uitnodiging (opnieuw) sturen — maakt account aan met standaardwachtwoord, of stuurt bij bestaand account de juiste inloginstructies"
                            onClick={() => sendPlatformInvite(p.id, p.email, p.naam)}
                          >
                            <Send className="h-4 w-4" />
@@ -854,7 +854,7 @@ export default function Beheer() {
                               variant="ghost"
                               className="h-7 w-7 text-accent"
                               disabled={!a.email || sendingPlatformInvite === a.id}
-                              title={a.email ? "Platform-uitnodiging sturen" : "Geen e-mailadres bekend"}
+                              title={a.email ? "Platform-uitnodiging (opnieuw) sturen — bij bestaand account worden de juiste inloginstructies meegestuurd" : "Geen e-mailadres bekend"}
                               onClick={() => a.email && sendPlatformInvite(a.id, a.email, a.naam)}
                             >
                               <Send className="h-4 w-4" />
