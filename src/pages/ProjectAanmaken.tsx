@@ -104,10 +104,9 @@ export default function ProjectAanmaken() {
     };
 
     if (!isBeheer) {
-      // Tekenaar/auditor: altijd aan zichzelf toewijzen
-      insertData.toegewezen_aan = user.id;
-      insertData.toewijzing = "specifiek";
-      insertData.toegewezen_op = new Date().toISOString();
+      // Tekenaar/auditor: altijd in de pool plaatsen (geen self-assign)
+      insertData.toewijzing = "pool";
+      insertData.toegewezen_aan = null;
     } else if (toewijzing === "specifiek" && toegewezenAan) {
       insertData.toegewezen_aan = toegewezenAan;
       insertData.toegewezen_op = new Date().toISOString();
