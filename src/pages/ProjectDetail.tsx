@@ -122,7 +122,7 @@ export default function ProjectDetail() {
   };
 
   const autoSetStatus = async (currentStatus: string) => {
-    if (hasRole("tekenaar") && currentStatus === "nog_niet_begonnen") {
+    if ((hasRole("tekenaar") || hasRole("auditor")) && currentStatus === "nog_niet_begonnen") {
       const { data: proj } = await supabase.from("projects").select("toewijzing, toegewezen_aan").eq("id", id!).single();
       if (proj?.toewijzing === "pool" && !proj.toegewezen_aan) {
         const { data: claimed } = await supabase.rpc("claim_project", { _project_id: id!, _user_id: user!.id });
@@ -285,11 +285,15 @@ export default function ProjectDetail() {
 
   const updateBeoordeling = async (findingId: string, beoordeling: Enums<"beoordeling_type">) => {
     const update: any = { beoordeling };
+    // Bepaal eigenaar o.b.v. huidige projectfase, zodat een gebruiker met
+    // beide rollen correct gelabeld wordt afhankelijk van deel 1 of deel 2.
+    const isDeel2Fase = project?.status === "deel1_afgerond" || project?.status === "deel2_bezig";
+    const eigenaarLabel = isDeel2Fase && hasRole("auditor") ? "auditor" : (hasRole("tekenaar") ? "tekenaar" : "auditor");
     if (beoordeling === "niet_goed") {
-      update.eigenaar_beoordeling = hasRole("tekenaar") ? "tekenaar" : "auditor";
+      update.eigenaar_beoordeling = eigenaarLabel;
       update.toegewezen_beoordelaar = user!.id;
     } else if (beoordeling === "opmerking") {
-      update.eigenaar_beoordeling = hasRole("tekenaar") ? "tekenaar" : "auditor";
+      update.eigenaar_beoordeling = eigenaarLabel;
       update.toegewezen_beoordelaar = user!.id;
     }
     // Status afleiden: 'goed' sluit het controlepunt af, andere beoordelingen
@@ -311,10 +315,12 @@ export default function ProjectDetail() {
   // al-verstuurde bevinding zodat de EP-adviseur en de audit-trail dit zien.
   const logCorrectie = async (findingId: string, beschrijving: string) => {
     if (!user) return;
+    const isDeel2Fase = project?.status === "deel1_afgerond" || project?.status === "deel2_bezig";
+    const rolLabel = isDeel2Fase && hasRole("auditor") ? "auditor" : (hasRole("tekenaar") ? "tekenaar" : "auditor");
     await supabase.from("messages").insert({
       finding_id: findingId,
       afzender_id: user.id,
-      bericht: `[Correctie door ${hasRole("tekenaar") ? "tekenaar" : "auditor"}] ${beschrijving}`,
+      bericht: `[Correctie door ${rolLabel}] ${beschrijving}`,
     } as any);
   };
 
@@ -547,7 +553,7 @@ export default function ProjectDetail() {
   );
   const allTabs = [...onderdelen, "__ep2__"];
 
-  const canDeel1 = hasRole("tekenaar") && (project.status === "nog_niet_begonnen" || project.status === "deel1_bezig");
+  const canDeel1 = (hasRole("tekenaar") || hasRole("auditor")) && (project.status === "nog_niet_begonnen" || project.status === "deel1_bezig");
   const canDeel2 = hasRole("auditor") && (project.status === "deel1_afgerond" || project.status === "deel2_bezig");
 
   const canEditFindingByDeel = (deel: number) => {
@@ -561,7 +567,7 @@ export default function ProjectDetail() {
   const canCorrectFinding = (f: Finding) => {
     if (!f.zichtbaar_voor_adviseur) return false;
     if (f.status !== "open") return false;
-    if (f.deel === 1 && hasRole("tekenaar")) return true;
+    if (f.deel === 1 && (hasRole("tekenaar") || hasRole("auditor"))) return true;
     if (f.deel === 2 && hasRole("auditor")) return true;
     return false;
   };

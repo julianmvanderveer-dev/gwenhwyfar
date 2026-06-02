@@ -1,45 +1,32 @@
 ## Doel
+Workflow voor project aanmaken en oppakken gelijktrekken volgens 5 regels.
 
-Op de projectdetailpagina, in het kader **Stand van zaken** (kolom "Bal ligt bij"), achter elke getoonde naam een klein prullenbakje tonen waarmee de koppeling kan worden verwijderd. Altijd met een bevestigingsvraag ("Weet je zeker dat …?").
-
-Locatie in code: `src/components/projecten/BeheerStandVanZaken.tsx`, regels 181–198 (de blokken **Toegewezen** en **EP-adviseur**).
-
-## Gedrag per naam
-
-1. **Toegewezen (tekenaar/auditor)**
-   - Prullenbakje verschijnt alleen als er iemand toegewezen is (`project.toegewezen_aan` ingevuld).
-   - Klik → `confirm("Toewijzing van «naam» loskoppelen? Het project komt terug in de pool.")`.
-   - Bij OK: `projects.update({ toegewezen_aan: null, toegewezen_op: null })` voor dit project.
-   - Notificatie naar de oude eigenaar: `notificaties.insert({ user_id: oudeId, bericht: "Project «projectnaam» is bij je weggehaald en teruggeplaatst in de pool." })`.
-   - Lokale state verversen (`setToegewezenNaam(null)`, `setToegewezenRol(null)`) en toast "Toewijzing losgekoppeld".
-
-2. **EP-adviseur**
-   - Prullenbakje verschijnt alleen als `project.adviseur_id` ingevuld is.
-   - Klik → `confirm("EP-adviseur «naam» loskoppelen van dit project?")`.
-   - Bij OK: `projects.update({ adviseur_id: null })`.
-   - `setAdviseurNaam(null)` en toast "EP-adviseur losgekoppeld".
-
-## Zichtbaarheid
-
-- Alleen tonen voor gebruikers met rol **beheer** (via bestaande `useAuth().hasRole("beheer")`), zodat tekenaars/auditors niet per ongeluk koppelingen verbreken.
-
-## UI-details
-
-- Gebruik `Trash2` uit `lucide-react`, `Button size="icon" variant="ghost"` met `className="h-6 w-6 text-destructive hover:bg-destructive/10"`, `aria-label="Loskoppelen"`, `title` met dezelfde tekst.
-- Plaats het knopje rechts naast de naam binnen dezelfde flex-rij; behoud bestaande typografie en spacing van de "Stand van zaken"-kaart.
+## Huidige situatie
+- **Aanmaken**: beheer/tekenaar/auditor mogen al aanmaken ✅
+- **Pool default**: beheer kan kiezen pool/specifiek, maar tekenaar/auditor worden nu *automatisch* aan zichzelf toegewezen (`ProjectAanmaken.tsx` regels 99–104). ❌
+- **Deel 1 oppakken**: alleen `tekenaar` kan claimen (`ProjectDetail.tsx` `autoSetStatus` + `canDeel1`). Auditor niet. ❌
+- **Deel 2 oppakken**: alleen `auditor` claimt vanuit pool ✅
+- **Auto-toewijzen bij eerste werk**: gebeurt al via `claim_project` rpc bij betreden van pool-project ✅
 
 ## Wijzigingen
 
-- **Bestand:** `src/components/projecten/BeheerStandVanZaken.tsx`
-  - `Trash2` en `Button` importeren.
-  - `useAuth` importeren voor de rolcheck.
-  - Twee handlers toevoegen: `loskoppelToewijzing()` en `loskoppelAdviseur()`.
-  - In de JSX van "Toegewezen" en "EP-adviseur" het prullenbakje renderen conform bovenstaande regels.
-- Geen wijzigingen in backend, RLS of edge functions; bestaande update-rechten op `projects` voor beheer zijn voldoende.
+### 1. `src/pages/ProjectAanmaken.tsx`
+- Verwijder de auto-self-assign voor tekenaar/auditor. Iedereen (ook tekenaar/auditor) maakt project standaard aan met `toewijzing = 'pool'`, `toegewezen_aan = null`.
+- Beheer behoudt de keuze pool/specifiek (UI is al aanwezig).
+- Tekenaar/auditor zien geen toewijzing-blok → gaat altijd naar pool.
 
-## Verificatie
+### 2. `src/pages/ProjectDetail.tsx`
+- **`canDeel1`**: ook `auditor` mag deel 1 oppakken
+  → `(hasRole("tekenaar") || hasRole("auditor")) && status in (nog_niet_begonnen, deel1_bezig)`
+- **`autoSetStatus`**: condities voor deel 1-claim verbreden naar tekenaar **of** auditor.
+- **`mayCorrect`**: deel-1 correcties ook door auditor toestaan (`f.deel === 1 && (tekenaar || auditor)`) zodat een auditor die deel 1 oppakt ook normaal kan werken.
+- Eigenaar-beoordeling label (regel 289/292/317): zet `eigenaar_beoordeling` op basis van wie het project op dat moment behandelt (huidige user), niet alleen "tekenaar vs auditor"-rol. Praktisch: gebruik `hasRole("tekenaar") ? "tekenaar" : "auditor"` blijft werkbaar, maar bij iemand met beide rollen → kies o.b.v. `project.status` (deel1 → tekenaar, deel2 → auditor).
 
-- Open een project als beheerder → twee prullenbakjes zichtbaar (alleen bij gevulde velden).
-- Klik op het prullenbakje bij **Toegewezen**: bevestiging verschijnt; na bevestigen toont de regel "Pool — nog niet geclaimd" en oude eigenaar krijgt een notificatie.
-- Klik op het prullenbakje bij **EP-adviseur**: bevestiging verschijnt; na bevestigen toont de regel "—".
-- Als niet-beheer gebruiker: prullenbakjes zijn niet zichtbaar.
+### 3. Geen DB-migratie nodig
+- `claim_project` rpc werkt al voor beide rollen (security definer, geen rol-check binnen functie).
+- RLS op `projects` staat tekenaar én auditor al toe om pool-projecten te zien en te updaten.
+
+## Out of scope
+- Geen wijzigingen aan deel 2-flow (werkt al volgens spec).
+- Geen wijzigingen aan beheer-toewijzing UI.
+- Geen wijzigingen aan notificaties/edge functions.
