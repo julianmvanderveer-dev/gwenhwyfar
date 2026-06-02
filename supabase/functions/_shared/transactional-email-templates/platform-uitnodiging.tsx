@@ -10,9 +10,11 @@ const CONTACT_EMAIL = 'julian@borgch.nl'
 
 interface PlatformUitnodigingProps {
   naam?: string
+  wachtwoord?: string
+  bestaatAl?: boolean
 }
 
-const PlatformUitnodigingEmail = ({ naam }: PlatformUitnodigingProps) => (
+const PlatformUitnodigingEmail = ({ naam, wachtwoord = 'BengCert26', bestaatAl = false }: PlatformUitnodigingProps) => (
   <Html lang="nl" dir="ltr">
     <Head />
     <Preview>Welkom bij {SITE_NAME} — maak je account aan</Preview>
@@ -28,13 +30,20 @@ const PlatformUitnodigingEmail = ({ naam }: PlatformUitnodigingProps) => (
           bevindingen die betrekking hebben op jouw projecten.
         </Text>
 
-        <Heading as="h2" style={h2}>Account aanmaken — zo werkt het</Heading>
-        <Section style={steps}>
-          <Text style={step}><strong>1.</strong> Klik op de knop hieronder om naar het platform te gaan.</Text>
-          <Text style={step}><strong>2.</strong> Klik op "Wachtwoord vergeten" en vul je e-mailadres in.</Text>
-          <Text style={step}><strong>3.</strong> Volg de instructies in de mail die je dan ontvangt om een wachtwoord in te stellen.</Text>
-          <Text style={step}><strong>4.</strong> Log in met je e-mailadres en nieuwe wachtwoord.</Text>
-        </Section>
+        <Heading as="h2" style={h2}>Inloggen — zo werkt het</Heading>
+        {bestaatAl ? (
+          <Section style={steps}>
+            <Text style={step}><strong>1.</strong> Klik op de knop hieronder om naar {SITE_NAME} te gaan.</Text>
+            <Text style={step}><strong>2.</strong> Log in met je e-mailadres en je bestaande wachtwoord.</Text>
+            <Text style={step}><strong>3.</strong> Wachtwoord vergeten? Gebruik dan "Wachtwoord vergeten" op de inlogpagina.</Text>
+          </Section>
+        ) : (
+          <Section style={steps}>
+            <Text style={step}><strong>1.</strong> Klik op de knop hieronder om naar {SITE_NAME} te gaan.</Text>
+            <Text style={step}><strong>2.</strong> Log in met je e-mailadres en het standaardwachtwoord: <strong>{wachtwoord}</strong></Text>
+            <Text style={step}><strong>3.</strong> Wijzig na inloggen je wachtwoord via de knop "Wachtwoord wijzigen" rechtsboven.</Text>
+          </Section>
+        )}
 
         <Section style={{ textAlign: 'center' as const, margin: '30px 0' }}>
           <Button style={button} href={SITE_URL}>
