@@ -60,6 +60,44 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Action: create EP-adviseur account met standaardwachtwoord
+    if (body.action === "create_adviseur_account") {
+      const email: string | undefined = body.email?.trim().toLowerCase();
+      const naam: string | undefined = body.naam?.trim();
+      if (!email || !naam) {
+        return new Response(JSON.stringify({ error: "Naam en e-mail zijn verplicht" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const DEFAULT_PASSWORD = "BengCert26";
+
+      const { data: created, error: createErr } = await adminClient.auth.admin.createUser({
+        email,
+        password: DEFAULT_PASSWORD,
+        email_confirm: true,
+        user_metadata: { naam },
+      });
+
+      if (createErr) {
+        const msg = createErr.message?.toLowerCase() ?? "";
+        if (msg.includes("already") || msg.includes("registered") || msg.includes("exist")) {
+          return new Response(JSON.stringify({ success: true, created: false, exists: true }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        return new Response(JSON.stringify({ error: createErr.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ success: true, created: true, exists: false, user_id: created.user?.id }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Action: list unconfirmed users
     if (body.action === "list_unconfirmed") {
       const { data: { users }, error: listError } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
