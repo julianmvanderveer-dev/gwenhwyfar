@@ -122,7 +122,7 @@ export default function ProjectDetail() {
   };
 
   const autoSetStatus = async (currentStatus: string) => {
-    if (hasRole("tekenaar") && currentStatus === "nog_niet_begonnen") {
+    if ((hasRole("tekenaar") || hasRole("auditor")) && currentStatus === "nog_niet_begonnen") {
       const { data: proj } = await supabase.from("projects").select("toewijzing, toegewezen_aan").eq("id", id!).single();
       if (proj?.toewijzing === "pool" && !proj.toegewezen_aan) {
         const { data: claimed } = await supabase.rpc("claim_project", { _project_id: id!, _user_id: user!.id });
