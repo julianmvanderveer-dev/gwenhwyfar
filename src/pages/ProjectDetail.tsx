@@ -50,6 +50,10 @@ export default function ProjectDetail() {
   const [ep2ManualOverride, setEp2ManualOverride] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("");
 
+  // Dropbox link inline edit
+  const [editingDropbox, setEditingDropbox] = useState(false);
+  const [dropboxDraft, setDropboxDraft] = useState("");
+
   // Uitdraai state
   const [uitdraai, setUitdraai] = useState<Uitdraai | null>(null);
   const [uitdraaiUploading, setUitdraaiUploading] = useState(false);
