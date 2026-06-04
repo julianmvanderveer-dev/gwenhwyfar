@@ -11,7 +11,7 @@ import FindingToelichting from "@/components/FindingToelichting";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { statusBadge, beoordelingBadge } from "@/lib/badges";
-import { ArrowLeft, CheckCircle2, ClipboardCheck, ChevronLeft, ChevronRight, Download, Upload, Loader2, FileText } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ClipboardCheck, ChevronLeft, ChevronRight, Download, Upload, Loader2, FileText, FolderOpen, Pencil, Check, X } from "lucide-react";
 import { generateAuditReport } from "@/lib/generateAuditReport";
 import AandachtspuntenAdviseur from "@/components/projecten/AandachtspuntenAdviseur";
 import BeheerStandVanZaken from "@/components/projecten/BeheerStandVanZaken";
@@ -49,6 +49,10 @@ export default function ProjectDetail() {
   const [ep2Beoordeling, setEp2Beoordeling] = useState<string>("");
   const [ep2ManualOverride, setEp2ManualOverride] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("");
+
+  // Dropbox link inline edit
+  const [editingDropbox, setEditingDropbox] = useState(false);
+  const [dropboxDraft, setDropboxDraft] = useState("");
 
   // Uitdraai state
   const [uitdraai, setUitdraai] = useState<Uitdraai | null>(null);
@@ -678,6 +682,82 @@ export default function ProjectDetail() {
               </>
             )}
           </p>
+          {/* Dropbox-link dossier */}
+          <div className="mt-1 flex items-center gap-2 text-xs">
+            {editingDropbox && (hasRole("beheer") || hasRole("tekenaar") || hasRole("auditor")) ? (
+              <>
+                <input
+                  type="url"
+                  autoFocus
+                  placeholder="https://www.dropbox.com/..."
+                  value={dropboxDraft}
+                  onChange={(e) => setDropboxDraft(e.target.value)}
+                  className="flex h-7 w-72 rounded-md border border-input bg-background px-2 py-1 text-xs"
+                />
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6"
+                  onClick={async () => {
+                    const value = dropboxDraft.trim() || null;
+                    await supabase.from("projects").update({ dropbox_link: value } as any).eq("id", id!);
+                    setProject({ ...(project as any), dropbox_link: value } as any);
+                    setEditingDropbox(false);
+                  }}
+                >
+                  <Check className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6"
+                  onClick={() => setEditingDropbox(false)}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </>
+            ) : (project as any).dropbox_link ? (
+              <>
+                <a
+                  href={(project as any).dropbox_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-primary hover:underline"
+                >
+                  <FolderOpen className="h-3.5 w-3.5" />
+                  Dossier op Dropbox
+                </a>
+                {(hasRole("beheer") || hasRole("tekenaar") || hasRole("auditor")) && (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6"
+                    onClick={() => {
+                      setDropboxDraft((project as any).dropbox_link ?? "");
+                      setEditingDropbox(true);
+                    }}
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </Button>
+                )}
+              </>
+            ) : (
+              (hasRole("beheer") || hasRole("tekenaar") || hasRole("auditor")) && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-2 text-xs text-muted-foreground"
+                  onClick={() => {
+                    setDropboxDraft("");
+                    setEditingDropbox(true);
+                  }}
+                >
+                  <FolderOpen className="h-3.5 w-3.5 mr-1" />
+                  Dropbox-link toevoegen
+                </Button>
+              )
+            )}
+          </div>
         </div>
         <div className="ml-auto shrink-0 flex items-center gap-2">
           {(hasRole("beheer") || hasRole("ep_adviseur")) &&
