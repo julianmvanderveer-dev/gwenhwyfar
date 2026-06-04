@@ -497,16 +497,19 @@ export default function ProjectDetail() {
     loadFindings();
   };
 
-  const saveEp2 = async () => {
-    const update: any = {
-      ep2_startwaarde: ep2Start ? parseFloat(ep2Start) : null,
-      ep2_eindwaarde: ep2Eind ? parseFloat(ep2Eind) : null,
-      ep2_beoordeling: ep2Beoordeling || null,
-    };
-    await supabase.from("projects").update(update).eq("id", id!);
-    toast({ title: "EP2 opgeslagen" });
-    loadProject();
-  };
+  const saveEp2Field = useCallback(
+    async (field: "ep2_startwaarde" | "ep2_eindwaarde" | "ep2_beoordeling", value: string) => {
+      if (!id) return;
+      const update: any = {};
+      if (field === "ep2_beoordeling") {
+        update.ep2_beoordeling = value || null;
+      } else {
+        update[field] = value ? parseFloat(value) : null;
+      }
+      await supabase.from("projects").update(update).eq("id", id);
+    },
+    [id]
+  );
 
   // EP2 berekeningen
   const startVal = parseFloat(ep2Start);
