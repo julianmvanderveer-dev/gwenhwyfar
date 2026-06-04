@@ -788,7 +788,14 @@ export default function ProjectDetail() {
       )}
 
       {/* Tabs */}
-      <Tabs value={activeTab || onderdelen[0] || "__ep2__"} onValueChange={setActiveTab}>
+      <Tabs
+        value={activeTab || onderdelen[0] || "__ep2__"}
+        onValueChange={(v) => {
+          // Flush pending auto-saves before switching tabs so nothing is lost.
+          void flushUitdraaiSave();
+          setActiveTab(v);
+        }}
+      >
         <TabsList className="flex-wrap h-auto gap-1">
           {onderdelen.map((o) => (
             <TabsTrigger key={o} value={o} className="text-xs">{o}</TabsTrigger>
@@ -972,6 +979,7 @@ export default function ProjectDetail() {
                 step="0.01"
                 value={ep2Start}
                 onChange={(e) => setEp2Start(e.target.value)}
+                onBlur={(e) => saveEp2Field("ep2_startwaarde", e.target.value)}
                 disabled={!(canDeel1 || canDeel2)}
                 placeholder="bijv. 125.50"
               />
@@ -984,6 +992,7 @@ export default function ProjectDetail() {
                 step="0.01"
                 value={ep2Eind}
                 onChange={(e) => setEp2Eind(e.target.value)}
+                onBlur={(e) => saveEp2Field("ep2_eindwaarde", e.target.value)}
                 disabled={!canDeel2}
                 placeholder="bijv. 130.00"
               />
@@ -1015,6 +1024,7 @@ export default function ProjectDetail() {
                 onChange={(e) => {
                   setEp2Beoordeling(e.target.value);
                   setEp2ManualOverride(true);
+                  void saveEp2Field("ep2_beoordeling", e.target.value);
                 }}
                 disabled={!canDeel2}
               >
@@ -1039,9 +1049,7 @@ export default function ProjectDetail() {
             </div>
 
             {(canDeel1 || canDeel2) && (
-              <Button onClick={saveEp2} size="sm" className="shadow-sm">
-                EP2 opslaan
-              </Button>
+              <p className="text-xs text-muted-foreground">Wijzigingen worden automatisch opgeslagen.</p>
             )}
           </div>
           <div className="flex justify-between">
