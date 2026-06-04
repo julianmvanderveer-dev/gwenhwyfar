@@ -1,18 +1,23 @@
-## Dropbox-link toevoegen aan project
+## Probleem
 
-**Doel**: Bij projectaanmaak een optioneel veld voor de Dropbox-link van het dossier, zichtbaar als klikbare link in de projectheader zodat tekenaar/auditor het maar één keer hoeft op te zoeken.
+Egon krijgt op `/inbox` een witte pagina met:
+`NotFoundError: Het uitvoeren van 'removeChild' op 'Node' is mislukt...`
 
-### Datamodel
-- Migratie: `ALTER TABLE public.projects ADD COLUMN dropbox_link text;` (nullable, geen default — leeg = geen link).
-- Geen RLS-aanpassing nodig: valt onder bestaande policies van `projects`.
+Dit is een bekende React-crash die optreedt wanneer de **browser de pagina automatisch vertaalt** (Chrome Translate). De vertaler vervangt tekstnodes in de DOM; React kent die nieuwe nodes niet en crasht zodra hij iets probeert te verwijderen of opnieuw te renderen (bv. bij het laden van de Inbox-tabellen).
 
-### Project aanmaken (`src/pages/ProjectAanmaken.tsx`)
-- Nieuw optioneel tekstveld **"Dropbox-link dossier"** (`<Input type="url">`), onder de bestaande velden.
-- State `dropboxLink`, meegestuurd bij insert als `dropbox_link: dropboxLink.trim() || null`.
+Oorzaak in dit project: `index.html` staat op `<html lang="en">`, terwijl de hele app in het Nederlands is. Chrome detecteert de taalmismatch en biedt (of voert automatisch uit) een vertaling NL→EN aan. Bij Egon staat dit kennelijk aan.
 
-### Project detail (`src/pages/ProjectDetail.tsx`)
-- In de projectheader, naast bestaande badges, een knop/link **"📁 Dossier op Dropbox"** (`<a target="_blank" rel="noopener noreferrer">`) als `project.dropbox_link` is ingevuld.
-- Voor beheer/tekenaar/auditor: link is ook bewerkbaar via een klein potlood-icoon → inline `<Input>` met auto-save (`onBlur`) volgens het bestaande auto-save patroon. EP-adviseur ziet alleen de link (read-only).
+## Oplossing (alleen `index.html`)
 
-### Buiten scope
-- Geen Dropbox-API integratie, geen validatie van de URL behalve basis `type="url"`, geen previews.
+1. `<html lang="en">` → `<html lang="nl" translate="no">`
+2. In `<head>` toevoegen:
+   - `<meta name="google" content="notranslate" />`
+3. `<body>` → `<body class="notranslate">`
+
+Dit vertelt Chrome/Edge/Safari expliciet om de pagina **niet** te vertalen, waardoor de DOM stabiel blijft en de removeChild-crash verdwijnt — voor Egon en voor iedereen die in de browser auto-translate aan heeft staan.
+
+## Scope
+
+- Alleen `index.html` wordt aangepast.
+- Geen wijzigingen aan componenten, routing of data.
+- Egon hoeft daarna alleen één keer te verversen (en eventueel "Origineel tonen" in de Chrome-vertaalbalk te kiezen als hij eerder al vertaald had).
