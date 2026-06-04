@@ -577,9 +577,27 @@ export default function ProjectDetail() {
   if (!project) return <div className="p-6 text-muted-foreground">Laden...</div>;
 
   // Build merged rows per onderdeel
-  const onderdelen = [...new Set(templates.map((t) => t.onderdeel))].sort((a, b) =>
-    a.localeCompare(b, undefined, { numeric: true })
-  );
+  const tabNum = (s: string) => {
+    const m = s.match(/\d+/);
+    return m ? parseInt(m[0], 10) : Number.MAX_SAFE_INTEGER;
+  };
+  // Sort tabs numerically by the leading number in the code (e.g. 1a, 1b, 2a, ..., 10a),
+  // grouping same base number together. Fall back to onderdeel-based ordering.
+  const minCodeByOnderdeel = new Map<string, string>();
+  for (const t of templates) {
+    const cur = minCodeByOnderdeel.get(t.onderdeel);
+    if (cur === undefined || t.code.localeCompare(cur, undefined, { numeric: true }) < 0) {
+      minCodeByOnderdeel.set(t.onderdeel, t.code);
+    }
+  }
+  const onderdelen = [...new Set(templates.map((t) => t.onderdeel))].sort((a, b) => {
+    const ca = minCodeByOnderdeel.get(a) ?? a;
+    const cb = minCodeByOnderdeel.get(b) ?? b;
+    const na = tabNum(ca);
+    const nb = tabNum(cb);
+    if (na !== nb) return na - nb;
+    return ca.localeCompare(cb, undefined, { numeric: true });
+  });
   const allTabs = [...onderdelen, "__ep2__"];
 
   const canDeel1 = (hasRole("tekenaar") || hasRole("auditor")) && (project.status === "nog_niet_begonnen" || project.status === "deel1_bezig");
