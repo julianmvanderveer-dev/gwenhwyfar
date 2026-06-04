@@ -1,46 +1,55 @@
-## Doel
+## Stap 3 + 4 — Foutentelling per tab + rood/groene tab
 
-Een EP-adviseur ziet nu élk project waaraan hij gekoppeld is, ook als de auditor/tekenaar nog bezig is. Dat is verwarrend (hij kan immers niets doen). Aanpassen zodat een EP-adviseur een project pas ziet wanneer er om zijn reactie gevraagd wordt, plus afgeronde projecten gedurende 14 dagen na afronding.
+**Definitie van fout**: bevinding met `beoordeling = 'niet_goed'` op rijen van die tab. Realtime afgeleid uit reeds geladen `findings`-state — geen extra database-veld nodig.
 
-## Wijzigingen
+**UI (`src/pages/ProjectDetail.tsx`, alleen `TabsTrigger`-rendering)**:
+- Per onderdeel `o` de niet-goed-bevindingen tellen via `findings.filter(f => f.onderdeel === o && f.beoordeling === 'niet_goed')`.
+- `TabsTrigger`-styling: standaard groen (semantic accent-token van het design system, BengCert-groen) als telling = 0, rood (destructive-token) als telling > 0.
+- Naast het tab-label een klein telpilletje met het aantal. Bij 0 fouten geen telpil, alleen groene tab.
+- Voor de EP2-tab geen kleur/telling (telt geen niet-goed-bevindingen).
 
-### 1. RLS-policy `Projects select` aanpassen (migration)
+**Zichtbaarheid**: voor alle rollen (auditor, tekenaar, beheer én EP-adviseur).
 
-Het EP-adviseur-deel van de SELECT-policy op `public.projects` wordt aangescherpt zodat hij alleen projecten ziet die:
+## Stap 5 — Split <1% / ≥1% per tab
 
-- gekoppeld zijn aan zijn `adviseur_id`, EN
-- ofwel status = `wacht_op_reactie` hebben, ofwel status `afgerond`/`gesloten` met `gearchiveerd_op >= now() - interval '14 days'`.
+**Datamodel**:
+- Nieuw boolean-veld `findings.afwijking_kleiner_1pct` (default `false`, nullable=false). Alleen relevant als `beoordeling = 'niet_goed'`; voor andere beoordelingen blijft het op `false`.
+- Migratie voegt de kolom toe. Bestaande niet-goed bevindingen krijgen `false` (worden dus geteld als ≥1%) zodat huidige weergave consistent blijft.
 
-De policies voor beheer/tekenaar/auditor blijven ongewijzigd.
+**UI in checklist-rij (`ProjectDetail.tsx`)**:
+- Naast/onder de bestaande "Upload vereist"-checkbox een tweede checkbox **"Afwijking < 1%"**, alleen zichtbaar als `editableNow && beoordeling === 'niet_goed'`.
+- `onCheckedChange` schrijft direct naar `findings.afwijking_kleiner_1pct` (zelfde auto-save patroon als `upload_vereist`), inclusief `logCorrectie` als de bevinding al verstuurd is.
 
-### 2. Frontend opschonen
+**Telling per tab** (vervangt het simpele getal uit Stap 4):
+- `klein = niet_goed-rijen met afwijking_kleiner_1pct = true` ("<1%").
+- `groot = niet_goed-rijen met afwijking_kleiner_1pct = false` ("≥1%").
+- Tab toont label + pil `klein / groot` (bv. `2 / 1`), met tooltip "Afwijkingen <1% / ≥1%".
+- Tabkleur: rood zodra `klein + groot > 0`, anders groen. (De ">4 = andere categorie" uit de oorspronkelijke vraag is na verduidelijking niet meer van toepassing — alleen <1% vs ≥1%.)
 
-- **`src/components/dashboard/AdviseurSectie.tsx`** (en eventuele andere adviseur-views): bestaande query op `projects` blijft werken — RLS doet het filter. Controleren dat geen UI-tekst belooft "lopende projecten" te tonen; labels eventueel bijstellen naar "Projecten die je aandacht vragen" + "Recent afgeronde projecten".
-- Geen wijziging in findings-RLS nodig: findings zijn pas zichtbaar voor de adviseur als `zichtbaar_voor_adviseur = true`, wat hand-in-hand gaat met de `wacht_op_reactie`-fase.
+## Stap 6 — Audittype "Omgevingsvergunning" op project
 
-### 3. Te verifiëren na uitvoering
+**Datamodel**:
+- Nieuw veld `projects.is_omgevingsvergunning boolean NOT NULL DEFAULT false`. Gekozen als boolean (i.p.v. enum) omdat alleen "Omgevingsvergunning" als extra type genoemd is; later uit te breiden met meer types door enum-migratie.
 
-- EP-adviseur die een lopend project heeft in status `deel1_bezig`/`deel2_bezig` ziet het project niet meer in zijn overzicht.
-- Zodra de auditor de audit verzendt (status → `wacht_op_reactie`) verschijnt het project.
-- Na afronding blijft het project 14 dagen zichtbaar, daarna verdwijnt het.
+**Project aanmaken (`src/pages/ProjectAanmaken.tsx`)**:
+- Checkbox "Omgevingsvergunning" toevoegen in het bestaande formulier, naast/onder de bestaande velden (audit_categorie, audit_soort). Waarde meegestuurd bij insert.
+
+**Beheer / bewerken**: indien er een edit-flow is voor projecten in beheer, daar dezelfde checkbox toevoegen. Anders alleen op aanmaken-pagina.
+
+**Weergave**:
+- In de projectheader op `ProjectDetail.tsx` naast de bestaande audit-omschrijving (bv. "EPW-D dossieraudit") een badge **"Omgevingsvergunning"** tonen als `is_omgevingsvergunning = true`. Gebruikt accent-kleur, geen rode markering.
+- In de projecttitel op overzichtspagina's (`AdviseurSectie.tsx`, `FaseTabel.tsx`, dashboard) optioneel hetzelfde badge — alleen toevoegen waar projectnaam zichtbaar is, geen layout-overhaul.
 
 ## Technische details
 
-Nieuwe expressie voor het EP-adviseur-deel:
+- Sortering, auto-save, RLS, GRANTs en bestaande policies blijven ongewijzigd. Alle nieuwe kolommen vallen onder bestaande RLS-policies (geen extra policies nodig — beide tabellen hebben al volledige rolgebaseerde policies).
+- Migratie 1: `ALTER TABLE public.findings ADD COLUMN afwijking_kleiner_1pct boolean NOT NULL DEFAULT false;`
+- Migratie 2: `ALTER TABLE public.projects ADD COLUMN is_omgevingsvergunning boolean NOT NULL DEFAULT false;`
+- Geen wijziging aan checklist-templates, EP2-logica, statusflow, exports, of e-mailtemplates.
 
-```sql
-has_role('ep_adviseur') AND EXISTS (
-  SELECT 1 FROM adviseurs
-  WHERE adviseurs.id = projects.adviseur_id
-    AND adviseurs.user_id = auth.uid()
-) AND (
-  projects.status = 'wacht_op_reactie'
-  OR (
-    projects.status IN ('afgerond', 'gesloten')
-    AND projects.gearchiveerd_op IS NOT NULL
-    AND projects.gearchiveerd_op >= now() - interval '14 days'
-  )
-)
-```
+## Volgorde van uitvoer
 
-Geen schemawijzigingen, alleen `DROP POLICY` + `CREATE POLICY` op `public.projects` voor SELECT.
+1. Migraties (findings + projects).
+2. `ProjectDetail.tsx`: tab-telling, kleuren, "<1%"-checkbox, header-badge.
+3. `ProjectAanmaken.tsx`: checkbox "Omgevingsvergunning".
+4. Visuele check in preview voor één test-project per status.
