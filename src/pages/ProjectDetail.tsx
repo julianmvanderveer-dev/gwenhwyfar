@@ -828,9 +828,36 @@ export default function ProjectDetail() {
         }}
       >
         <TabsList className="flex-wrap h-auto gap-1">
-          {onderdelen.map((o) => (
-            <TabsTrigger key={o} value={o} className="text-xs">{o}</TabsTrigger>
-          ))}
+          {onderdelen.map((o) => {
+            const nietGoed = findings.filter(
+              (f) => f.onderdeel === o && f.beoordeling === "niet_goed"
+            );
+            const klein = nietGoed.filter((f) => (f as any).afwijking_kleiner_1pct).length;
+            const groot = nietGoed.length - klein;
+            const heeftFouten = nietGoed.length > 0;
+            return (
+              <TabsTrigger
+                key={o}
+                value={o}
+                className={
+                  "text-xs gap-1.5 border data-[state=active]:shadow-sm " +
+                  (heeftFouten
+                    ? "bg-destructive/10 text-destructive border-destructive/30 data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground"
+                    : "bg-accent/10 text-accent border-accent/30 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground")
+                }
+              >
+                <span>{o}</span>
+                {heeftFouten && (
+                  <span
+                    className="inline-flex items-center rounded-full bg-background/80 text-foreground px-1.5 py-0.5 text-[10px] font-semibold leading-none"
+                    title={`Afwijkingen <1% / ≥1%`}
+                  >
+                    {klein}/{groot}
+                  </span>
+                )}
+              </TabsTrigger>
+            );
+          })}
           <TabsTrigger value="__ep2__" className="text-xs">EP2 Beoordeling</TabsTrigger>
         </TabsList>
 
