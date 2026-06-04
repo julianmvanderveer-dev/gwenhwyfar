@@ -264,6 +264,7 @@ export type Database = {
       }
       findings: {
         Row: {
+          afwijking_kleiner_1pct: boolean
           beoordeling: Database["public"]["Enums"]["beoordeling_type"] | null
           concept_beoordeling: Json | null
           concept_reactie: Json | null
@@ -286,6 +287,7 @@ export type Database = {
           zichtbaar_voor_adviseur: boolean
         }
         Insert: {
+          afwijking_kleiner_1pct?: boolean
           beoordeling?: Database["public"]["Enums"]["beoordeling_type"] | null
           concept_beoordeling?: Json | null
           concept_reactie?: Json | null
@@ -308,6 +310,7 @@ export type Database = {
           zichtbaar_voor_adviseur?: boolean
         }
         Update: {
+          afwijking_kleiner_1pct?: boolean
           beoordeling?: Database["public"]["Enums"]["beoordeling_type"] | null
           concept_beoordeling?: Json | null
           concept_reactie?: Json | null
@@ -516,6 +519,7 @@ export type Database = {
           ep2_startwaarde: number | null
           gearchiveerd_op: string | null
           id: string
+          is_omgevingsvergunning: boolean
           prioriteit: boolean
           projectnaam: string
           reactie_deadline: string | null
@@ -540,6 +544,7 @@ export type Database = {
           ep2_startwaarde?: number | null
           gearchiveerd_op?: string | null
           id?: string
+          is_omgevingsvergunning?: boolean
           prioriteit?: boolean
           projectnaam: string
           reactie_deadline?: string | null
@@ -564,6 +569,7 @@ export type Database = {
           ep2_startwaarde?: number | null
           gearchiveerd_op?: string | null
           id?: string
+          is_omgevingsvergunning?: boolean
           prioriteit?: boolean
           projectnaam?: string
           reactie_deadline?: string | null

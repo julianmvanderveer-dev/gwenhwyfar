@@ -669,6 +669,14 @@ export default function ProjectDetail() {
             {project.audit_categorie} · {project.audit_soort}
             {project.toelatingsaudit && " · Toelatingsaudit"}
             {project.prioriteit && " · Prioriteit"}
+            {(project as any).is_omgevingsvergunning && (
+              <>
+                {" · "}
+                <span className="inline-flex items-center rounded-full bg-accent/15 text-accent px-1.5 py-0.5 text-[10px] font-semibold align-middle">
+                  Omgevingsvergunning
+                </span>
+              </>
+            )}
           </p>
         </div>
         <div className="ml-auto shrink-0 flex items-center gap-2">
@@ -820,9 +828,36 @@ export default function ProjectDetail() {
         }}
       >
         <TabsList className="flex-wrap h-auto gap-1">
-          {onderdelen.map((o) => (
-            <TabsTrigger key={o} value={o} className="text-xs">{o}</TabsTrigger>
-          ))}
+          {onderdelen.map((o) => {
+            const nietGoed = findings.filter(
+              (f) => f.onderdeel === o && f.beoordeling === "niet_goed"
+            );
+            const klein = nietGoed.filter((f) => (f as any).afwijking_kleiner_1pct).length;
+            const groot = nietGoed.length - klein;
+            const heeftFouten = nietGoed.length > 0;
+            return (
+              <TabsTrigger
+                key={o}
+                value={o}
+                className={
+                  "text-xs gap-1.5 border data-[state=active]:shadow-sm " +
+                  (heeftFouten
+                    ? "bg-destructive/10 text-destructive border-destructive/30 data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground"
+                    : "bg-accent/10 text-accent border-accent/30 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground")
+                }
+              >
+                <span>{o}</span>
+                {heeftFouten && (
+                  <span
+                    className="inline-flex items-center rounded-full bg-background/80 text-foreground px-1.5 py-0.5 text-[10px] font-semibold leading-none"
+                    title={`Afwijkingen <1% / ≥1%`}
+                  >
+                    {klein}/{groot}
+                  </span>
+                )}
+              </TabsTrigger>
+            );
+          })}
           <TabsTrigger value="__ep2__" className="text-xs">EP2 Beoordeling</TabsTrigger>
         </TabsList>
 
@@ -940,28 +975,52 @@ export default function ProjectDetail() {
                                     logCorrectie={inCorrectie}
                                   />
                                   {editableNow && f.beoordeling === "niet_goed" && (
-                                    <label className="flex items-center gap-2 mt-2 cursor-pointer text-xs text-muted-foreground">
-                                      <Checkbox
-                                        checked={f.upload_vereist}
-                                        onCheckedChange={async (checked) => {
-                                          const { error } = await supabase
-                                            .from("findings")
-                                            .update({ upload_vereist: !!checked })
-                                            .eq("id", f.id);
-                                          if (error) {
-                                            toast({ title: "Fout", description: "Kon upload-eis niet opslaan", variant: "destructive" });
-                                          } else {
-                                            setFindings((prev) =>
-                                              prev.map((fin) => fin.id === f.id ? { ...fin, upload_vereist: !!checked } : fin)
-                                            );
-                                            if (inCorrectie) {
-                                              await logCorrectie(f.id, `Upload-vereist gewijzigd naar "${checked ? "ja" : "nee"}".`);
+                                    <div className="flex flex-wrap items-center gap-4 mt-2">
+                                      <label className="flex items-center gap-2 cursor-pointer text-xs text-muted-foreground">
+                                        <Checkbox
+                                          checked={f.upload_vereist}
+                                          onCheckedChange={async (checked) => {
+                                            const { error } = await supabase
+                                              .from("findings")
+                                              .update({ upload_vereist: !!checked })
+                                              .eq("id", f.id);
+                                            if (error) {
+                                              toast({ title: "Fout", description: "Kon upload-eis niet opslaan", variant: "destructive" });
+                                            } else {
+                                              setFindings((prev) =>
+                                                prev.map((fin) => fin.id === f.id ? { ...fin, upload_vereist: !!checked } : fin)
+                                              );
+                                              if (inCorrectie) {
+                                                await logCorrectie(f.id, `Upload-vereist gewijzigd naar "${checked ? "ja" : "nee"}".`);
+                                              }
                                             }
-                                          }
-                                        }}
-                                      />
-                                      Upload vereist voor EP-adviseur
-                                    </label>
+                                          }}
+                                        />
+                                        Upload vereist voor EP-adviseur
+                                      </label>
+                                      <label className="flex items-center gap-2 cursor-pointer text-xs text-muted-foreground">
+                                        <Checkbox
+                                          checked={(f as any).afwijking_kleiner_1pct ?? false}
+                                          onCheckedChange={async (checked) => {
+                                            const { error } = await supabase
+                                              .from("findings")
+                                              .update({ afwijking_kleiner_1pct: !!checked } as any)
+                                              .eq("id", f.id);
+                                            if (error) {
+                                              toast({ title: "Fout", description: "Kon drempelwaarde niet opslaan", variant: "destructive" });
+                                            } else {
+                                              setFindings((prev) =>
+                                                prev.map((fin) => fin.id === f.id ? { ...fin, afwijking_kleiner_1pct: !!checked } as any : fin)
+                                              );
+                                              if (inCorrectie) {
+                                                await logCorrectie(f.id, `Afwijking <1% gewijzigd naar "${checked ? "ja" : "nee"}".`);
+                                              }
+                                            }
+                                          }}
+                                        />
+                                        Afwijking &lt; 1%
+                                      </label>
+                                    </div>
                                   )}
                                 </td>
                               </tr>

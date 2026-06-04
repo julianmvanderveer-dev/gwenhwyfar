@@ -30,6 +30,7 @@ export default function ProjectAanmaken() {
   const [auditSoort, setAuditSoort] = useState<Enums<"audit_soort">>("dossieraudit");
   const [toelatingsaudit, setToelatingsaudit] = useState(false);
   const [prioriteit, setPrioriteit] = useState(false);
+  const [isOmgevingsvergunning, setIsOmgevingsvergunning] = useState(false);
   const [adviseurs, setAdviseurs] = useState<Adviseur[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -99,6 +100,7 @@ export default function ProjectAanmaken() {
       audit_soort: auditSoort,
       toelatingsaudit,
       prioriteit,
+      is_omgevingsvergunning: isOmgevingsvergunning,
       aangemaakt_door: user.id,
       toewijzing,
     };
@@ -242,6 +244,14 @@ export default function ProjectAanmaken() {
         <div className="flex items-center gap-2">
           <Checkbox id="prioriteit" checked={prioriteit} onCheckedChange={(v) => setPrioriteit(v === true)} />
           <Label htmlFor="prioriteit">Prioriteit</Label>
+        </div>
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="omgevingsvergunning"
+            checked={isOmgevingsvergunning}
+            onCheckedChange={(v) => setIsOmgevingsvergunning(v === true)}
+          />
+          <Label htmlFor="omgevingsvergunning">Omgevingsvergunning</Label>
         </div>
 
         {/* Toewijzing — alleen voor beheer */}
