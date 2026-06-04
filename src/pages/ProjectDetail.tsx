@@ -975,28 +975,52 @@ export default function ProjectDetail() {
                                     logCorrectie={inCorrectie}
                                   />
                                   {editableNow && f.beoordeling === "niet_goed" && (
-                                    <label className="flex items-center gap-2 mt-2 cursor-pointer text-xs text-muted-foreground">
-                                      <Checkbox
-                                        checked={f.upload_vereist}
-                                        onCheckedChange={async (checked) => {
-                                          const { error } = await supabase
-                                            .from("findings")
-                                            .update({ upload_vereist: !!checked })
-                                            .eq("id", f.id);
-                                          if (error) {
-                                            toast({ title: "Fout", description: "Kon upload-eis niet opslaan", variant: "destructive" });
-                                          } else {
-                                            setFindings((prev) =>
-                                              prev.map((fin) => fin.id === f.id ? { ...fin, upload_vereist: !!checked } : fin)
-                                            );
-                                            if (inCorrectie) {
-                                              await logCorrectie(f.id, `Upload-vereist gewijzigd naar "${checked ? "ja" : "nee"}".`);
+                                    <div className="flex flex-wrap items-center gap-4 mt-2">
+                                      <label className="flex items-center gap-2 cursor-pointer text-xs text-muted-foreground">
+                                        <Checkbox
+                                          checked={f.upload_vereist}
+                                          onCheckedChange={async (checked) => {
+                                            const { error } = await supabase
+                                              .from("findings")
+                                              .update({ upload_vereist: !!checked })
+                                              .eq("id", f.id);
+                                            if (error) {
+                                              toast({ title: "Fout", description: "Kon upload-eis niet opslaan", variant: "destructive" });
+                                            } else {
+                                              setFindings((prev) =>
+                                                prev.map((fin) => fin.id === f.id ? { ...fin, upload_vereist: !!checked } : fin)
+                                              );
+                                              if (inCorrectie) {
+                                                await logCorrectie(f.id, `Upload-vereist gewijzigd naar "${checked ? "ja" : "nee"}".`);
+                                              }
                                             }
-                                          }
-                                        }}
-                                      />
-                                      Upload vereist voor EP-adviseur
-                                    </label>
+                                          }}
+                                        />
+                                        Upload vereist voor EP-adviseur
+                                      </label>
+                                      <label className="flex items-center gap-2 cursor-pointer text-xs text-muted-foreground">
+                                        <Checkbox
+                                          checked={(f as any).afwijking_kleiner_1pct ?? false}
+                                          onCheckedChange={async (checked) => {
+                                            const { error } = await supabase
+                                              .from("findings")
+                                              .update({ afwijking_kleiner_1pct: !!checked } as any)
+                                              .eq("id", f.id);
+                                            if (error) {
+                                              toast({ title: "Fout", description: "Kon drempelwaarde niet opslaan", variant: "destructive" });
+                                            } else {
+                                              setFindings((prev) =>
+                                                prev.map((fin) => fin.id === f.id ? { ...fin, afwijking_kleiner_1pct: !!checked } as any : fin)
+                                              );
+                                              if (inCorrectie) {
+                                                await logCorrectie(f.id, `Afwijking <1% gewijzigd naar "${checked ? "ja" : "nee"}".`);
+                                              }
+                                            }
+                                          }}
+                                        />
+                                        Afwijking &lt; 1%
+                                      </label>
+                                    </div>
                                   )}
                                 </td>
                               </tr>
