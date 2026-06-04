@@ -31,6 +31,7 @@ export default function ProjectAanmaken() {
   const [toelatingsaudit, setToelatingsaudit] = useState(false);
   const [prioriteit, setPrioriteit] = useState(false);
   const [isOmgevingsvergunning, setIsOmgevingsvergunning] = useState(false);
+  const [dropboxLink, setDropboxLink] = useState("");
   const [adviseurs, setAdviseurs] = useState<Adviseur[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -101,6 +102,7 @@ export default function ProjectAanmaken() {
       toelatingsaudit,
       prioriteit,
       is_omgevingsvergunning: isOmgevingsvergunning,
+      dropbox_link: dropboxLink.trim() || null,
       aangemaakt_door: user.id,
       toewijzing,
     };
@@ -252,6 +254,16 @@ export default function ProjectAanmaken() {
             onCheckedChange={(v) => setIsOmgevingsvergunning(v === true)}
           />
           <Label htmlFor="omgevingsvergunning">Omgevingsvergunning</Label>
+        </div>
+        <div>
+          <Label htmlFor="dropbox-link">Dropbox-link dossier <span className="italic font-normal text-sm text-muted-foreground">(optioneel)</span></Label>
+          <Input
+            id="dropbox-link"
+            type="url"
+            placeholder="https://www.dropbox.com/..."
+            value={dropboxLink}
+            onChange={(e) => setDropboxLink(e.target.value)}
+          />
         </div>
 
         {/* Toewijzing — alleen voor beheer */}
