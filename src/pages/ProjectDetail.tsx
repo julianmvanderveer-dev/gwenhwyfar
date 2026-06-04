@@ -565,9 +565,14 @@ export default function ProjectDetail() {
   // Auto-fill EP2 beoordeling tenzij handmatig overschreven
   useEffect(() => {
     if (!ep2ManualOverride) {
-      setEp2Beoordeling(autoEp2);
+      setEp2Beoordeling((prev) => {
+        if (prev !== autoEp2 && project) {
+          void saveEp2Field("ep2_beoordeling", autoEp2);
+        }
+        return autoEp2;
+      });
     }
-  }, [autoEp2, ep2ManualOverride]);
+  }, [autoEp2, ep2ManualOverride, project, saveEp2Field]);
 
   if (!project) return <div className="p-6 text-muted-foreground">Laden...</div>;
 
