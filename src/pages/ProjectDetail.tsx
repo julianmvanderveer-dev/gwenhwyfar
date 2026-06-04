@@ -55,6 +55,8 @@ export default function ProjectDetail() {
   const [uitdraaiUploading, setUitdraaiUploading] = useState(false);
   const [localUitdraaiData, setLocalUitdraaiData] = useState<Record<string, string>>({});
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const uitdraaiDataRef = useRef<Record<string, string>>({});
+  const pendingUitdraaiSaves = useRef<Record<string, string>>({});
 
   useEffect(() => {
     if (!id) return;
@@ -79,6 +81,7 @@ export default function ProjectDetail() {
   useEffect(() => {
     if (uitdraai?.extracted_data) {
       setLocalUitdraaiData(uitdraai.extracted_data);
+      uitdraaiDataRef.current = uitdraai.extracted_data;
     }
   }, [uitdraai]);
 
@@ -244,20 +247,38 @@ export default function ProjectDetail() {
     }
   };
 
-  const handleUitdraaiEdit = useCallback((code: string, value: string) => {
-    setLocalUitdraaiData((prev) => ({ ...prev, [code]: value }));
+  const flushUitdraaiSave = useCallback(async () => {
+    if (!uitdraai) return;
+    // Cancel any pending timers; we save the latest snapshot now.
+    Object.values(debounceTimers.current).forEach((t) => clearTimeout(t));
+    debounceTimers.current = {};
+    if (Object.keys(pendingUitdraaiSaves.current).length === 0) return;
+    pendingUitdraaiSaves.current = {};
+    await supabase
+      .from("project_uitdraai")
+      .update({ extracted_data: uitdraaiDataRef.current } as any)
+      .eq("id", uitdraai.id);
+  }, [uitdraai]);
 
-    // Debounce save
+  const handleUitdraaiEdit = useCallback((code: string, value: string) => {
+    // Always update the ref synchronously so saves never use a stale snapshot.
+    uitdraaiDataRef.current = { ...uitdraaiDataRef.current, [code]: value };
+    pendingUitdraaiSaves.current[code] = value;
+    setLocalUitdraaiData(uitdraaiDataRef.current);
+
     if (debounceTimers.current[code]) clearTimeout(debounceTimers.current[code]);
-    debounceTimers.current[code] = setTimeout(async () => {
-      if (!uitdraai) return;
-      const newData = { ...localUitdraaiData, [code]: value };
-      await supabase
-        .from("project_uitdraai")
-        .update({ extracted_data: newData } as any)
-        .eq("id", uitdraai.id);
-    }, 800);
-  }, [uitdraai, localUitdraaiData]);
+    debounceTimers.current[code] = setTimeout(() => {
+      delete debounceTimers.current[code];
+      void flushUitdraaiSave();
+    }, 500);
+  }, [flushUitdraaiSave]);
+
+  // Flush pending uitdraai writes when leaving the page.
+  useEffect(() => {
+    return () => {
+      void flushUitdraaiSave();
+    };
+  }, [flushUitdraaiSave]);
 
   // Create a finding on-the-fly when a user sets a beoordeling on a template row without an existing finding
   const ensureFinding = async (template: Template): Promise<string> => {
