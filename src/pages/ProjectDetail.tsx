@@ -55,6 +55,8 @@ export default function ProjectDetail() {
   const [uitdraaiUploading, setUitdraaiUploading] = useState(false);
   const [localUitdraaiData, setLocalUitdraaiData] = useState<Record<string, string>>({});
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const uitdraaiDataRef = useRef<Record<string, string>>({});
+  const pendingUitdraaiSaves = useRef<Record<string, string>>({});
 
   useEffect(() => {
     if (!id) return;
@@ -79,6 +81,7 @@ export default function ProjectDetail() {
   useEffect(() => {
     if (uitdraai?.extracted_data) {
       setLocalUitdraaiData(uitdraai.extracted_data);
+      uitdraaiDataRef.current = uitdraai.extracted_data;
     }
   }, [uitdraai]);
 
@@ -244,20 +247,38 @@ export default function ProjectDetail() {
     }
   };
 
-  const handleUitdraaiEdit = useCallback((code: string, value: string) => {
-    setLocalUitdraaiData((prev) => ({ ...prev, [code]: value }));
+  const flushUitdraaiSave = useCallback(async () => {
+    if (!uitdraai) return;
+    // Cancel any pending timers; we save the latest snapshot now.
+    Object.values(debounceTimers.current).forEach((t) => clearTimeout(t));
+    debounceTimers.current = {};
+    if (Object.keys(pendingUitdraaiSaves.current).length === 0) return;
+    pendingUitdraaiSaves.current = {};
+    await supabase
+      .from("project_uitdraai")
+      .update({ extracted_data: uitdraaiDataRef.current } as any)
+      .eq("id", uitdraai.id);
+  }, [uitdraai]);
 
-    // Debounce save
+  const handleUitdraaiEdit = useCallback((code: string, value: string) => {
+    // Always update the ref synchronously so saves never use a stale snapshot.
+    uitdraaiDataRef.current = { ...uitdraaiDataRef.current, [code]: value };
+    pendingUitdraaiSaves.current[code] = value;
+    setLocalUitdraaiData(uitdraaiDataRef.current);
+
     if (debounceTimers.current[code]) clearTimeout(debounceTimers.current[code]);
-    debounceTimers.current[code] = setTimeout(async () => {
-      if (!uitdraai) return;
-      const newData = { ...localUitdraaiData, [code]: value };
-      await supabase
-        .from("project_uitdraai")
-        .update({ extracted_data: newData } as any)
-        .eq("id", uitdraai.id);
-    }, 800);
-  }, [uitdraai, localUitdraaiData]);
+    debounceTimers.current[code] = setTimeout(() => {
+      delete debounceTimers.current[code];
+      void flushUitdraaiSave();
+    }, 500);
+  }, [flushUitdraaiSave]);
+
+  // Flush pending uitdraai writes when leaving the page.
+  useEffect(() => {
+    return () => {
+      void flushUitdraaiSave();
+    };
+  }, [flushUitdraaiSave]);
 
   // Create a finding on-the-fly when a user sets a beoordeling on a template row without an existing finding
   const ensureFinding = async (template: Template): Promise<string> => {
@@ -476,16 +497,19 @@ export default function ProjectDetail() {
     loadFindings();
   };
 
-  const saveEp2 = async () => {
-    const update: any = {
-      ep2_startwaarde: ep2Start ? parseFloat(ep2Start) : null,
-      ep2_eindwaarde: ep2Eind ? parseFloat(ep2Eind) : null,
-      ep2_beoordeling: ep2Beoordeling || null,
-    };
-    await supabase.from("projects").update(update).eq("id", id!);
-    toast({ title: "EP2 opgeslagen" });
-    loadProject();
-  };
+  const saveEp2Field = useCallback(
+    async (field: "ep2_startwaarde" | "ep2_eindwaarde" | "ep2_beoordeling", value: string) => {
+      if (!id) return;
+      const update: any = {};
+      if (field === "ep2_beoordeling") {
+        update.ep2_beoordeling = value || null;
+      } else {
+        update[field] = value ? parseFloat(value) : null;
+      }
+      await supabase.from("projects").update(update).eq("id", id);
+    },
+    [id]
+  );
 
   // EP2 berekeningen
   const startVal = parseFloat(ep2Start);
@@ -541,9 +565,14 @@ export default function ProjectDetail() {
   // Auto-fill EP2 beoordeling tenzij handmatig overschreven
   useEffect(() => {
     if (!ep2ManualOverride) {
-      setEp2Beoordeling(autoEp2);
+      setEp2Beoordeling((prev) => {
+        if (prev !== autoEp2 && project) {
+          void saveEp2Field("ep2_beoordeling", autoEp2);
+        }
+        return autoEp2;
+      });
     }
-  }, [autoEp2, ep2ManualOverride]);
+  }, [autoEp2, ep2ManualOverride, project, saveEp2Field]);
 
   if (!project) return <div className="p-6 text-muted-foreground">Laden...</div>;
 
@@ -764,7 +793,14 @@ export default function ProjectDetail() {
       )}
 
       {/* Tabs */}
-      <Tabs value={activeTab || onderdelen[0] || "__ep2__"} onValueChange={setActiveTab}>
+      <Tabs
+        value={activeTab || onderdelen[0] || "__ep2__"}
+        onValueChange={(v) => {
+          // Flush pending auto-saves before switching tabs so nothing is lost.
+          void flushUitdraaiSave();
+          setActiveTab(v);
+        }}
+      >
         <TabsList className="flex-wrap h-auto gap-1">
           {onderdelen.map((o) => (
             <TabsTrigger key={o} value={o} className="text-xs">{o}</TabsTrigger>
@@ -948,6 +984,7 @@ export default function ProjectDetail() {
                 step="0.01"
                 value={ep2Start}
                 onChange={(e) => setEp2Start(e.target.value)}
+                onBlur={(e) => saveEp2Field("ep2_startwaarde", e.target.value)}
                 disabled={!(canDeel1 || canDeel2)}
                 placeholder="bijv. 125.50"
               />
@@ -960,6 +997,7 @@ export default function ProjectDetail() {
                 step="0.01"
                 value={ep2Eind}
                 onChange={(e) => setEp2Eind(e.target.value)}
+                onBlur={(e) => saveEp2Field("ep2_eindwaarde", e.target.value)}
                 disabled={!canDeel2}
                 placeholder="bijv. 130.00"
               />
@@ -991,6 +1029,7 @@ export default function ProjectDetail() {
                 onChange={(e) => {
                   setEp2Beoordeling(e.target.value);
                   setEp2ManualOverride(true);
+                  void saveEp2Field("ep2_beoordeling", e.target.value);
                 }}
                 disabled={!canDeel2}
               >
@@ -1015,9 +1054,7 @@ export default function ProjectDetail() {
             </div>
 
             {(canDeel1 || canDeel2) && (
-              <Button onClick={saveEp2} size="sm" className="shadow-sm">
-                EP2 opslaan
-              </Button>
+              <p className="text-xs text-muted-foreground">Wijzigingen worden automatisch opgeslagen.</p>
             )}
           </div>
           <div className="flex justify-between">
