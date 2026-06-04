@@ -514,6 +514,7 @@ export type Database = {
           audit_categorie: Database["public"]["Enums"]["audit_categorie"]
           audit_soort: Database["public"]["Enums"]["audit_soort"]
           datum_aangemaakt: string
+          dropbox_link: string | null
           ep2_beoordeling: string | null
           ep2_eindwaarde: number | null
           ep2_startwaarde: number | null
@@ -539,6 +540,7 @@ export type Database = {
           audit_categorie?: Database["public"]["Enums"]["audit_categorie"]
           audit_soort?: Database["public"]["Enums"]["audit_soort"]
           datum_aangemaakt?: string
+          dropbox_link?: string | null
           ep2_beoordeling?: string | null
           ep2_eindwaarde?: number | null
           ep2_startwaarde?: number | null
@@ -564,6 +566,7 @@ export type Database = {
           audit_categorie?: Database["public"]["Enums"]["audit_categorie"]
           audit_soort?: Database["public"]["Enums"]["audit_soort"]
           datum_aangemaakt?: string
+          dropbox_link?: string | null
           ep2_beoordeling?: string | null
           ep2_eindwaarde?: number | null
           ep2_startwaarde?: number | null
