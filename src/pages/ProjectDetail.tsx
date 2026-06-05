@@ -606,6 +606,9 @@ export default function ProjectDetail() {
 
   const canDeel1 = (hasRole("tekenaar") || hasRole("auditor")) && (project.status === "nog_niet_begonnen" || project.status === "deel1_bezig");
   const canDeel2 = hasRole("auditor") && (project.status === "deel1_afgerond" || project.status === "deel2_bezig");
+  // Tekenaar mag de EP2-startwaarde nog corrigeren zolang de auditor deel 2 nog niet is gestart.
+  const canEditStartwaarde = (hasRole("tekenaar") || hasRole("auditor")) &&
+    (project.status === "nog_niet_begonnen" || project.status === "deel1_bezig" || project.status === "deel1_afgerond");
 
   const canEditFindingByDeel = (deel: number) => {
     if (canDeel1 && deel === 1) return true;
