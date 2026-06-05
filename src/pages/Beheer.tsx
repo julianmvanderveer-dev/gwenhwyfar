@@ -993,19 +993,29 @@ export default function Beheer() {
                   <tr><td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">Laden...</td></tr>
                 ) : feedbackItems.length === 0 ? (
                   <tr><td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">Nog geen feedback ontvangen.</td></tr>
-                ) : feedbackItems.map((f: any) => (
-                  <tr key={f.id} className="border-b hover:bg-muted/50">
-                    <td className="px-4 py-2.5 whitespace-nowrap">{new Date(f.created_at).toLocaleString("nl-NL", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
-                    <td className="px-4 py-2.5 text-xs">{f.gebruiker}</td>
-                    <td className="px-4 py-2.5 font-mono text-xs">{f.pagina}</td>
-                    <td className="px-4 py-2.5">
+                 ) : feedbackItems.map((f: any) => (
+                   <tr
+                     key={f.id}
+                     className="border-b hover:bg-muted/50 cursor-pointer"
+                     onClick={() => setOpenFeedback(f)}
+                     title="Klik om volledige bericht te bekijken"
+                   >
+                     <td className="px-4 py-2.5 whitespace-nowrap align-top">{new Date(f.created_at).toLocaleString("nl-NL", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
+                     <td className="px-4 py-2.5 text-xs align-top">{f.gebruiker}</td>
+                     <td className="px-4 py-2.5 font-mono text-xs align-top">{f.pagina}</td>
+                     <td className="px-4 py-2.5 align-top">
                       <Badge variant={f.type === "probleem" ? "destructive" : f.type === "tip" ? "default" : "secondary"}>
                         {f.type === "probleem" ? "🐛 Probleem" : f.type === "tip" ? "💡 Tip" : "💬 Opmerking"}
                       </Badge>
                     </td>
-                    <td className="px-4 py-2.5 max-w-xs truncate">{f.bericht}</td>
-                    <td className="px-2 py-2.5">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteFeedback(f.id)}>
+                    <td className="px-4 py-2.5 align-top whitespace-pre-wrap break-words">{f.bericht}</td>
+                    <td className="px-2 py-2.5 align-top">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={(e) => { e.stopPropagation(); deleteFeedback(f.id); }}
+                      >
                         <Trash2 className="h-3.5 w-3.5 text-destructive" />
                       </Button>
                     </td>
@@ -1014,6 +1024,27 @@ export default function Beheer() {
               </tbody>
             </table>
           </div>
+          <Dialog open={!!openFeedback} onOpenChange={(o) => !o && setOpenFeedback(null)}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>
+                  {openFeedback?.type === "probleem" ? "🐛 Probleem" : openFeedback?.type === "tip" ? "💡 Tip" : "💬 Opmerking"}
+                </DialogTitle>
+                <DialogDescription>
+                  {openFeedback && (
+                    <>
+                      Van <strong>{openFeedback.gebruiker}</strong> op{" "}
+                      {new Date(openFeedback.created_at).toLocaleString("nl-NL")} —
+                      pagina <span className="font-mono">{openFeedback.pagina}</span>
+                    </>
+                  )}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="whitespace-pre-wrap break-words text-sm bg-muted/40 rounded p-3 max-h-[60vh] overflow-y-auto">
+                {openFeedback?.bericht}
+              </div>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         {/* TAB: Instellingen */}
