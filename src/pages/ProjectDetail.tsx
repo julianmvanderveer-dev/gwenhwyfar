@@ -604,10 +604,9 @@ export default function ProjectDetail() {
   });
   const allTabs = [...onderdelen, "__ep2__"];
 
-  const canDeel1 = (hasRole("tekenaar") || hasRole("auditor")) && (project.status === "nog_niet_begonnen" || project.status === "deel1_bezig");
   const canDeel2 = hasRole("auditor") && (project.status === "deel1_afgerond" || project.status === "deel2_bezig");
-  // Tekenaar mag de EP2-startwaarde nog corrigeren zolang de auditor deel 2 nog niet is gestart.
-  const canEditStartwaarde = (hasRole("tekenaar") || hasRole("auditor")) &&
+  // Tekenaar/auditor mogen deel 1 blijven corrigeren totdat de auditor met deel 2 begint.
+  const canDeel1 = (hasRole("tekenaar") || hasRole("auditor")) &&
     (project.status === "nog_niet_begonnen" || project.status === "deel1_bezig" || project.status === "deel1_afgerond");
 
   const canEditFindingByDeel = (deel: number) => {
@@ -1145,7 +1144,7 @@ export default function ProjectDetail() {
                 value={ep2Start}
                 onChange={(e) => setEp2Start(e.target.value)}
                 onBlur={(e) => saveEp2Field("ep2_startwaarde", e.target.value)}
-                disabled={!(canEditStartwaarde || canDeel2)}
+                disabled={!(canDeel1 || canDeel2)}
                 placeholder="bijv. 125.50"
               />
             </div>
@@ -1215,9 +1214,6 @@ export default function ProjectDetail() {
 
             {(canDeel1 || canDeel2) && (
               <p className="text-xs text-muted-foreground">Wijzigingen worden automatisch opgeslagen.</p>
-            )}
-            {canEditStartwaarde && !canDeel1 && !canDeel2 && (
-              <p className="text-xs text-muted-foreground">Je kunt de startwaarde nog aanpassen totdat de auditor met deel 2 begint.</p>
             )}
           </div>
           <div className="flex justify-between">
