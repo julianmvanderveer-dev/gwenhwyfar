@@ -216,6 +216,22 @@ export function useBatchVersturen(
           .not("status", "in", "(reactie_goedgekeurd,gesloten)");
 
         if (!nogOpen || nogOpen.length === 0) {
+          // Vereiste: EP-adviseur met e-mailadres voordat we de audit afronden
+          const { data: projMeta } = await supabase
+            .from("projects")
+            .select("adviseur_id, adviseurs:adviseur_id(email)")
+            .eq("id", project.id)
+            .maybeSingle();
+          const adviseurEmail = (projMeta as any)?.adviseurs?.email as string | null | undefined;
+          if (!projMeta?.adviseur_id || !adviseurEmail) {
+            toast({
+              title: "Audit kan niet worden afgerond",
+              description: "De EP-adviseur heeft geen e-mailadres. Vul dit eerst in bij Beheer → Adviseurs.",
+              variant: "destructive",
+            });
+            return;
+          }
+
           await supabase
             .from("projects")
             .update({
