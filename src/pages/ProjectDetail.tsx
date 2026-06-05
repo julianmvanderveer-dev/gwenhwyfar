@@ -1144,7 +1144,7 @@ export default function ProjectDetail() {
                 value={ep2Start}
                 onChange={(e) => setEp2Start(e.target.value)}
                 onBlur={(e) => saveEp2Field("ep2_startwaarde", e.target.value)}
-                disabled={!(canEditStartwaarde || canDeel2)}
+                disabled={!(canDeel1 || canDeel2)}
                 placeholder="bijv. 125.50"
               />
             </div>
@@ -1214,9 +1214,6 @@ export default function ProjectDetail() {
 
             {(canDeel1 || canDeel2) && (
               <p className="text-xs text-muted-foreground">Wijzigingen worden automatisch opgeslagen.</p>
-            )}
-            {canEditStartwaarde && !canDeel1 && !canDeel2 && (
-              <p className="text-xs text-muted-foreground">Je kunt de startwaarde nog aanpassen totdat de auditor met deel 2 begint.</p>
             )}
           </div>
           <div className="flex justify-between">
