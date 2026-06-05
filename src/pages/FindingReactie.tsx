@@ -242,7 +242,12 @@ export default function FindingReactie() {
                   )}
                   <Button
                     variant={isNietAkkoord ? "secondary" : "outline"}
-                    onClick={() => setModus("niet_akkoord")}
+                    onClick={() => {
+                      if (isNietAkkoord && concept?.bericht) {
+                        setBericht(concept.bericht);
+                      }
+                      setModus("niet_akkoord");
+                    }}
                     disabled={loading}
                     className="gap-1"
                   >
