@@ -123,6 +123,7 @@ Deno.serve(async (req) => {
             templateData: {
               adviseurNaam: adviseur.naam,
               projectnaam: p.projectnaam,
+              projectId: p.id,
             },
           }),
         }
