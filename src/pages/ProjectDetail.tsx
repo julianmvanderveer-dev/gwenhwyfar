@@ -1145,7 +1145,7 @@ export default function ProjectDetail() {
                 value={ep2Start}
                 onChange={(e) => setEp2Start(e.target.value)}
                 onBlur={(e) => saveEp2Field("ep2_startwaarde", e.target.value)}
-                disabled={!(canDeel1 || canDeel2)}
+                disabled={!(canEditStartwaarde || canDeel2)}
                 placeholder="bijv. 125.50"
               />
             </div>
