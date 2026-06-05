@@ -137,7 +137,7 @@ export default function FindingReactie() {
       if (error) throw error;
       toast({
         title: "Concept opgeslagen",
-        description: "Verstuur al je reacties in één keer via het projectoverzicht.",
+        description: "Zodra alle reacties in dit project klaar zijn, verschijnt onderaan de verzendknop.",
       });
       setModus("keuze");
       setAkkoordToelichting("");
@@ -173,7 +173,7 @@ export default function FindingReactie() {
       if (error) throw error;
       toast({
         title: "Concept opgeslagen",
-        description: "Verstuur al je reacties in één keer via het projectoverzicht.",
+        description: "Zodra alle reacties in dit project klaar zijn, verschijnt onderaan de verzendknop.",
       });
       setBericht("");
       setBestand(null);
@@ -286,8 +286,9 @@ export default function FindingReactie() {
               <p className="text-xs mt-1">
                 {concept!.type === "akkoord" ? "Afwijking geaccepteerd" : "Niet akkoord"} —
                 opgeslagen op {new Date(concept!.opgeslagen_op).toLocaleString("nl-NL")}.
-                Ga naar het projectoverzicht om alle reacties in één keer te versturen. Je kunt deze
-                reactie hieronder nog wijzigen tot dat moment.
+                Zodra alle reacties in dit project zijn ingevuld, verschijnt onderaan een knop
+                om ze in één keer te versturen. Je kunt deze reactie hieronder nog wijzigen tot
+                dat moment.
               </p>
             </div>
           )}
@@ -339,16 +340,6 @@ export default function FindingReactie() {
                     <X className="h-4 w-4" /> {isNietAkkoord ? "Wijzig: niet akkoord" : "Niet akkoord"}
                   </Button>
                 </div>
-                {hasConcept && finding.project_id && (
-                  <Button
-                    variant="link"
-                    size="sm"
-                    className="h-auto p-0 text-blue-700 underline"
-                    onClick={() => navigate(`/project/${finding.project_id}`)}
-                  >
-                    Naar projectoverzicht om alles te versturen →
-                  </Button>
-                )}
               </div>
             );
           })()}
@@ -596,9 +587,19 @@ export default function FindingReactie() {
         </div>
       )}
 
-      <Button variant="ghost" className="mt-4" onClick={() => navigate(-1)}>
-        Terug
-      </Button>
+      <div className="mt-4 flex gap-2">
+        <Button variant="ghost" onClick={() => navigate(-1)}>
+          Terug
+        </Button>
+        {finding.project_id && (
+          <Button
+            variant="outline"
+            onClick={() => navigate(`/project/${finding.project_id}`)}
+          >
+            Audit inzien
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
