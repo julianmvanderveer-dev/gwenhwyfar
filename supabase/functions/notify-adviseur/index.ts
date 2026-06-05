@@ -149,6 +149,7 @@ Deno.serve(async (req) => {
           templateData: {
             adviseurNaam: adviseur.naam,
             projectnaam: project.projectnaam,
+            projectId: project_id,
           },
         }),
       }
