@@ -1,29 +1,27 @@
-## Doel
+## Probleem
 
-In `AdviseurSectie` (EP-adviseur afwijkingen-overzicht):
-1. Standaard alleen projecten tonen — findings worden pas zichtbaar bij klik op een project (uitklap).
-2. Per project een knop "Alle reacties nu versturen" zichtbaar maken zodra alle concepten klaar zijn (zelfde logica als `BatchVersturenCompact`).
+Na het verzenden van reacties via "Alle reacties nu versturen" in het afwijkingen-overzicht (EP-adviseur dashboard) blijft "Concept opgeslagen" zichtbaar. De database is wel correct bijgewerkt (`status = reactie_ontvangen`, `concept_reactie = null`), maar de React-state in `Inbox.tsx` wordt niet opnieuw geladen na de batch-verzending. De `BatchVersturenCompact` herlaadt alleen zijn eigen interne data, niet de lijst die `AdviseurSectie` toont.
 
-## Aanpak
+De blokkade van bewerken na verzending werkt al correct: `FindingReactie.tsx` toont geen reactieformulier meer wanneer `status === "reactie_ontvangen"` (alleen leesweergave). Ook `AdviseurSectie` toont in de actie-kolom al "Ingediend" zodra status niet meer `open` is. Het enige dat ontbreekt is de refresh.
 
-### `src/components/dashboard/AdviseurSectie.tsx`
+## Wijzigingen
 
-- Findings groeperen per `project_id` (en `projectnaam`) i.p.v. één lange tabel.
-- Eén rij per project (collapsible), met:
-  - Projectnaam (link naar `/project/:id` blijft beschikbaar via aparte knop "Audit inzien").
-  - Aantal afwijkingen + status-telling ("3 open · 1 concept · 2 ingediend").
-  - Chevron-knop om de details (de bestaande tabel met controlepunt/status/etc.) uit/in te klappen.
-  - Verzendbalk via `BatchVersturenCompact` (`projectId={projectId}` `navigateOnSent={false}`) onder de uitgeklapte tabel **en** ook zichtbaar in ingeklapte staat, zodat de adviseur niets hoeft uit te klappen om te versturen.
-- Lokale state `expanded: Record<string, boolean>` voor de uitklap. Standaard alles ingeklapt.
-- Bestaande filters (project / status) blijven werken: ze filteren de findings vóór groeperen; een project met 0 zichtbare findings wordt verborgen.
-- "Mijn projecten"-blokje onderaan blijft staan (apart overzicht van toegewezen projecten, ook zonder findings).
+### 1. `src/pages/Inbox.tsx`
+- Geef `loadAdviseurData` als `onAdviseurDataChanged` prop door aan `AdviseurSectie`.
 
-### Hergebruik
+### 2. `src/components/dashboard/AdviseurSectie.tsx`
+- Accepteer nieuwe optionele prop `onAdviseurDataChanged?: () => void`.
+- Geef die door als `onSent` aan `BatchVersturenCompact` (naast bestaande `navigateOnSent={false}`).
 
-- `BatchVersturenCompact` rendert zelf null als er niets te versturen valt en toont anders teller + knop. Geen wijziging nodig in dat component.
+### 3. Geen wijziging nodig in
+- `BatchVersturenCompact` — roept `onSent?.()` al aan na succesvol versturen.
+- `useBatchVersturen` — werkt status en concept_reactie al correct bij in de database.
+- `FindingReactie.tsx` — blokkeert bewerken al wanneer status `reactie_ontvangen` of `reactie_goedgekeurd` is.
 
-## Buiten scope
+## Resultaat
 
-- Geen wijzigingen aan filters/queries in `Inbox.tsx` (data blijft hetzelfde).
-- Geen wijziging aan auditor-zijde of project-detail.
-- Geen aparte concept-statusfilter (eerder al bewust achterwege gelaten).
+Direct na klikken op "Alle reacties nu versturen":
+- De adviseur-findings worden opnieuw geladen.
+- Status-badge toont "Reactie ingediend" in plaats van "Concept opgeslagen".
+- Actiekolom toont "Ingediend" (geen Wijzigen/Reageren link meer).
+- De EP-adviseur kan de reactie niet meer openen voor wijziging totdat de auditor heropent.
