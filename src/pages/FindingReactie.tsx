@@ -24,7 +24,8 @@ export default function FindingReactie() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [bericht, setBericht] = useState("");
   const [loading, setLoading] = useState(false);
-  const [modus, setModus] = useState<"keuze" | "niet_akkoord">("keuze");
+  const [modus, setModus] = useState<"keuze" | "akkoord" | "niet_akkoord">("keuze");
+  const [akkoordToelichting, setAkkoordToelichting] = useState("");
   const [bestand, setBestand] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [aanvullenOpen, setAanvullenOpen] = useState(false);
@@ -111,9 +112,13 @@ export default function FindingReactie() {
     if (!user || !finding) return;
     setLoading(true);
     try {
+      const toelichting = akkoordToelichting.trim();
       const concept = {
         type: "akkoord",
-        bericht: "Afwijking geaccepteerd",
+        bericht: toelichting
+          ? `Afwijking geaccepteerd — ${toelichting}`
+          : "Afwijking geaccepteerd",
+        toelichting: toelichting || null,
         opgeslagen_op: new Date().toISOString(),
       };
       const { error } = await supabase
@@ -125,6 +130,8 @@ export default function FindingReactie() {
         title: "Concept opgeslagen",
         description: "Verstuur al je reacties in één keer via het projectoverzicht.",
       });
+      setModus("keuze");
+      setAkkoordToelichting("");
       loadFinding();
     } catch (err: any) {
       toast({ title: "Fout bij opslaan", description: err.message, variant: "destructive" });
@@ -171,7 +178,7 @@ export default function FindingReactie() {
 
   if (!finding) return <div className="p-4">Laden...</div>;
   const concept = (finding as any).concept_reactie as
-    | { type: string; bericht?: string; bijlage_pad?: string | null; opgeslagen_op: string }
+    | { type: string; bericht?: string; toelichting?: string | null; bijlage_pad?: string | null; opgeslagen_op: string }
     | null;
   const hasConcept = !!concept;
 
@@ -288,15 +295,23 @@ export default function FindingReactie() {
                 <p className="text-sm text-muted-foreground">
                   {hasConcept ? "Wijzig je concept-reactie of laat zoals hij is:" : "Kies je reactie op deze afwijking:"}
                 </p>
+                {isAkkoord && concept?.toelichting && (
+                  <div className="text-xs text-muted-foreground border rounded p-2 bg-muted/30">
+                    <span className="font-medium">Jouw toelichting:</span> {concept.toelichting}
+                  </div>
+                )}
                 <div className="flex gap-2">
                   {!(finding as any).upload_vereist && (
                     <Button
-                      onClick={accepteren}
-                      disabled={loading || isAkkoord}
+                      onClick={() => {
+                        setAkkoordToelichting(concept?.toelichting ?? "");
+                        setModus("akkoord");
+                      }}
+                      disabled={loading}
                       variant={isAkkoord ? "secondary" : "default"}
                       className="gap-1"
                     >
-                      <Check className="h-4 w-4" /> {isAkkoord ? "Geaccepteerd (concept)" : "Accepteren"}
+                      <Check className="h-4 w-4" /> {isAkkoord ? "Wijzig: geaccepteerd" : "Accepteren"}
                     </Button>
                   )}
                   <Button
@@ -326,6 +341,34 @@ export default function FindingReactie() {
               </div>
             );
           })()}
+
+          {modus === "akkoord" && (
+            <div className="space-y-3">
+              <p className="text-sm font-medium">Toelichting bij acceptatie (optioneel)</p>
+              <p className="text-xs text-muted-foreground">
+                Geef desgewenst context mee zodat de auditor weet waarom je akkoord gaat.
+              </p>
+              <Textarea
+                value={akkoordToelichting}
+                onChange={(e) => setAkkoordToelichting(e.target.value)}
+                placeholder="Bijv. 'Akkoord, oplossing wordt meegenomen bij volgende oplevering.'"
+              />
+              <div className="flex gap-2">
+                <Button onClick={accepteren} disabled={loading} className="gap-1">
+                  <Check className="h-4 w-4" /> Acceptatie opslaan
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setModus("keuze");
+                    setAkkoordToelichting("");
+                  }}
+                >
+                  Annuleren
+                </Button>
+              </div>
+            </div>
+          )}
 
           {modus === "niet_akkoord" && (
             <div className="space-y-3">
