@@ -1,27 +1,34 @@
-## Probleem
+## Doel
 
-Na het verzenden van reacties via "Alle reacties nu versturen" in het afwijkingen-overzicht (EP-adviseur dashboard) blijft "Concept opgeslagen" zichtbaar. De database is wel correct bijgewerkt (`status = reactie_ontvangen`, `concept_reactie = null`), maar de React-state in `Inbox.tsx` wordt niet opnieuw geladen na de batch-verzending. De `BatchVersturenCompact` herlaadt alleen zijn eigen interne data, niet de lijst die `AdviseurSectie` toont.
-
-De blokkade van bewerken na verzending werkt al correct: `FindingReactie.tsx` toont geen reactieformulier meer wanneer `status === "reactie_ontvangen"` (alleen leesweergave). Ook `AdviseurSectie` toont in de actie-kolom al "Ingediend" zodra status niet meer `open` is. Het enige dat ontbreekt is de refresh.
+1. Bij elke nieuwe audit moet een EP-adviseur worden toegewezen (verplicht veld).
+2. Een audit mag niet worden afgerond als de gekoppelde EP-adviseur geen e-mailadres heeft.
 
 ## Wijzigingen
 
-### 1. `src/pages/Inbox.tsx`
-- Geef `loadAdviseurData` als `onAdviseurDataChanged` prop door aan `AdviseurSectie`.
+### 1. EP-adviseur verplicht bij aanmaken — `src/pages/ProjectAanmaken.tsx`
+- `<select>` voor adviseur krijgt `required` en de lege optie "— Geen —" wordt vervangen door een placeholder "— Selecteer adviseur —" met lege value (zodat HTML5-validatie blokkeert).
+- Extra clientside check in `handleSubmit`: als `adviseurId` leeg is, toon toast "Een EP-adviseur is verplicht" en stop.
+- Label "Adviseur" → "EP-adviseur *".
 
-### 2. `src/components/dashboard/AdviseurSectie.tsx`
-- Accepteer nieuwe optionele prop `onAdviseurDataChanged?: () => void`.
-- Geef die door als `onSent` aan `BatchVersturenCompact` (naast bestaande `navigateOnSent={false}`).
+### 2. E-mailcheck bij afronden audit
+Een audit wordt "afgerond" op twee plekken:
 
-### 3. Geen wijziging nodig in
-- `BatchVersturenCompact` — roept `onSent?.()` al aan na succesvol versturen.
-- `useBatchVersturen` — werkt status en concept_reactie al correct bij in de database.
-- `FindingReactie.tsx` — blokkeert bewerken al wanneer status `reactie_ontvangen` of `reactie_goedgekeurd` is.
+**a. Auditor sluit audit handmatig** — zoeken in `src/pages/ProjectDetail.tsx` / `BeheerStandVanZaken.tsx` / `notify-adviseur` flow naar het punt waar status → `afgerond` of waar `notify-adviseur` wordt aangeroepen met `type: 'audit_afgerond'`. Vóór die actie:
+- Haal `projects.adviseur_id` → `adviseurs.email` op.
+- Als leeg/`null`: blokkeer met toast "Deze audit kan niet worden afgerond: de EP-adviseur heeft geen e-mailadres. Vul eerst een e-mailadres in bij Beheer → Adviseurs."
 
-## Resultaat
+**b. Automatische afronding via trigger** `auto_finish_project_on_finding_close` (zet status op `afgerond` als alle findings gesloten zijn). Deze trigger uitbreiden zodat hij alleen op `afgerond` zet wanneer de adviseur een e-mailadres heeft; anders status laten staan (bv. blijft `wacht_op_reactie`) zodat beheer eerst het e-mailadres kan aanvullen.
 
-Direct na klikken op "Alle reacties nu versturen":
-- De adviseur-findings worden opnieuw geladen.
-- Status-badge toont "Reactie ingediend" in plaats van "Concept opgeslagen".
-- Actiekolom toont "Ingediend" (geen Wijzigen/Reageren link meer).
-- De EP-adviseur kan de reactie niet meer openen voor wijziging totdat de auditor heropent.
+**c. Edge function `notify-adviseur`** geeft al 404 bij ontbrekend e-mailadres — laten staan als vangnet.
+
+### 3. UI-signalering
+In project-detail/beheer waar de "Audit afronden"-knop staat: knop disabled tonen met tooltip "EP-adviseur heeft geen e-mailadres" wanneer dat het geval is. (Eerst exacte locatie bevestigen tijdens implementatie.)
+
+## Technisch
+
+- Migratie nodig voor aanpassing van `auto_finish_project_on_finding_close` (functie vervangen via `CREATE OR REPLACE FUNCTION`, voegt JOIN op `adviseurs` toe en checkt `email IS NOT NULL AND email <> ''`).
+- Geen schemawijzigingen aan `adviseurs` of `projects`.
+- Bestaande projecten zonder adviseur blijven werken; de validatie geldt alleen bij nieuw aanmaken en bij afronden.
+
+## Open vraag
+Bestaande projecten zonder adviseur — moeten die geblokkeerd worden tot een adviseur is toegewezen, of alleen nieuwe? Voorstel: alleen valideren bij nieuw aanmaken en bij afronden (geen retroactieve blokkade verder).
