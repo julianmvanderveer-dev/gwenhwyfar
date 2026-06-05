@@ -27,11 +27,20 @@ export default function FindingReactie() {
   const [modus, setModus] = useState<"keuze" | "niet_akkoord">("keuze");
   const [bestand, setBestand] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [aanvullenOpen, setAanvullenOpen] = useState(false);
+  const [aanvullingTekst, setAanvullingTekst] = useState("");
+  const [aanvullingBestand, setAanvullingBestand] = useState<File | null>(null);
+  const aanvullingFileRef = useRef<HTMLInputElement>(null);
 
   const handleSpeech = useCallback((transcript: string) => {
     setBericht((prev) => (prev ? prev + " " + transcript : transcript));
   }, []);
   const { listening, toggle, supported } = useSpeechRecognition(handleSpeech);
+
+  const handleAanvullingSpeech = useCallback((transcript: string) => {
+    setAanvullingTekst((prev) => (prev ? prev + " " + transcript : transcript));
+  }, []);
+  const aanvullingSpeech = useSpeechRecognition(handleAanvullingSpeech);
 
   useEffect(() => {
     if (!id) return;
@@ -165,6 +174,56 @@ export default function FindingReactie() {
     | { type: string; bericht?: string; bijlage_pad?: string | null; opgeslagen_op: string }
     | null;
   const hasConcept = !!concept;
+
+  const adviseurHeeftGeaccepteerd =
+    (concept?.type === "akkoord") ||
+    messages.some(
+      (m) => m.afzender_id === user?.id && m.bericht.trim() === "Afwijking geaccepteerd"
+    );
+
+  const handleAanvullingFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > MAX_FILE_SIZE) {
+      toast({ title: "Bestand te groot", description: "Maximaal 10 MB toegestaan.", variant: "destructive" });
+      return;
+    }
+    setAanvullingBestand(file);
+  };
+
+  const verstuurAanvulling = async () => {
+    if (!user || !finding || !id) return;
+    if (!aanvullingTekst.trim()) return;
+    setLoading(true);
+    try {
+      let bijlagePad: string | null = null;
+      if (aanvullingBestand) {
+        const ext = aanvullingBestand.name.split(".").pop();
+        const path = `${id}/${Date.now()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from("finding-documents")
+          .upload(path, aanvullingBestand);
+        if (upErr) throw upErr;
+        bijlagePad = path;
+      }
+      const { error } = await supabase.from("messages").insert({
+        finding_id: id,
+        afzender_id: user.id,
+        bericht: `Aanvulling: ${aanvullingTekst.trim()}`,
+        bijlage_pad: bijlagePad,
+      });
+      if (error) throw error;
+      toast({ title: "Aanvulling toegevoegd", description: "Je aanvulling is opgenomen in de audit trail." });
+      setAanvullingTekst("");
+      setAanvullingBestand(null);
+      setAanvullenOpen(false);
+      loadMessages();
+    } catch (err: any) {
+      toast({ title: "Fout bij versturen", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="max-w-2xl mx-auto p-4">
@@ -342,6 +401,93 @@ export default function FindingReactie() {
         <div className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-900">
           <p className="font-semibold">Reactie goedgekeurd door auditor</p>
           <p className="text-xs mt-1">Deze bevinding is afgesloten. Verdere actie is niet meer nodig.</p>
+        </div>
+      )}
+
+      {adviseurHeeftGeaccepteerd && (
+        <div className="mt-4 border rounded-lg bg-card p-3 space-y-2">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold">Informatie aanvullen</p>
+              <p className="text-xs text-muted-foreground">
+                Ontbrak er informatie bij je acceptatie? Voeg deze hier alsnog toe. De aanvulling wordt opgeslagen in de audit trail.
+              </p>
+            </div>
+            {!aanvullenOpen && (
+              <Button size="sm" variant="outline" onClick={() => setAanvullenOpen(true)}>
+                Aanvullen
+              </Button>
+            )}
+          </div>
+          {aanvullenOpen && (
+            <div className="space-y-2 pt-1">
+              <div className="flex items-start gap-1">
+                <Textarea
+                  value={aanvullingTekst}
+                  onChange={(e) => setAanvullingTekst(e.target.value)}
+                  placeholder="Beschrijf de aanvullende informatie..."
+                />
+                {aanvullingSpeech.supported && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className={`shrink-0 ${aanvullingSpeech.listening ? "text-red-500 animate-pulse" : ""}`}
+                    onClick={aanvullingSpeech.toggle}
+                    title={aanvullingSpeech.listening ? "Stop opname" : "Spraak invoer"}
+                  >
+                    {aanvullingSpeech.listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  </Button>
+                )}
+              </div>
+              <div>
+                <input
+                  ref={aanvullingFileRef}
+                  type="file"
+                  onChange={handleAanvullingFile}
+                  className="hidden"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => aanvullingFileRef.current?.click()}
+                  className="gap-1"
+                >
+                  <Upload className="h-4 w-4" /> Document bijvoegen
+                </Button>
+                <span className="text-xs text-muted-foreground ml-2">Max 10 MB</span>
+                {aanvullingBestand && (
+                  <div className="flex items-center gap-1 mt-1 text-sm text-muted-foreground">
+                    <FileText className="h-3.5 w-3.5" />
+                    {aanvullingBestand.name}
+                    <button
+                      onClick={() => setAanvullingBestand(null)}
+                      className="text-destructive ml-1 hover:underline text-xs"
+                    >
+                      Verwijder
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={verstuurAanvulling} disabled={loading || !aanvullingTekst.trim()}>
+                  Aanvulling versturen
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setAanvullenOpen(false);
+                    setAanvullingTekst("");
+                    setAanvullingBestand(null);
+                  }}
+                >
+                  Annuleren
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
