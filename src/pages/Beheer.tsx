@@ -12,6 +12,7 @@ import type { Tables, Enums } from "@/integrations/supabase/types";
 import { Download, Plus, Pencil, Check, X, Trash2, Settings, Users, Eye, EyeOff, ArrowRightLeft, RotateCcw, MessageSquare, Upload, Image, Mail, Send } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 type Profile = Tables<"profiles">;
 type Adviseur = Tables<"adviseurs">;
@@ -69,6 +70,7 @@ export default function Beheer() {
   // Feedback state
   const [feedbackItems, setFeedbackItems] = useState<any[]>([]);
   const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [openFeedback, setOpenFeedback] = useState<any | null>(null);
 
   useEffect(() => {
     loadUsers();
