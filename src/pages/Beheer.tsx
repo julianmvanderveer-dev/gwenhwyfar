@@ -672,7 +672,7 @@ export default function Beheer() {
                     </td>
                   </tr>
                 )}
-                {profiles.filter((p) => !p.roles.includes("ep_adviseur")).map((p, i) => (
+                {profiles.filter(isProjectteamLid).map((p, i) => (
                   <tr key={p.id} className={`border-b last:border-0 hover:bg-muted/50 transition-colors ${i % 2 === 0 ? '' : 'bg-muted/20'}`}>
                     <td className="px-4 py-2.5 font-medium">
                       <div className="flex items-center gap-2">
