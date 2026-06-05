@@ -448,7 +448,7 @@ export default function Beheer() {
   };
 
   const exportGebruikers = () => {
-    const rows = profiles.map((p) => {
+    const rows = profiles.filter((p) => !p.roles.includes("ep_adviseur")).map((p) => {
       const row: Record<string, string> = { Naam: p.naam, "E-mail": p.email, Actief: p.actief ? "Ja" : "Nee" };
       PROJECT_ROLES.forEach((r) => { row[ROLE_LABELS[r]] = p.roles.includes(r) ? "Ja" : "Nee"; });
       return row;
@@ -668,7 +668,7 @@ export default function Beheer() {
                     </td>
                   </tr>
                 )}
-                {profiles.map((p, i) => (
+                {profiles.filter((p) => !p.roles.includes("ep_adviseur")).map((p, i) => (
                   <tr key={p.id} className={`border-b last:border-0 hover:bg-muted/50 transition-colors ${i % 2 === 0 ? '' : 'bg-muted/20'}`}>
                     <td className="px-4 py-2.5 font-medium">
                       <div className="flex items-center gap-2">
