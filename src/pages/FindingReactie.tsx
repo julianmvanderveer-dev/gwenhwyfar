@@ -113,12 +113,21 @@ export default function FindingReactie() {
     setLoading(true);
     try {
       const toelichting = akkoordToelichting.trim();
+      let bijlagePad: string | null = null;
+      if (bestand) {
+        bijlagePad = await uploadFile();
+        if (!bijlagePad) {
+          setLoading(false);
+          return;
+        }
+      }
       const concept = {
         type: "akkoord",
         bericht: toelichting
           ? `Afwijking geaccepteerd — ${toelichting}`
           : "Afwijking geaccepteerd",
         toelichting: toelichting || null,
+        bijlage_pad: bijlagePad,
         opgeslagen_op: new Date().toISOString(),
       };
       const { error } = await supabase
@@ -132,6 +141,7 @@ export default function FindingReactie() {
       });
       setModus("keuze");
       setAkkoordToelichting("");
+      setBestand(null);
       loadFinding();
     } catch (err: any) {
       toast({ title: "Fout bij opslaan", description: err.message, variant: "destructive" });
@@ -301,19 +311,20 @@ export default function FindingReactie() {
                   </div>
                 )}
                 <div className="flex gap-2">
-                  {!(finding as any).upload_vereist && (
-                    <Button
-                      onClick={() => {
-                        setAkkoordToelichting(concept?.toelichting ?? "");
-                        setModus("akkoord");
-                      }}
-                      disabled={loading}
-                      variant={isAkkoord ? "secondary" : "default"}
-                      className="gap-1"
-                    >
-                      <Check className="h-4 w-4" /> {isAkkoord ? "Wijzig: geaccepteerd" : "Accepteren"}
-                    </Button>
-                  )}
+                  <Button
+                    onClick={() => {
+                      setAkkoordToelichting(concept?.toelichting ?? "");
+                      setModus("akkoord");
+                    }}
+                    disabled={loading}
+                    variant={isAkkoord ? "secondary" : "default"}
+                    className="gap-1"
+                  >
+                    <Check className="h-4 w-4" />{" "}
+                    {(finding as any).upload_vereist
+                      ? (isAkkoord ? "Wijzig: document aangeleverd" : "Document aanleveren")
+                      : (isAkkoord ? "Wijzig: geaccepteerd" : "Accepteren")}
+                  </Button>
                   <Button
                     variant={isNietAkkoord ? "secondary" : "outline"}
                     onClick={() => {
@@ -344,24 +355,69 @@ export default function FindingReactie() {
 
           {modus === "akkoord" && (
             <div className="space-y-3">
-              <p className="text-sm font-medium">Toelichting bij acceptatie (optioneel)</p>
+              <p className="text-sm font-medium">
+                {(finding as any).upload_vereist
+                  ? "Toelichting bij het aangeleverde document (optioneel)"
+                  : "Toelichting bij acceptatie (optioneel)"}
+              </p>
               <p className="text-xs text-muted-foreground">
-                Geef desgewenst context mee zodat de auditor weet waarom je akkoord gaat.
+                {(finding as any).upload_vereist
+                  ? "Voeg het door de auditor gevraagde document toe en geef desgewenst een toelichting."
+                  : "Geef desgewenst context mee zodat de auditor weet waarom je akkoord gaat."}
               </p>
               <Textarea
                 value={akkoordToelichting}
                 onChange={(e) => setAkkoordToelichting(e.target.value)}
                 placeholder="Bijv. 'Akkoord, oplossing wordt meegenomen bij volgende oplevering.'"
               />
+              {(finding as any).upload_vereist && (
+                <div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    onChange={handleFileChange}
+                    className="hidden"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="gap-1"
+                  >
+                    <Upload className="h-4 w-4" /> Document bijvoegen
+                  </Button>
+                  <span className="text-xs text-muted-foreground ml-2">Max 10 MB — verplicht</span>
+                  {bestand && (
+                    <div className="flex items-center gap-1 mt-1 text-sm text-muted-foreground">
+                      <FileText className="h-3.5 w-3.5" />
+                      {bestand.name}
+                      <button onClick={() => setBestand(null)} className="text-destructive ml-1 hover:underline text-xs">
+                        Verwijder
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="flex gap-2">
-                <Button onClick={accepteren} disabled={loading} className="gap-1">
-                  <Check className="h-4 w-4" /> Acceptatie opslaan
+                <Button
+                  onClick={accepteren}
+                  disabled={
+                    loading ||
+                    ((finding as any).upload_vereist && !bestand && !concept?.bijlage_pad)
+                  }
+                  className="gap-1"
+                >
+                  <Check className="h-4 w-4" />{" "}
+                  {(finding as any).upload_vereist ? "Document opslaan" : "Acceptatie opslaan"}
                 </Button>
                 <Button
                   variant="ghost"
                   onClick={() => {
                     setModus("keuze");
                     setAkkoordToelichting("");
+                    setBestand(null);
                   }}
                 >
                   Annuleren

@@ -1,21 +1,29 @@
+## Probleem
+
+Wanneer de auditor `upload_vereist` heeft aangezet, verbergt `FindingReactie.tsx` de knop "Accepteren". De EP-adviseur ziet alleen nog "Niet akkoord" als optie, terwijl hij in werkelijkheid wél akkoord kan zijn met de bevinding — hij moet alleen het ontbrekende document aanleveren (bijv. de onderbouwing Rc-waardes). Hij wordt nu gedwongen "Niet akkoord" te selecteren om bij het uploadveld te komen, wat semantisch onjuist is.
+
 ## Voorstel
-Verruim deel‑1 bewerken zodat tekenaar (en auditor) **alle** deel‑1 invoer kunnen blijven corrigeren tot de auditor met deel 2 begint — analoog aan wat we net voor EP2-startwaarde deden.
 
-### Wijziging in `src/pages/ProjectDetail.tsx`
-- `canDeel1` uitbreiden: status mag ook `deel1_afgerond` zijn:
-  `(tekenaar||auditor) && status ∈ {nog_niet_begonnen, deel1_bezig, deel1_afgerond}`
-- Effect (automatisch, via bestaande afgeleiden):
-  - `canEditFindingByDeel(1)` → tekenaar/auditor mogen deel‑1 bevindingen toevoegen/wijzigen tijdens `deel1_afgerond`.
-  - `canEditTemplate` voor deel‑1 templates idem.
-  - `canEditAny` = true, dus relevante UI-knoppen blijven beschikbaar.
-  - EP2-startwaarde-helperregel (`canEditStartwaarde`) kan vervallen; valt nu samen met `canDeel1`.
-- `canDeel2` blijft ongewijzigd → auditor‑only voor deel 2 en EP2-eindwaarde/beoordeling.
-- "Correctiemodus" (`canCorrectFinding`) blijft ongewijzigd; die regelt het na-verzenden corrigeren in latere fasen.
+Vervang in `src/pages/FindingReactie.tsx` (modus "keuze") de huidige logica wanneer `upload_vereist` true is:
 
-### Scope (bewust afgebakend)
-- Alleen UI-grendel; geen DB/RLS-aanpassing nodig.
-- Geen wijziging aan workflow-status: de tekenaar zet zelf nog steeds deel 1 op afgerond; status verandert pas zodra auditor deel 2 oppakt.
-- Geen wijziging aan deel‑2 rechten.
+- Toon naast "Niet akkoord" een tweede knop **"Document aanleveren"** (in plaats van "Accepteren").
+- Deze knop opent dezelfde flow als de huidige akkoord-flow, maar met:
+  - verplichte file-upload (zelfde 10 MB-limiet, zelfde bucket `finding-documents`)
+  - optionele toelichting (textarea, zoals nu bij akkoord)
+  - opslag als concept van `type: "akkoord"` met `bijlage_pad` gevuld, zodat het meeloopt in de bestaande batch-verstuur-flow en de auditor het als geaccepteerd-met-bewijs ziet
+- "Niet akkoord" blijft bestaan voor het geval de adviseur het écht niet eens is met de bevinding (ook met verplichte upload).
+- Knoplabel bij bestaand akkoord-concept: "Wijzig: document aangeleverd".
 
-### Risico's
-- Tekenaar kan na "afronden" nog wijzigen → bewust. Auditor ziet dezelfde data zodra die deel 2 oppakt; geen race-condities want UI sluit `canDeel1` zodra status `deel2_bezig`/verder is.
+## Technische details
+
+- Uitbreiden van het concept-schema: `bijlage_pad` toestaan op `type: "akkoord"` (al ondersteund op `niet_akkoord`, dus enkel typings/serialisatie aanpassen).
+- `accepteren()` splitsen of uitbreiden met optionele upload (hergebruik bestaande `uploadFile()`).
+- Disable-conditie op verzendknop: bij `upload_vereist` is bestand verplicht voor zowel akkoord als niet-akkoord.
+- Berichtweergave aanpassen: bij akkoord-concept met bijlage een download-link tonen in het concept-blokje (consistent met `messages`).
+- Geen DB/RLS-wijzigingen nodig; `concept_reactie` is een `jsonb`.
+- Geen wijzigingen aan de auditor-zijde (`FindingBeoordeling`) — die toont al bijlagen bij berichten zodra de batch verstuurd is.
+
+## Buiten scope
+
+- Wijzigingen in batch-verstuur-logica of e-mailtemplates.
+- Wijzigingen aan de upload-vereist-instelling zelf in de auditor-UI.
