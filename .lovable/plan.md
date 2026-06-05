@@ -1,24 +1,29 @@
-## Probleem
+## Doel
 
-In het EP-adviseur afwijkingen-overzicht (`AdviseurSectie`) wordt de status van een bevinding direct uit `findings.status` getoond. Die wisselt pas naar `reactie_ontvangen` ná het batch-versturen. Een opgeslagen **concept-reactie** verandert de DB-status niet, dus zo'n bevinding blijft "Open" — terwijl de adviseur al heeft gereageerd.
+In `AdviseurSectie` (EP-adviseur afwijkingen-overzicht):
+1. Standaard alleen projecten tonen — findings worden pas zichtbaar bij klik op een project (uitklap).
+2. Per project een knop "Alle reacties nu versturen" zichtbaar maken zodra alle concepten klaar zijn (zelfde logica als `BatchVersturenCompact`).
 
-## Voorstel
+## Aanpak
 
-Geen DB-wijzigingen. Tonen dat er een concept klaar staat op basis van `concept_reactie` (al meegeladen via `select("*")`).
+### `src/components/dashboard/AdviseurSectie.tsx`
 
-1. **`src/pages/Inbox.tsx`** — `adviseurStatusBadge`:
-   - Functie tweede argument geven: `hasConcept: boolean`.
-   - Wanneer `status === "open"` én `hasConcept` → label **"Concept opgeslagen"** met een neutrale/blauwe stijl (bv. `bg-blue-50 text-blue-700 border border-blue-200`), zodat het visueel verschilt van "Reactie ingediend" (= definitief verzonden).
-   - Type van prop `adviseurStatusBadge` in `AdviseurSectieProps` aanpassen.
+- Findings groeperen per `project_id` (en `projectnaam`) i.p.v. één lange tabel.
+- Eén rij per project (collapsible), met:
+  - Projectnaam (link naar `/project/:id` blijft beschikbaar via aparte knop "Audit inzien").
+  - Aantal afwijkingen + status-telling ("3 open · 1 concept · 2 ingediend").
+  - Chevron-knop om de details (de bestaande tabel met controlepunt/status/etc.) uit/in te klappen.
+  - Verzendbalk via `BatchVersturenCompact` (`projectId={projectId}` `navigateOnSent={false}`) onder de uitgeklapte tabel **en** ook zichtbaar in ingeklapte staat, zodat de adviseur niets hoeft uit te klappen om te versturen.
+- Lokale state `expanded: Record<string, boolean>` voor de uitklap. Standaard alles ingeklapt.
+- Bestaande filters (project / status) blijven werken: ze filteren de findings vóór groeperen; een project met 0 zichtbare findings wordt verborgen.
+- "Mijn projecten"-blokje onderaan blijft staan (apart overzicht van toegewezen projecten, ook zonder findings).
 
-2. **`src/components/dashboard/AdviseurSectie.tsx`**:
-   - Aanroep wijzigen naar `adviseurStatusBadge(f.status, !!(f as any).concept_reactie)`.
-   - Actiekolom: wanneer `status === "open"` én er is een concept → linktekst "Wijzigen" i.p.v. "Reageren" (zelfde target `/finding/:id/reactie`). Geen `Ingediend`-badge voor concepten — die blijft voorbehouden aan echt verzonden reacties.
+### Hergebruik
 
-3. **Statusfilter** (`bg-muted` selectopties): optioneel een extra optie "Concept opgeslagen" — laten we voor nu **niet** toevoegen (out of scope; de filter werkt op DB-status, en toevoegen vereist een aangepaste filterfunctie). Vermelden in plan zodat duidelijk is dat het bewust achterblijft.
+- `BatchVersturenCompact` rendert zelf null als er niets te versturen valt en toont anders teller + knop. Geen wijziging nodig in dat component.
 
 ## Buiten scope
 
-- Geen DB-/RLS-/triggerwijzigingen, geen aparte tussenstatus in `findings.status`.
-- Geen wijziging aan de auditor-zijde of `ProjectDetail`.
-- Statusfilter-optie voor concepten niet toegevoegd.
+- Geen wijzigingen aan filters/queries in `Inbox.tsx` (data blijft hetzelfde).
+- Geen wijziging aan auditor-zijde of project-detail.
+- Geen aparte concept-statusfilter (eerder al bewust achterwege gelaten).
