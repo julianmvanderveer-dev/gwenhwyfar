@@ -1216,6 +1216,9 @@ export default function ProjectDetail() {
             {(canDeel1 || canDeel2) && (
               <p className="text-xs text-muted-foreground">Wijzigingen worden automatisch opgeslagen.</p>
             )}
+            {canEditStartwaarde && !canDeel1 && !canDeel2 && (
+              <p className="text-xs text-muted-foreground">Je kunt de startwaarde nog aanpassen totdat de auditor met deel 2 begint.</p>
+            )}
           </div>
           <div className="flex justify-between">
             {currentIndex > 0 ? (
