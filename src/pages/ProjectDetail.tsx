@@ -604,10 +604,9 @@ export default function ProjectDetail() {
   });
   const allTabs = [...onderdelen, "__ep2__"];
 
-  const canDeel1 = (hasRole("tekenaar") || hasRole("auditor")) && (project.status === "nog_niet_begonnen" || project.status === "deel1_bezig");
   const canDeel2 = hasRole("auditor") && (project.status === "deel1_afgerond" || project.status === "deel2_bezig");
-  // Tekenaar mag de EP2-startwaarde nog corrigeren zolang de auditor deel 2 nog niet is gestart.
-  const canEditStartwaarde = (hasRole("tekenaar") || hasRole("auditor")) &&
+  // Tekenaar/auditor mogen deel 1 blijven corrigeren totdat de auditor met deel 2 begint.
+  const canDeel1 = (hasRole("tekenaar") || hasRole("auditor")) &&
     (project.status === "nog_niet_begonnen" || project.status === "deel1_bezig" || project.status === "deel1_afgerond");
 
   const canEditFindingByDeel = (deel: number) => {
