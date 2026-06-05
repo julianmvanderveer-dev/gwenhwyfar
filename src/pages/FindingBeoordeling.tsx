@@ -383,7 +383,14 @@ export default function FindingBeoordeling() {
                 </Button>
                 <Button
                   variant={isNietAkkoord ? "secondary" : "outline"}
-                  onClick={() => setModus("niet_akkoord")}
+                  onClick={() => {
+                    if (isNietAkkoord) {
+                      const c = concept as any;
+                      setOpmerking(c?.toelichting ?? "");
+                      setUploadVereist(!!c?.upload_vereist);
+                    }
+                    setModus("niet_akkoord");
+                  }}
                   disabled={loading}
                 >
                   {isNietAkkoord ? "Wijzig: niet akkoord" : "Niet akkoord"}
