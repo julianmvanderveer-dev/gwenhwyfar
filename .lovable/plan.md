@@ -1,20 +1,24 @@
 ## Probleem
 
-Op de bevinding-reactiepagina (`FindingReactie.tsx`) staat na opslaan van een concept de link **"Naar projectoverzicht om alles te versturen →"**. Die brengt de EP-adviseur naar `ProjectDetail`, waar de volledige checklists getoond worden — verwarrend, want het is onduidelijk wat hij daar moet doen.
-
-In werkelijkheid kan de EP-adviseur uitsluitend per bevinding reageren. De verzendknop ("Alle reacties nu versturen") staat al onderaan dezelfde pagina via `BatchVersturenCompact` zodra alle concepten klaar zijn.
+In het EP-adviseur afwijkingen-overzicht (`AdviseurSectie`) wordt de status van een bevinding direct uit `findings.status` getoond. Die wisselt pas naar `reactie_ontvangen` ná het batch-versturen. Een opgeslagen **concept-reactie** verandert de DB-status niet, dus zo'n bevinding blijft "Open" — terwijl de adviseur al heeft gereageerd.
 
 ## Voorstel
 
-In `src/pages/FindingReactie.tsx`:
+Geen DB-wijzigingen. Tonen dat er een concept klaar staat op basis van `concept_reactie` (al meegeladen via `select("*")`).
 
-1. **Verwijder** de link "Naar projectoverzicht om alles te versturen →" uit het concept-blokje en uit de keuze-modus.
-2. **Pas de tekst in het concept-blokje aan** zodat het niet meer naar het projectoverzicht verwijst, bijv.:
-   > "Concept-reactie opgeslagen. Zodra alle reacties in dit project zijn ingevuld, verschijnt onderaan een knop om ze in één keer te versturen."
-3. **Voeg een aparte knop "Audit inzien"** toe (naast/boven "Terug") die navigeert naar `/project/{projectId}`. Daarmee is de twee-knoppen-rol duidelijk: reageren = hier op de bevinding, audit bekijken = aparte knop.
-4. De bestaande `BatchVersturenCompact` onderaan blijft ongewijzigd — die toont de tellerregel en verzendknop wanneer alle reacties klaar zijn.
+1. **`src/pages/Inbox.tsx`** — `adviseurStatusBadge`:
+   - Functie tweede argument geven: `hasConcept: boolean`.
+   - Wanneer `status === "open"` én `hasConcept` → label **"Concept opgeslagen"** met een neutrale/blauwe stijl (bv. `bg-blue-50 text-blue-700 border border-blue-200`), zodat het visueel verschilt van "Reactie ingediend" (= definitief verzonden).
+   - Type van prop `adviseurStatusBadge` in `AdviseurSectieProps` aanpassen.
+
+2. **`src/components/dashboard/AdviseurSectie.tsx`**:
+   - Aanroep wijzigen naar `adviseurStatusBadge(f.status, !!(f as any).concept_reactie)`.
+   - Actiekolom: wanneer `status === "open"` én er is een concept → linktekst "Wijzigen" i.p.v. "Reageren" (zelfde target `/finding/:id/reactie`). Geen `Ingediend`-badge voor concepten — die blijft voorbehouden aan echt verzonden reacties.
+
+3. **Statusfilter** (`bg-muted` selectopties): optioneel een extra optie "Concept opgeslagen" — laten we voor nu **niet** toevoegen (out of scope; de filter werkt op DB-status, en toevoegen vereist een aangepaste filterfunctie). Vermelden in plan zodat duidelijk is dat het bewust achterblijft.
 
 ## Buiten scope
 
-- Geen wijzigingen aan `ProjectDetail`, batch-logica, of de auditor-zijde.
-- Geen navigatie tussen bevindingen onderling (niet gevraagd).
+- Geen DB-/RLS-/triggerwijzigingen, geen aparte tussenstatus in `findings.status`.
+- Geen wijziging aan de auditor-zijde of `ProjectDetail`.
+- Statusfilter-optie voor concepten niet toegevoegd.
