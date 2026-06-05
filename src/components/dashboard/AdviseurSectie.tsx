@@ -19,6 +19,7 @@ interface AdviseurSectieProps {
   adviseurStatusBadge: (status: string, hasConcept?: boolean) => React.ReactNode;
   handleDownload: (path: string) => void;
   adviseurProjecten?: { id: string; projectnaam: string }[];
+  onAdviseurDataChanged?: () => void;
 }
 
 export default function AdviseurSectie({
@@ -31,6 +32,7 @@ export default function AdviseurSectie({
   adviseurStatusBadge,
   handleDownload,
   adviseurProjecten = [],
+  onAdviseurDataChanged,
 }: AdviseurSectieProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const toggle = (id: string) => setExpanded((e) => ({ ...e, [id]: !e[id] }));
@@ -115,7 +117,11 @@ export default function AdviseurSectie({
                 </div>
 
                 <div className="px-4 py-3 border-t bg-card">
-                  <BatchVersturenCompact projectId={g.projectId} navigateOnSent={false} />
+                  <BatchVersturenCompact
+                    projectId={g.projectId}
+                    navigateOnSent={false}
+                    onSent={onAdviseurDataChanged}
+                  />
                 </div>
 
                 {open && (
