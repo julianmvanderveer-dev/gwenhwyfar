@@ -448,6 +448,19 @@ export default function ProjectDetail() {
       toast({ title: "Geen toegang", description: "Alleen een auditor kan de audit afronden.", variant: "destructive" });
       return;
     }
+    if (!project?.adviseur_id) {
+      toast({ title: "Geen EP-adviseur", description: "Aan deze audit is geen EP-adviseur gekoppeld. Vul deze eerst in.", variant: "destructive" });
+      return;
+    }
+    const { data: adv } = await supabase
+      .from("adviseurs")
+      .select("email")
+      .eq("id", project.adviseur_id)
+      .maybeSingle();
+    if (!adv?.email) {
+      toast({ title: "EP-adviseur heeft geen e-mailadres", description: "Vul eerst een e-mailadres in bij Beheer → Adviseurs voordat je de audit afrondt.", variant: "destructive" });
+      return;
+    }
     const now = new Date();
     const nietGoedFindings = findings.filter(f => f.beoordeling === "niet_goed");
     const opmerkingFindings = findings.filter(f => f.beoordeling === "opmerking");

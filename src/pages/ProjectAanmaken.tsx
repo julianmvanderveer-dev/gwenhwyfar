@@ -94,6 +94,12 @@ export default function ProjectAanmaken() {
     if (!user) return;
     setLoading(true);
 
+    if (!adviseurId) {
+      toast({ title: "EP-adviseur is verplicht", description: "Selecteer een EP-adviseur voordat je de audit aanmaakt.", variant: "destructive" });
+      setLoading(false);
+      return;
+    }
+
     const insertData: any = {
       projectnaam,
       adviseur_id: adviseurId || null,
@@ -177,9 +183,9 @@ export default function ProjectAanmaken() {
           <Input required value={projectnaam} onChange={(e) => setProjectnaam(e.target.value)} />
         </div>
         <div>
-          <Label>Adviseur</Label>
-          <select className="border rounded px-2 py-1 w-full text-sm" value={adviseurId} onChange={(e) => setAdviseurId(e.target.value)}>
-            <option value="">— Geen —</option>
+          <Label>EP-adviseur <span className="text-destructive">*</span></Label>
+          <select required className="border rounded px-2 py-1 w-full text-sm" value={adviseurId} onChange={(e) => setAdviseurId(e.target.value)}>
+            <option value="">— Selecteer adviseur —</option>
             {adviseurs.map((a) => (
               <option key={a.id} value={a.id}>{a.naam} ({a.nummer})</option>
             ))}
