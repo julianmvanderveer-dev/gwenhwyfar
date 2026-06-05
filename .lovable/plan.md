@@ -1,29 +1,20 @@
 ## Probleem
 
-Wanneer de auditor `upload_vereist` heeft aangezet, verbergt `FindingReactie.tsx` de knop "Accepteren". De EP-adviseur ziet alleen nog "Niet akkoord" als optie, terwijl hij in werkelijkheid wél akkoord kan zijn met de bevinding — hij moet alleen het ontbrekende document aanleveren (bijv. de onderbouwing Rc-waardes). Hij wordt nu gedwongen "Niet akkoord" te selecteren om bij het uploadveld te komen, wat semantisch onjuist is.
+Op de bevinding-reactiepagina (`FindingReactie.tsx`) staat na opslaan van een concept de link **"Naar projectoverzicht om alles te versturen →"**. Die brengt de EP-adviseur naar `ProjectDetail`, waar de volledige checklists getoond worden — verwarrend, want het is onduidelijk wat hij daar moet doen.
+
+In werkelijkheid kan de EP-adviseur uitsluitend per bevinding reageren. De verzendknop ("Alle reacties nu versturen") staat al onderaan dezelfde pagina via `BatchVersturenCompact` zodra alle concepten klaar zijn.
 
 ## Voorstel
 
-Vervang in `src/pages/FindingReactie.tsx` (modus "keuze") de huidige logica wanneer `upload_vereist` true is:
+In `src/pages/FindingReactie.tsx`:
 
-- Toon naast "Niet akkoord" een tweede knop **"Document aanleveren"** (in plaats van "Accepteren").
-- Deze knop opent dezelfde flow als de huidige akkoord-flow, maar met:
-  - verplichte file-upload (zelfde 10 MB-limiet, zelfde bucket `finding-documents`)
-  - optionele toelichting (textarea, zoals nu bij akkoord)
-  - opslag als concept van `type: "akkoord"` met `bijlage_pad` gevuld, zodat het meeloopt in de bestaande batch-verstuur-flow en de auditor het als geaccepteerd-met-bewijs ziet
-- "Niet akkoord" blijft bestaan voor het geval de adviseur het écht niet eens is met de bevinding (ook met verplichte upload).
-- Knoplabel bij bestaand akkoord-concept: "Wijzig: document aangeleverd".
-
-## Technische details
-
-- Uitbreiden van het concept-schema: `bijlage_pad` toestaan op `type: "akkoord"` (al ondersteund op `niet_akkoord`, dus enkel typings/serialisatie aanpassen).
-- `accepteren()` splitsen of uitbreiden met optionele upload (hergebruik bestaande `uploadFile()`).
-- Disable-conditie op verzendknop: bij `upload_vereist` is bestand verplicht voor zowel akkoord als niet-akkoord.
-- Berichtweergave aanpassen: bij akkoord-concept met bijlage een download-link tonen in het concept-blokje (consistent met `messages`).
-- Geen DB/RLS-wijzigingen nodig; `concept_reactie` is een `jsonb`.
-- Geen wijzigingen aan de auditor-zijde (`FindingBeoordeling`) — die toont al bijlagen bij berichten zodra de batch verstuurd is.
+1. **Verwijder** de link "Naar projectoverzicht om alles te versturen →" uit het concept-blokje en uit de keuze-modus.
+2. **Pas de tekst in het concept-blokje aan** zodat het niet meer naar het projectoverzicht verwijst, bijv.:
+   > "Concept-reactie opgeslagen. Zodra alle reacties in dit project zijn ingevuld, verschijnt onderaan een knop om ze in één keer te versturen."
+3. **Voeg een aparte knop "Audit inzien"** toe (naast/boven "Terug") die navigeert naar `/project/{projectId}`. Daarmee is de twee-knoppen-rol duidelijk: reageren = hier op de bevinding, audit bekijken = aparte knop.
+4. De bestaande `BatchVersturenCompact` onderaan blijft ongewijzigd — die toont de tellerregel en verzendknop wanneer alle reacties klaar zijn.
 
 ## Buiten scope
 
-- Wijzigingen in batch-verstuur-logica of e-mailtemplates.
-- Wijzigingen aan de upload-vereist-instelling zelf in de auditor-UI.
+- Geen wijzigingen aan `ProjectDetail`, batch-logica, of de auditor-zijde.
+- Geen navigatie tussen bevindingen onderling (niet gevraagd).
