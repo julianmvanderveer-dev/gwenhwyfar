@@ -735,24 +735,9 @@ export default function ProjectDetail() {
               <>
                 <a
                   href={(project as any).dropbox_link}
+                  target="_top"
+                  rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-primary hover:underline"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    const url = (project as any).dropbox_link as string;
-                     try {
-                       if (window.top && window.top !== window) {
-                         window.top.location.href = url;
-                         return;
-                       }
-                     } catch {
-                       // negeer cross-origin toegangsfouten en val terug op nieuw tabblad
-                     }
-
-                     const win = window.open(url, "_blank", "noopener,noreferrer");
-                     if (!win) {
-                       window.location.href = url;
-                    }
-                  }}
                 >
                   <FolderOpen className="h-3.5 w-3.5" />
                   Dossier op Dropbox
