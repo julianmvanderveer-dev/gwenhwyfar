@@ -94,6 +94,12 @@ export default function ProjectAanmaken() {
     if (!user) return;
     setLoading(true);
 
+    if (!adviseurId) {
+      toast({ title: "EP-adviseur is verplicht", description: "Selecteer een EP-adviseur voordat je de audit aanmaakt.", variant: "destructive" });
+      setLoading(false);
+      return;
+    }
+
     const insertData: any = {
       projectnaam,
       adviseur_id: adviseurId || null,
