@@ -320,7 +320,14 @@ export default function Inbox() {
     return views;
   }, [roles, isAdviseur]);
 
-  const adviseurStatusBadge = (status: string) => {
+  const adviseurStatusBadge = (status: string, hasConcept = false) => {
+    if (status === "open" && hasConcept) {
+      return (
+        <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+          Concept opgeslagen
+        </span>
+      );
+    }
     const map: Record<string, { label: string; className: string }> = {
       open: { label: "Open", className: "bg-orange-100 text-orange-700" },
       reactie_ontvangen: { label: "Reactie ingediend", className: "bg-blue-100 text-blue-700" },

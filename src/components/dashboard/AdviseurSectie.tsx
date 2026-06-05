@@ -14,7 +14,7 @@ interface AdviseurSectieProps {
   adviseurFilterStatus: string;
   setAdviseurFilterStatus: (v: string) => void;
   adviseurProjectNames: (string | undefined)[];
-  adviseurStatusBadge: (status: string) => React.ReactNode;
+  adviseurStatusBadge: (status: string, hasConcept?: boolean) => React.ReactNode;
   handleDownload: (path: string) => void;
   adviseurProjecten?: { id: string; projectnaam: string }[];
 }
@@ -85,7 +85,7 @@ export default function AdviseurSectie({
                   </td>
                   <td className="px-4 py-2.5">{f.controlepunt}</td>
                   <td className="px-4 py-2.5">{afwijkingBadge(f.type_afwijking)}</td>
-                  <td className="px-4 py-2.5">{adviseurStatusBadge(f.status)}</td>
+                  <td className="px-4 py-2.5">{adviseurStatusBadge(f.status, !!(f as any).concept_reactie)}</td>
                   <td className="px-4 py-2.5 max-w-[200px] truncate" title={f.laatste_reactie ?? ""}>
                     {f.laatste_reactie || "—"}
                   </td>
@@ -99,7 +99,7 @@ export default function AdviseurSectie({
                   <td className="px-4 py-2.5">
                     {f.status === "open" ? (
                       <Link to={`/finding/${f.id}/reactie`} className="text-accent hover:underline font-medium text-sm">
-                        Reageren
+                        {(f as any).concept_reactie ? "Wijzigen" : "Reageren"}
                       </Link>
                     ) : f.status === "reactie_goedgekeurd" ? (
                       <Badge variant="secondary" className="text-xs">Goedgekeurd</Badge>
