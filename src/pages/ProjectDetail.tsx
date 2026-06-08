@@ -328,7 +328,7 @@ export default function ProjectDetail() {
     if (huidig && !huidig.zichtbaar_voor_adviseur) {
       if (beoordeling === "goed") {
         update.status = "gesloten";
-      } else {
+      } else if (beoordeling !== "nvt") {
         update.status = "open";
       }
     }
@@ -366,7 +366,7 @@ export default function ProjectDetail() {
         await updateBeoordeling(fId, beoordeling as Enums<"beoordeling_type">);
       }
       if (wasCorrectie && oudeBeoordeling !== (beoordeling || null)) {
-        const labels: Record<string, string> = { goed: "Goed", niet_goed: "Niet goed", opmerking: "Opmerking" };
+        const labels: Record<string, string> = { goed: "Goed", niet_goed: "Niet goed", opmerking: "Opmerking", nvt: "N.V.T." };
         const oud = oudeBeoordeling ? (labels[oudeBeoordeling] ?? oudeBeoordeling) : "—";
         const nieuw = beoordeling ? (labels[beoordeling] ?? beoordeling) : "—";
         await logCorrectie(fId, `Beoordeling gewijzigd van "${oud}" naar "${nieuw}".`);
@@ -1031,6 +1031,7 @@ export default function ProjectDetail() {
                                     <option value="goed">Goed</option>
                                     <option value="niet_goed">Niet goed</option>
                                     <option value="opmerking">Opmerking</option>
+                                    <option value="nvt">N.V.T.</option>
                                   </select>
                                 ) : (
                                   f?.beoordeling ? beoordelingBadge(f.beoordeling) : <span className="text-muted-foreground">—</span>
