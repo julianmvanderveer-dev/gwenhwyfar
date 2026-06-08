@@ -19,6 +19,7 @@ const beoordelingLabel: Record<string, string> = {
   goed: "Goed",
   niet_goed: "Niet goed",
   opmerking: "Opmerking",
+  nvt: "N.V.T.",
 };
 
 
