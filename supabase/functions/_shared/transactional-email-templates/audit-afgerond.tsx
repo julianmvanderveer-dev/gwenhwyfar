@@ -18,15 +18,15 @@ const AuditAfgerondEmail = ({ adviseurNaam, projectnaam, projectId }: AuditAfger
   return (
   <Html lang="nl" dir="ltr">
     <Head />
-    <Preview>Audit afgerond: {projectnaam ?? 'project'}</Preview>
+    <Preview>Auditrapport klaar voor uw reactie: {projectnaam ?? 'project'}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Audit afgerond</Heading>
+        <Heading style={h1}>Auditrapport klaar voor uw reactie</Heading>
         <Text style={text}>
           Beste {adviseurNaam ?? 'adviseur'},
         </Text>
         <Text style={text}>
-          De audit voor project <strong>{projectnaam ?? 'onbekend'}</strong> is afgerond.
+          Voor project <strong>{projectnaam ?? 'onbekend'}</strong> staat een auditrapport voor u klaar.
         </Text>
         <Text style={text}>
           Er staan bevindingen klaar die uw reactie vereisen. Klik op de knop hieronder om direct naar de audit te gaan.
@@ -45,8 +45,8 @@ const AuditAfgerondEmail = ({ adviseurNaam, projectnaam, projectId }: AuditAfger
 
 export const template = {
   component: AuditAfgerondEmail,
-  subject: (data: Record<string, any>) => `Audit afgerond: ${data.projectnaam ?? 'project'}`,
-  displayName: 'Audit afgerond',
+  subject: (data: Record<string, any>) => `Auditrapport klaar voor uw reactie: ${data.projectnaam ?? 'project'}`,
+  displayName: 'Auditrapport klaar voor reactie',
   previewData: { adviseurNaam: 'Jan de Vries', projectnaam: '1234AB_10', projectId: '00000000-0000-0000-0000-000000000000' },
 } satisfies TemplateEntry
 
