@@ -1,30 +1,28 @@
-## Doel
-'N.V.T.' (Niet van toepassing) toevoegen als vierde keuze in de checklist, naast Goed, Niet goed en Opmerking. Gedrag: volledig neutraal — geen status-impact, geen verplichte toelichting, telt niet mee in de EP2-berekening, gaat niet naar de EP-adviseur.
+## Probleem
+Bij handmatig kiezen van 'Goed' op een rij die nog geen bestaande bevinding heeft, blijft de status `open` in plaats van `gesloten`.
 
-## Wijzigingen
+## Oorzaak
+In `src/pages/ProjectDetail.tsx` werkt `handleBeoordeling` zo:
+1. `ensureFinding(row)` maakt — als er nog geen finding is — een nieuwe rij in de tabel met default status `open`. De lokale `findings`-state wordt hierbij nog niet ververst.
+2. Direct daarna roept `updateBeoordeling(fId, "goed")` aan, en daar zoekt `findings.find((f) => f.id === findingId)` de bevinding op om te bepalen of de status mee mag wijzigen.
+3. Voor een net aangemaakte rij vindt die lookup niets → `huidig` is `undefined` → het hele status-blok wordt overgeslagen → status blijft `open`.
 
-### 1. Database
-- Nieuwe waarde `nvt` toevoegen aan enum `beoordeling_type` (migratie).
+Dit raakt alleen rijen die voor het eerst beoordeeld worden. Bestaande bevindingen werken wel goed.
 
-### 2. Checklist UI (`src/pages/ProjectDetail.tsx`)
-- Extra `<option value="nvt">N.V.T.</option>` in de beoordeling-dropdown.
-- `updateBeoordeling`: bij `nvt` géén `eigenaar_beoordeling`/`toegewezen_beoordelaar` zetten en de status onveranderd laten (dus géén automatische `gesloten`/`open`-wisseling).
-- Labelmap in `handleBeoordeling` uitbreiden met `nvt: "N.V.T."` voor correctie-logging.
-- Toelichtingsblok blijft alleen verschijnen bij `niet_goed`/`opmerking` (N.V.T. krijgt geen toelichtingsregel).
-- "Alles goedkeuren" blijft `niet_goed`/`opmerking` overslaan; N.V.T.-rijen worden niet overschreven (filter `f.beoordeling !== "goed" && f.beoordeling !== "nvt"`).
-- EP2-tellingen: N.V.T. zit niet in `niet_goed`/`opmerking`-filters, dus telt automatisch niet mee — bevestigen door inspectie van `useMemo`-blokken.
+## Oplossing
+`updateBeoordeling` aanpassen zodat het ook werkt voor net aangemaakte findings. Concreet: als `huidig` niet in de lokale state zit, behandelen als "nieuw, dus zeker niet zichtbaar voor adviseur" en dezelfde status-logica toepassen:
 
-### 3. Badge (`src/lib/badges.tsx`)
-- `beoordelingBadge`: label `N.V.T.`, neutrale grijze styling (`bg-gray-100 text-gray-700`).
+- `goed` → `status = "gesloten"`
+- `niet_goed` / `opmerking` → `status = "open"` (al de default, maar expliciet zetten kan geen kwaad)
+- `nvt` → status onveranderd laten
 
-### 4. Rapportage & export
-- `src/lib/generateAuditReport.ts`: N.V.T.-bevindingen niet opnemen in afwijkingen-secties; alleen tonen als 'N.V.T.' in eventuele volledige checklist-weergave.
-- CSV/PDF-exports: label-mapping uitbreiden zodat 'nvt' netjes als 'N.V.T.' verschijnt waar de waarde voorkomt.
+Alternatief overwogen: een `loadFindings()` toevoegen direct na `ensureFinding`. Niet gekozen omdat dat een extra round-trip is en alsnog een race-condition open laat tussen de fetch en het volgende `updateBeoordeling`.
 
-### 5. Filters/overzichten elders
-- Zoekopdracht door codebase op `"niet_goed"`/`"opmerking"`/`"goed"` om plekken te vinden waar een expliciete lijst van beoordelingen gebruikt wordt (bv. dashboards, e-mailcontent, herinneringen). N.V.T. wordt overal als 'neutraal' behandeld: niet meenemen in waarschuwingen, deadlines, of EP-adviseur-cycli.
+## Wijziging
+Eén bestand: `src/pages/ProjectDetail.tsx`, functie `updateBeoordeling`. De conditie `if (huidig && !huidig.zichtbaar_voor_adviseur)` wordt `if (!huidig || !huidig.zichtbaar_voor_adviseur)`, met behoud van de bestaande inhoud (inclusief de eerder toegevoegde `nvt`-uitzondering).
 
 ## Validatie
-- Migratie draait succesvol; enum bevat `nvt`.
-- Op een testproject: N.V.T. kiezen wijzigt status niet, vraagt geen toelichting, geen reactieverzoek aan EP-adviseur, en EP2-percentage blijft gelijk.
-- Bestaande Goed/Niet goed/Opmerking-flows ongewijzigd.
+- Nieuwe checklist-rij → 'Goed' kiezen → status wordt direct `gesloten` (groen).
+- Nieuwe rij → 'Niet goed' / 'Opmerking' → status `open`.
+- Nieuwe rij → 'N.V.T.' → status blijft default `open` zonder verdere impact.
+- Bestaande bevindingen die al naar de EP-adviseur zijn (`zichtbaar_voor_adviseur=true`) blijven ongewijzigd qua status.
