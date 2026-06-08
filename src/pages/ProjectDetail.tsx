@@ -405,7 +405,7 @@ export default function ProjectDetail() {
       .eq("project_id", id!)
       .eq("onderdeel", onderdeel);
     const eligible = (currentFindings ?? []).filter(
-      (f) => canEditFindingByDeel(f.deel) && f.beoordeling !== "goed",
+      (f) => canEditFindingByDeel(f.deel) && f.beoordeling !== "goed" && f.beoordeling !== "nvt",
     );
     if (eligible.length === 0) return;
     // Niet-zichtbare bevindingen mogen direct op 'gesloten'; bevindingen die al
