@@ -751,7 +751,7 @@ export type Database = {
       app_role: "beheer" | "tekenaar" | "auditor" | "ep_adviseur"
       audit_categorie: "EPW-B" | "EPW-D" | "EPU-B" | "EPU-D" | "MWA-B" | "MWA-U"
       audit_soort: "dossieraudit" | "projectaudit"
-      beoordeling_type: "goed" | "niet_goed" | "opmerking"
+      beoordeling_type: "goed" | "niet_goed" | "opmerking" | "nvt"
       eigenaar_type: "tekenaar" | "auditor"
       finding_status:
         | "open"
@@ -901,7 +901,7 @@ export const Constants = {
       app_role: ["beheer", "tekenaar", "auditor", "ep_adviseur"],
       audit_categorie: ["EPW-B", "EPW-D", "EPU-B", "EPU-D", "MWA-B", "MWA-U"],
       audit_soort: ["dossieraudit", "projectaudit"],
-      beoordeling_type: ["goed", "niet_goed", "opmerking"],
+      beoordeling_type: ["goed", "niet_goed", "opmerking", "nvt"],
       eigenaar_type: ["tekenaar", "auditor"],
       finding_status: [
         "open",
