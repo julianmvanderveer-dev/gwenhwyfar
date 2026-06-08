@@ -325,7 +325,7 @@ export default function ProjectDetail() {
     // zetten het terug op 'open'. Alleen toepassen als het controlepunt nog
     // niet in de adviseur-cyclus zit (zichtbaar_voor_adviseur = false).
     const huidig = findings.find((f) => f.id === findingId);
-    if (huidig && !huidig.zichtbaar_voor_adviseur) {
+    if (!huidig || !huidig.zichtbaar_voor_adviseur) {
       if (beoordeling === "goed") {
         update.status = "gesloten";
       } else if (beoordeling !== "nvt") {
