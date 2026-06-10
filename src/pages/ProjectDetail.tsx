@@ -537,6 +537,9 @@ export default function ProjectDetail() {
   // Auto EP2-beoordeling berekening
   const autoEp2 = useMemo(() => {
     const nietGoedCount = findings.filter((f) => f.beoordeling === "niet_goed").length;
+    const nietGoedRelevantCount = findings.filter(
+      (f) => f.beoordeling === "niet_goed" && !(f as any).afwijking_kleiner_1pct
+    ).length;
     const alleGoed = findings.length === 0 || findings.every(
       (f) => f.beoordeling === "goed" || f.beoordeling === "opmerking" || !f.beoordeling
     );
@@ -549,7 +552,7 @@ export default function ProjectDetail() {
     } else if (afwijkingAbs !== null && eindVal <= 125 && Math.abs(afwijkingAbs) > 10) {
       result = "kt";
     }
-    if (nietGoedCount > 4) {
+    if (nietGoedRelevantCount > 4) {
       result = "kt";
     } else if (!alleGoed && result !== "kt") {
       result = "nkt";
@@ -560,6 +563,9 @@ export default function ProjectDetail() {
 
   const autoEp2Reden = useMemo(() => {
     const nietGoedCount = findings.filter((f) => f.beoordeling === "niet_goed").length;
+    const nietGoedRelevantCount = findings.filter(
+      (f) => f.beoordeling === "niet_goed" && !(f as any).afwijking_kleiner_1pct
+    ).length;
     if (autoEp2 === "kt") {
       const reasons: string[] = [];
       if (afwijkingAbs !== null && eindVal > 125 && afwijkingPct !== null && Math.abs(afwijkingPct) > 8) {
@@ -568,8 +574,8 @@ export default function ProjectDetail() {
       if (afwijkingAbs !== null && eindVal <= 125 && Math.abs(afwijkingAbs) > 10) {
         reasons.push(`afwijking ${Math.abs(afwijkingAbs).toFixed(1)} kWh/m² bij EP2 ≤ 125`);
       }
-      if (nietGoedCount > 4) {
-        reasons.push(`${nietGoedCount} fouten (> 4)`);
+      if (nietGoedRelevantCount > 4) {
+        reasons.push(`${nietGoedRelevantCount} afwijkingen ≥ 1% (> 4)`);
       }
       return `Automatisch: KT — ${reasons.join("; ")}`;
     }

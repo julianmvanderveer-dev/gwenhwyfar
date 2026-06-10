@@ -1,28 +1,28 @@
-## Probleem
-Bij handmatig kiezen van 'Goed' op een rij die nog geen bestaande bevinding heeft, blijft de status `open` in plaats van `gesloten`.
+## Wijziging EP2 KT-criterium (aantal afwijkingen)
 
-## Oorzaak
-In `src/pages/ProjectDetail.tsx` werkt `handleBeoordeling` zo:
-1. `ensureFinding(row)` maakt — als er nog geen finding is — een nieuwe rij in de tabel met default status `open`. De lokale `findings`-state wordt hierbij nog niet ververst.
-2. Direct daarna roept `updateBeoordeling(fId, "goed")` aan, en daar zoekt `findings.find((f) => f.id === findingId)` de bevinding op om te bepalen of de status mee mag wijzigen.
-3. Voor een net aangemaakte rij vindt die lookup niets → `huidig` is `undefined` → het hele status-blok wordt overgeslagen → status blijft `open`.
+In de automatische EP2-beoordeling wordt op dit moment `KT` toegekend zodra er meer dan 4 bevindingen met beoordeling "Niet goed" zijn — ongeacht of die afwijking < 1% is.
 
-Dit raakt alleen rijen die voor het eerst beoordeeld worden. Bestaande bevindingen werken wel goed.
+### Nieuwe regel
+- Tel bij het KT-criterium alleen "Niet goed"-bevindingen waarvan de checkbox **"Afwijking < 1%"** NIET is aangevinkt.
+- Pas als dit aantal **> 4** is, wordt automatisch KT toegekend op basis van het aantal afwijkingen.
+- Bevindingen met "Afwijking < 1%" tellen dus niet mee voor dit criterium (ze blijven wel meetellen voor NKT, zoals nu).
 
-## Oplossing
-`updateBeoordeling` aanpassen zodat het ook werkt voor net aangemaakte findings. Concreet: als `huidig` niet in de lokale state zit, behandelen als "nieuw, dus zeker niet zichtbaar voor adviseur" en dezelfde status-logica toepassen:
+### Wijzigingen in code
+Bestand: `src/pages/ProjectDetail.tsx`
 
-- `goed` → `status = "gesloten"`
-- `niet_goed` / `opmerking` → `status = "open"` (al de default, maar expliciet zetten kan geen kwaad)
-- `nvt` → status onveranderd laten
+1. In `autoEp2` (useMemo) een nieuwe teller toevoegen:
+   ```ts
+   const nietGoedRelevantCount = findings.filter(
+     (f) => f.beoordeling === "niet_goed" && !(f as any).afwijking_kleiner_1pct
+   ).length;
+   ```
+   en de bestaande check `if (nietGoedCount > 4)` vervangen door `if (nietGoedRelevantCount > 4)`.
 
-Alternatief overwogen: een `loadFindings()` toevoegen direct na `ensureFinding`. Niet gekozen omdat dat een extra round-trip is en alsnog een race-condition open laat tussen de fetch en het volgende `updateBeoordeling`.
+2. In `autoEp2Reden` dezelfde teller gebruiken en de tekst aanpassen naar bv.  
+   `"${nietGoedRelevantCount} afwijkingen ≥ 1% (> 4)"`.
 
-## Wijziging
-Eén bestand: `src/pages/ProjectDetail.tsx`, functie `updateBeoordeling`. De conditie `if (huidig && !huidig.zichtbaar_voor_adviseur)` wordt `if (!huidig || !huidig.zichtbaar_voor_adviseur)`, met behoud van de bestaande inhoud (inclusief de eerder toegevoegde `nvt`-uitzondering).
+De EP2-grenswaardencriteria (afwijking in kWh/m² of %) blijven ongewijzigd. De NKT-fallback (één of meer fouten, geen KT) blijft ook op het totale aantal "Niet goed"-bevindingen werken, zodat een project met alleen kleine afwijkingen nog steeds als NKT (niet GOED) wordt gemarkeerd.
 
-## Validatie
-- Nieuwe checklist-rij → 'Goed' kiezen → status wordt direct `gesloten` (groen).
-- Nieuwe rij → 'Niet goed' / 'Opmerking' → status `open`.
-- Nieuwe rij → 'N.V.T.' → status blijft default `open` zonder verdere impact.
-- Bestaande bevindingen die al naar de EP-adviseur zijn (`zichtbaar_voor_adviseur=true`) blijven ongewijzigd qua status.
+### Geen wijziging nodig
+- `generateAuditReport.ts`: gebruikt alleen de opgeslagen `ep2_beoordeling`.
+- Database: het veld `afwijking_kleiner_1pct` bestaat al op `findings`.
