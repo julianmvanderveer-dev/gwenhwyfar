@@ -1,28 +1,17 @@
-## Wijziging EP2 KT-criterium (aantal afwijkingen)
+## EP-adviseur kan op projectpagina niet reageren
 
-In de automatische EP2-beoordeling wordt op dit moment `KT` toegekend zodra er meer dan 4 bevindingen met beoordeling "Niet goed" zijn — ongeacht of die afwijking < 1% is.
+Wanneer een EP-adviseur via de mail "Auditrapport klaar voor uw reactie" naar `/project/:id` komt, ziet hij/zij wel de rijen met status "open" en het kleine badge **Actie**, maar er staat geen knop of link om daadwerkelijk te reageren. Reageren kan op dit moment alleen via Inbox → tab "EP-adviseur" → kolom "Acties" → link **Reageren**.
 
-### Nieuwe regel
-- Tel bij het KT-criterium alleen "Niet goed"-bevindingen waarvan de checkbox **"Afwijking < 1%"** NIET is aangevinkt.
-- Pas als dit aantal **> 4** is, wordt automatisch KT toegekend op basis van het aantal afwijkingen.
-- Bevindingen met "Afwijking < 1%" tellen dus niet mee voor dit criterium (ze blijven wel meetellen voor NKT, zoals nu).
+### Oplossing in `src/pages/ProjectDetail.tsx`
 
-### Wijzigingen in code
-Bestand: `src/pages/ProjectDetail.tsx`
+- In de statuskolom (rond regel 1046-1067) voor EP-adviseur de stille "Actie"-badge vervangen door een echte link naar `/finding/${f.id}/reactie`:
+  - Tekst: **"Reageren"** (of **"Wijzigen"** als `concept_reactie` al ingevuld is).
+  - Styling: accent-kleur, onderstreept of als kleine knop, zodat het direct opvalt.
+  - Gebruik `<Link>` uit `react-router-dom`.
+- Boven de tabel een korte instructiebanner tonen voor EP-adviseurs zodra er minstens één rij is met `zichtbaar_voor_adviseur && status === "open"`, bv. *"Klik op 'Reageren' bij een bevinding om uw reactie in te vullen."*
 
-1. In `autoEp2` (useMemo) een nieuwe teller toevoegen:
-   ```ts
-   const nietGoedRelevantCount = findings.filter(
-     (f) => f.beoordeling === "niet_goed" && !(f as any).afwijking_kleiner_1pct
-   ).length;
-   ```
-   en de bestaande check `if (nietGoedCount > 4)` vervangen door `if (nietGoedRelevantCount > 4)`.
+### Niet wijzigen
 
-2. In `autoEp2Reden` dezelfde teller gebruiken en de tekst aanpassen naar bv.  
-   `"${nietGoedRelevantCount} afwijkingen ≥ 1% (> 4)"`.
-
-De EP2-grenswaardencriteria (afwijking in kWh/m² of %) blijven ongewijzigd. De NKT-fallback (één of meer fouten, geen KT) blijft ook op het totale aantal "Niet goed"-bevindingen werken, zodat een project met alleen kleine afwijkingen nog steeds als NKT (niet GOED) wordt gemarkeerd.
-
-### Geen wijziging nodig
-- `generateAuditReport.ts`: gebruikt alleen de opgeslagen `ep2_beoordeling`.
-- Database: het veld `afwijking_kleiner_1pct` bestaat al op `findings`.
+- Mailtemplate "audit-afgerond" (recent al aangepast en correct).
+- Afzender/Reply-To van de mails (bewust overgeslagen).
+- RLS / rolverdeling — EP-adviseur blijft elders read-only.

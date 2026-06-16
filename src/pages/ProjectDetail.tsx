@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -964,6 +964,9 @@ export default function ProjectDetail() {
 
         {onderdelen.map((o) => {
           const rows = getMergedRows(o);
+          const adviseurHeeftActie =
+            hasRole("ep_adviseur") &&
+            rows.some((r) => r.finding?.zichtbaar_voor_adviseur && r.finding?.status === "open");
           return (
             <TabsContent key={o} value={o} className="space-y-3">
               {canEditAny && rows.length > 0 && (
@@ -977,6 +980,11 @@ export default function ProjectDetail() {
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     Alles goedkeuren
                   </Button>
+                </div>
+              )}
+              {adviseurHeeftActie && (
+                <div className="border border-accent/40 bg-accent/10 text-sm text-foreground rounded-md px-3 py-2">
+                  Klik op <span className="font-semibold text-accent">Reageren</span> bij een bevinding om uw reactie in te vullen.
                 </div>
               )}
               <div className="border rounded-lg overflow-hidden shadow-sm bg-card">
@@ -1047,7 +1055,12 @@ export default function ProjectDetail() {
                                 <div className="flex items-center gap-1.5">
                                   {f ? statusBadge(f.status) : <span className="text-muted-foreground">—</span>}
                                   {hasRole("ep_adviseur") && f?.zichtbaar_voor_adviseur && f?.status === "open" && (
-                                    <span className="inline-flex items-center rounded-full bg-accent/15 text-accent px-1.5 py-0.5 text-[10px] font-semibold">Actie</span>
+                                    <Link
+                                      to={`/finding/${f.id}/reactie`}
+                                      className="inline-flex items-center rounded-full bg-accent text-accent-foreground hover:bg-accent/90 px-2 py-0.5 text-[10px] font-semibold shadow-sm"
+                                    >
+                                      {(f as any).concept_reactie ? "Wijzigen" : "Reageren"}
+                                    </Link>
                                   )}
                                   {f && (f as any).concept_reactie && (
                                     <span className="inline-flex items-center rounded-full bg-blue-100 text-blue-800 px-1.5 py-0.5 text-[10px] font-semibold" title="Concept-reactie EP-adviseur opgeslagen, nog niet verstuurd.">
