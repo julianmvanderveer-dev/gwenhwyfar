@@ -1055,7 +1055,12 @@ export default function ProjectDetail() {
                                 <div className="flex items-center gap-1.5">
                                   {f ? statusBadge(f.status) : <span className="text-muted-foreground">—</span>}
                                   {hasRole("ep_adviseur") && f?.zichtbaar_voor_adviseur && f?.status === "open" && (
-                                    <span className="inline-flex items-center rounded-full bg-accent/15 text-accent px-1.5 py-0.5 text-[10px] font-semibold">Actie</span>
+                                    <Link
+                                      to={`/finding/${f.id}/reactie`}
+                                      className="inline-flex items-center rounded-full bg-accent text-accent-foreground hover:bg-accent/90 px-2 py-0.5 text-[10px] font-semibold shadow-sm"
+                                    >
+                                      {(f as any).concept_reactie ? "Wijzigen" : "Reageren"}
+                                    </Link>
                                   )}
                                   {f && (f as any).concept_reactie && (
                                     <span className="inline-flex items-center rounded-full bg-blue-100 text-blue-800 px-1.5 py-0.5 text-[10px] font-semibold" title="Concept-reactie EP-adviseur opgeslagen, nog niet verstuurd.">
