@@ -15,6 +15,8 @@ interface Props {
   /** Wanneer true, navigeert na succesvol versturen terug naar het projectoverzicht. */
   navigateOnSent?: boolean;
   onSent?: () => void;
+  /** Bump om project + findings opnieuw te laden vanuit de parent (bijv. na opslaan reactie). */
+  refreshSignal?: number;
 }
 
 /**
@@ -26,6 +28,7 @@ export default function BatchVersturenCompact({
   projectId,
   navigateOnSent = true,
   onSent,
+  refreshSignal = 0,
 }: Props) {
   const { hasRole } = useAuth();
   const navigate = useNavigate();
@@ -50,7 +53,7 @@ export default function BatchVersturenCompact({
     return () => {
       active = false;
     };
-  }, [projectId, reloadKey]);
+  }, [projectId, reloadKey, refreshSignal]);
 
   const handleSent = () => {
     onSent?.();
