@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronRight, Trash2, ArrowRightLeft, RotateCcw, Check, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Trash2, ArrowRightLeft, RotateCcw, Check, X, FolderOpen } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -33,6 +33,7 @@ export interface ProjectRow {
   toegewezen_profiel?: { naam: string } | null;
   gearchiveerd_op?: string | null;
   auditor_naam?: string | null;
+  dropbox_link?: string | null;
   _fase?: FaseKey;
 }
 
@@ -146,6 +147,9 @@ export default function FaseTabel({
                    {isAfgerondView && (
                      <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Afgerond</th>
                    )}
+                   {isAfgerondView && (
+                     <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Dossier</th>
+                   )}
                    {showSubstatus && (
                      <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Substatus</th>
                    )}
@@ -237,6 +241,24 @@ export default function FaseTabel({
                       <td className="px-4 py-2.5 text-muted-foreground">{formatDate(p.datum_aangemaakt)}</td>
                       {isAfgerondView && (
                         <td className="px-4 py-2.5 text-muted-foreground">{p.gearchiveerd_op ? formatDate(p.gearchiveerd_op) : "—"}</td>
+                      )}
+                      {isAfgerondView && (
+                        <td className="px-4 py-2.5">
+                          {p.dropbox_link ? (
+                            <a
+                              href={p.dropbox_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex items-center gap-1 text-primary hover:underline"
+                            >
+                              <FolderOpen className="h-3.5 w-3.5" />
+                              Dropbox
+                            </a>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
                       )}
                       {showSubstatus && (
                         <td className="px-4 py-2.5">
