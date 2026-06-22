@@ -505,7 +505,10 @@ export default function ProjectDetail() {
     }
 
     supabase.functions.invoke("notify-adviseur", {
-      body: { type: "audit_afgerond", project_id: id },
+      body: {
+        type: hasNietGoed ? "audit_afgerond" : "audit_volledig_afgerond",
+        project_id: id,
+      },
     }).then(({ error }) => {
       if (error) console.error("Notificatie fout:", error);
     });

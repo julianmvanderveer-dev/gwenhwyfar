@@ -1,31 +1,51 @@
 ## Probleem
 
-`BatchVersturenCompact` laadt project + findings één keer bij mount. Wanneer `FindingReactie` een `concept_reactie` opslaat, weet de balk dat niet → teller blijft `0/1` en knop blijft disabled tot je weg/terug navigeert. Daarnaast vereist accepteren nu twee klikken.
+`notify-adviseur` met `type: "audit_afgerond"` stuurt altijd template `audit-afgerond` ("Auditrapport klaar voor uw reactie"). Dat is twee dingen tegelijk:
+
+1. **Bedoeld als reactie-uitnodiging** vanuit `ProjectDetail.finalize()` wanneer status → `wacht_op_reactie`.
+2. **Bedoeld als afrondingsmail** vanuit `useBatchVersturen` wanneer alle bevindingen dicht zijn (status → `afgerond`), én vanuit `finalize()` wanneer er geen niet-goed bevindingen waren.
+
+Resultaat: een EP-adviseur (bv. Dennis van Langen, P24007-01) krijgt "Auditrapport klaar voor uw reactie" terwijl de audit al afgerond is. Bovendien checkt `notify-adviseur` de huidige projectstatus niet vlak vóór verzenden — een vertraagde invocation kan alsnog uitgaan na afronding.
 
 ## Wijzigingen
 
-### 1. `src/components/projecten/BatchVersturenCompact.tsx`
-- Nieuwe prop `refreshSignal?: number` toevoegen aan `Props`.
-- `refreshSignal` opnemen in de dependency-array van het bestaande `useEffect` (naast `projectId` en `reloadKey`). Geen verdere logica nodig — bij elke bump worden project + findings opnieuw opgehaald, en daarmee ook `adviseurConcepten` / `adviseurKlaar` / disabled-state.
+### 1. Nieuwe template `audit-volledig-afgerond`
+`supabase/functions/_shared/transactional-email-templates/audit-volledig-afgerond.tsx` — kopie van `audit-afgerond.tsx` qua opmaak (zelfde container/heading/button styles, zelfde `SITE_NAME`/`SITE_URL`), maar:
 
-### 2. `src/pages/FindingReactie.tsx`
-- `const [refreshSignal, setRefreshSignal] = useState(0);`
-- Na een succesvolle DB-update in `accepteren`, `nietAkkoord` en `verstuurAaanvulling`: `setRefreshSignal(k => k + 1)` (naast bestaande `loadFinding()` / `loadMessages()`).
-- `<BatchVersturenCompact projectId={finding.project_id} refreshSignal={refreshSignal} />`.
+- Preview/Heading/Subject: "Audit afgerond: {projectnaam}"
+- Body: "De audit voor project **{projectnaam}** is afgerond. Er is geen reactie meer nodig. U kunt het auditrapport bekijken en downloaden via onderstaande knop."
+- Button-tekst: "Bekijk de audit"
+- Onder de knop een kleine secundaire tekst/link: "Of download direct het rapport (PDF)" → linkt naar `/project/{id}` (PDF wordt via `window.print()` in de app gegenereerd; aparte download-route bestaat niet, dus één knop volstaat — secundaire regel mag wegblijven als dat eenvoudiger is).
 
-Hiermee verdwijnt bug 1 en 2: zodra een reactie is opgeslagen, herladen project + findings binnen de balk; teller springt naar `X/Y` en de verzendknop wordt enabled — zonder page reload of terug-navigeren.
+Registreer in `supabase/functions/_shared/transactional-email-templates/registry.ts` onder key `audit-volledig-afgerond`.
 
-### 3. Eén-klik accepteren (bug 3)
-In `src/pages/FindingReactie.tsx`, in het blok `modus === "keuze"`:
-- Wanneer `(finding as any).upload_vereist` **false** is: de "Accepteren" `Button` mag niet meer `setModus("akkoord")` aanroepen, maar moet direct `accepteren()` uitvoeren (met `akkoordToelichting` leeg). Eén klik = concept opgeslagen + balk geüpdatet.
-- Extra kleine secundaire link "Toelichting toevoegen" eronder die `setModus("akkoord")` doet, zodat gebruikers die wél een toelichting willen geven dat nog kunnen (huidige flow blijft beschikbaar).
-- Bij `isAkkoord` (reactie al opgeslagen) blijft de knop tekst "Wijzig: geaccepteerd" en gedraagt zich als vandaag (opent het toelichting-scherm). Niet akkoord blijft een tweestapsflow, want daar is een verplichte tekstreactie nodig.
+### 2. `notify-adviseur` — statuscheck + nieuw type
 
-Wanneer `upload_vereist` **true** is: gedrag ongewijzigd (document moet eerst worden gekozen).
+`supabase/functions/notify-adviseur/index.ts`:
+
+- Accepteer een derde `type`: `audit_volledig_afgerond` → template `audit-volledig-afgerond`.
+- Lees `projects.status` mee in de bestaande project-query.
+- **Vlak vóór verzenden** een routing/guard toevoegen:
+  - `type === "audit_afgerond"` (de reactie-uitnodiging) én `project.status !== "wacht_op_reactie"` → niet versturen. Als status `afgerond` is, automatisch herschalen naar `audit_volledig_afgerond` zodat een queued/vertraagde invocation alsnog de juiste mail oplevert; bij andere statussen gewoon overslaan met `skipped: true` in de response en een log-regel.
+  - `type === "audit_volledig_afgerond"` én `project.status !== "afgerond"` → overslaan (defensief).
+  - `type === "niet_akkoord"` blijft ongewijzigd.
+
+Hiermee is bug 1 (verwarrende mail na afronding) ook gedekt voor reeds geplande/queued aanroepen.
+
+### 3. Call sites bijwerken
+
+`src/pages/ProjectDetail.tsx` in `finalize()`:
+- Tak `hasNietGoed === true` (status → `wacht_op_reactie`): blijft `type: "audit_afgerond"` (= "klaar voor uw reactie"). Geen verandering.
+- Tak `hasNietGoed === false` (status → `afgerond`): wijzig naar `type: "audit_volledig_afgerond"`.
+
+`src/hooks/useBatchVersturen.ts` in het blok waar alle bevindingen dicht zijn en status → `afgerond` wordt gezet: wijzig de `notify-adviseur` invocation van `type: "audit_afgerond"` naar `type: "audit_volledig_afgerond"`. `notify-auditor` blijft ongewijzigd (gebruikt eigen `audit-afgerond-auditor` template).
+
+### 4. Deploy
+
+Na het toevoegen/wijzigen van templates en edge functions: `deploy_edge_functions` voor `notify-adviseur` en `send-transactional-email`.
 
 ## Niet gewijzigd
 
-- `useBatchVersturen` logica.
-- RLS / DB schema / triggers / e-mailflows.
-- Niet-akkoord flow (vereist tekstinvoer, blijft tweestaps).
-- Geen realtime subscription — een lichte refresh-signaal prop is voldoende en goedkoper dan een Supabase channel per bevinding.
+- `audit-afgerond.tsx` template-bestand zelf (blijft de reactie-uitnodiging — naam laten we staan om bestaande idempotency-keys/log-historie consistent te houden).
+- `notify-auditor`, herinneringsmails, RLS, DB-schema, queue/cron.
+- `create-team-member` (gebruikt `audit-afgerond` voor uitnodigingsnotificatie aan Julian — los gebruik, blijft werken).

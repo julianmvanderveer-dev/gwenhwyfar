@@ -18,6 +18,7 @@ import { template as reactieHerinneringWaarschuwing } from './reactie-herinnerin
 import { template as reactieHerinneringEindwaarschuwing } from './reactie-herinnering-eindwaarschuwing.tsx'
 import { template as reactieOntvangenAuditor } from './reactie-ontvangen-auditor.tsx'
 import { template as auditAfgerondAuditor } from './audit-afgerond-auditor.tsx'
+import { template as auditVolledigAfgerond } from './audit-volledig-afgerond.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'audit-afgerond': auditAfgerond,
@@ -29,4 +30,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'reactie-herinnering-eindwaarschuwing': reactieHerinneringEindwaarschuwing,
   'reactie-ontvangen-auditor': reactieOntvangenAuditor,
   'audit-afgerond-auditor': auditAfgerondAuditor,
+  'audit-volledig-afgerond': auditVolledigAfgerond,
 }

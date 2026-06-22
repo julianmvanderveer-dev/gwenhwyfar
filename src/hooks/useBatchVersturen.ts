@@ -243,7 +243,7 @@ export function useBatchVersturen(
           // Notificeer EP-adviseur dat de audit is afgerond
           supabase.functions
             .invoke("notify-adviseur", {
-              body: { type: "audit_afgerond", project_id: project.id },
+              body: { type: "audit_volledig_afgerond", project_id: project.id },
             })
             .then(({ error }) => {
               if (error) console.error("Notificatie audit afgerond fout:", error);
