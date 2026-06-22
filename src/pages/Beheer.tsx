@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { downloadCsv } from "@/lib/csv";
 import type { Tables, Enums } from "@/integrations/supabase/types";
 import { Download, Plus, Pencil, Check, X, Trash2, Settings, Users, Eye, EyeOff, ArrowRightLeft, RotateCcw, MessageSquare, Upload, Image, Mail, Send, FileDown } from "lucide-react";
-import AfgerondeProjectenExport from "@/components/projecten/AfgerondeProjectenExport";
+import ProjectenExport from "@/components/projecten/ProjectenExport";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -984,7 +984,7 @@ export default function Beheer() {
         </TabsContent>
 
         <TabsContent value="exports" className="space-y-4">
-          <AfgerondeProjectenExport />
+          <ProjectenExport />
         </TabsContent>
 
         {/* TAB: Feedback */}
