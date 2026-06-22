@@ -32,6 +32,7 @@ export default function FindingReactie() {
   const [aanvullingTekst, setAanvullingTekst] = useState("");
   const [aanvullingBestand, setAanvullingBestand] = useState<File | null>(null);
   const aanvullingFileRef = useRef<HTMLInputElement>(null);
+  const [refreshSignal, setRefreshSignal] = useState(0);
 
   const handleSpeech = useCallback((transcript: string) => {
     setBericht((prev) => (prev ? prev + " " + transcript : transcript));
@@ -143,6 +144,7 @@ export default function FindingReactie() {
       setAkkoordToelichting("");
       setBestand(null);
       loadFinding();
+      setRefreshSignal((k) => k + 1);
     } catch (err: any) {
       toast({ title: "Fout bij opslaan", description: err.message, variant: "destructive" });
     } finally {
@@ -179,6 +181,7 @@ export default function FindingReactie() {
       setBestand(null);
       setModus("keuze");
       loadFinding();
+      setRefreshSignal((k) => k + 1);
     } catch (err: any) {
       toast({ title: "Fout bij opslaan reactie", description: err.message, variant: "destructive" });
     } finally {
@@ -235,6 +238,7 @@ export default function FindingReactie() {
       setAanvullingBestand(null);
       setAanvullenOpen(false);
       loadMessages();
+      setRefreshSignal((k) => k + 1);
     } catch (err: any) {
       toast({ title: "Fout bij versturen", description: err.message, variant: "destructive" });
     } finally {
