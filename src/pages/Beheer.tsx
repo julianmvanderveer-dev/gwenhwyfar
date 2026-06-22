@@ -983,6 +983,10 @@ export default function Beheer() {
           </div>
         </TabsContent>
 
+        <TabsContent value="exports" className="space-y-4">
+          <AfgerondeProjectenExport />
+        </TabsContent>
+
         {/* TAB: Feedback */}
         <TabsContent value="feedback" className="space-y-4">
           <div className="border rounded-lg overflow-hidden shadow-sm bg-card">
