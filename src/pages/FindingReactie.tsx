@@ -305,6 +305,8 @@ export default function FindingReactie() {
           {modus === "keuze" && (() => {
             const isAkkoord = concept?.type === "akkoord";
             const isNietAkkoord = concept?.type === "niet_akkoord";
+            const uploadVereist = !!(finding as any).upload_vereist;
+            const eenKlikAccepteren = !uploadVereist && !isAkkoord;
             return (
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground">
@@ -318,15 +320,20 @@ export default function FindingReactie() {
                 <div className="flex gap-2">
                   <Button
                     onClick={() => {
-                      setAkkoordToelichting(concept?.toelichting ?? "");
-                      setModus("akkoord");
+                      if (eenKlikAccepteren) {
+                        setAkkoordToelichting("");
+                        accepteren();
+                      } else {
+                        setAkkoordToelichting(concept?.toelichting ?? "");
+                        setModus("akkoord");
+                      }
                     }}
                     disabled={loading}
                     variant={isAkkoord ? "secondary" : "default"}
                     className="gap-1"
                   >
                     <Check className="h-4 w-4" />{" "}
-                    {(finding as any).upload_vereist
+                    {uploadVereist
                       ? (isAkkoord ? "Wijzig: document aangeleverd" : "Document aanleveren")
                       : (isAkkoord ? "Wijzig: geaccepteerd" : "Accepteren")}
                   </Button>
@@ -344,6 +351,19 @@ export default function FindingReactie() {
                     <X className="h-4 w-4" /> {isNietAkkoord ? "Wijzig: niet akkoord" : "Niet akkoord"}
                   </Button>
                 </div>
+                {eenKlikAccepteren && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAkkoordToelichting("");
+                      setModus("akkoord");
+                    }}
+                    className="text-xs text-muted-foreground hover:text-foreground underline"
+                    disabled={loading}
+                  >
+                    Toelichting toevoegen
+                  </button>
+                )}
               </div>
             );
           })()}
@@ -587,7 +607,7 @@ export default function FindingReactie() {
 
       {finding.project_id && (
         <div className="mt-4">
-          <BatchVersturenCompact projectId={finding.project_id} />
+          <BatchVersturenCompact projectId={finding.project_id} refreshSignal={refreshSignal} />
         </div>
       )}
 
