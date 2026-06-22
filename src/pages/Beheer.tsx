@@ -9,7 +9,8 @@ import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { downloadCsv } from "@/lib/csv";
 import type { Tables, Enums } from "@/integrations/supabase/types";
-import { Download, Plus, Pencil, Check, X, Trash2, Settings, Users, Eye, EyeOff, ArrowRightLeft, RotateCcw, MessageSquare, Upload, Image, Mail, Send } from "lucide-react";
+import { Download, Plus, Pencil, Check, X, Trash2, Settings, Users, Eye, EyeOff, ArrowRightLeft, RotateCcw, MessageSquare, Upload, Image, Mail, Send, FileDown } from "lucide-react";
+import AfgerondeProjectenExport from "@/components/projecten/AfgerondeProjectenExport";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -497,6 +498,10 @@ export default function Beheer() {
           <TabsTrigger value="toewijzingen" className="gap-1.5">
             <ArrowRightLeft className="h-3.5 w-3.5" />
             Toewijzingen
+          </TabsTrigger>
+          <TabsTrigger value="exports" className="gap-1.5">
+            <FileDown className="h-3.5 w-3.5" />
+            Exports
           </TabsTrigger>
           <TabsTrigger value="feedback" className="gap-1.5">
             <MessageSquare className="h-3.5 w-3.5" />
