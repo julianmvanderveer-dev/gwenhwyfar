@@ -1,33 +1,27 @@
 ## Doel
-
-In de Beheer-tab **Exports** aparte downloadknoppen per projectstatus, zodat beheerders gericht een groep projecten kunnen exporteren in plaats van één algemene lijst.
+In de Beheer-tab "Projecten" een directe Dropbox-knop tonen per rij in de Afgerond-tabel, zodat je vanuit het overzicht in één klik naar de Dropbox-omgeving van een afgerond project gaat — zonder eerst het project te openen.
 
 ## Wijzigingen
 
-### `src/components/projecten/AfgerondeProjectenExport.tsx` herzien (hernoemen naar `ProjectenExport.tsx`)
+### 1. `src/components/projecten/FaseTabel.tsx`
+- Type `Project` uitbreiden met `dropbox_link?: string | null`.
+- In de afgerond-weergave (`isAfgerondView`) een extra kolom **"Dossier"** tonen, na de kolom "Afgerond op".
+  - Als `dropbox_link` aanwezig: een kleine knop/link met mapicoon + tekst "Dropbox" die in een nieuw tabblad opent (`target="_blank"`, `rel="noopener noreferrer"`).
+  - Als leeg: `—`.
+- Headerregel uitbreiden met bijbehorende `<th>` "Dossier" (alleen wanneer `isAfgerondView`).
 
-Eén Card "Projecten exporteren" met:
+### 2. Datalaag — `dropbox_link` meeleveren aan FaseTabel
+Locaties waar de afgerond-lijst wordt opgebouwd en aan `FaseTabel` doorgegeven worden, krijgen `dropbox_link` toegevoegd in hun Supabase-select:
+- `src/pages/Inbox.tsx` (`afgerond`-groep in `hoofdgroepen`).
+- `src/pages/Beheer.tsx` (de tab/lijst die afgeronde projecten toont).
+- `src/components/projecten/BeheerStandVanZaken.tsx` voor zover deze afgerond-rijen rendert via FaseTabel.
 
-- Eén query bij mount: alle `projects` (zonder statusfilter), inclusief `adviseurs:adviseur_id(naam, email)`.
-- Optionele filters bovenaan (compact): jaar (op `datum_aangemaakt` voor lopend, op `gearchiveerd_op` voor afgerond) + van/tot datum.
-- Een lijst groepen, elk met een eigen telling en eigen "Download CSV"-knop:
+Geen andere bestaande kolommen of gedrag wijzigen; lopende fases blijven ongewijzigd (de Dropbox-link blijft daar via de projectdetailpagina bereikbaar zoals nu).
 
-  | Groep | Statussen | Datumveld voor filter |
-  |---|---|---|
-  | Nog te starten | `nog_niet_begonnen` | `datum_aangemaakt` |
-  | Deel 1 bezig | `deel1_bezig` | `datum_aangemaakt` |
-  | Deel 1 afgerond | `deel1_afgerond` | `datum_aangemaakt` |
-  | Deel 2 bezig | `deel2_bezig` | `datum_aangemaakt` |
-  | Wacht op reactie EP-adviseur | `wacht_op_reactie` | `reactie_deadline` |
-  | Afgerond | `afgerond`, `gesloten` | `gearchiveerd_op` |
+### 3. Geen backend-wijzigingen
+Het veld `projects.dropbox_link` bestaat al; geen migratie nodig.
 
-- Per groep: regel met label, telling (`X project(en)`), en knop **Download CSV** (disabled bij 0). Filename: `projecten-{groep-slug}-{jaar|selectie}.csv`.
-- CSV-kolommen ongewijzigd t.o.v. huidige component (Projectnaam, Status (label), Categorie, Soort, Prioriteit Ja/Nee, Toelatingsaudit Ja/Nee, EP-adviseur, E-mail adviseur, Datum aangemaakt, Afgerond op). Voor groep "Wacht op reactie" extra kolom **Reactie-deadline**.
-
-### `src/pages/Beheer.tsx`
-- Import vervangen: `AfgerondeProjectenExport` → `ProjectenExport`.
-- `TabsContent value="exports"` rendert `<ProjectenExport />` (label tab blijft "Exports").
-
-## Niet gewijzigd
-
-- DB, RLS, edge functions, andere Beheer-tabs, `ExportFilter` op de Projecten-pagina.
+## Out of scope
+- 14-dagen-archiveringsfilter in Inbox (blijft ongewijzigd).
+- Dropbox-kolom in andere fases dan "Afgerond".
+- Wijzigingen aan ProjectDetail (Dropbox-link staat daar al en blijft zichtbaar voor alle statussen).
