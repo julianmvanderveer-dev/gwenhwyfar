@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronRight, Trash2, ArrowRightLeft, RotateCcw, Check, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Trash2, ArrowRightLeft, RotateCcw, Check, X, FolderOpen } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -33,6 +33,7 @@ export interface ProjectRow {
   toegewezen_profiel?: { naam: string } | null;
   gearchiveerd_op?: string | null;
   auditor_naam?: string | null;
+  dropbox_link?: string | null;
   _fase?: FaseKey;
 }
 
@@ -145,6 +146,9 @@ export default function FaseTabel({
                    <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Aangemaakt</th>
                    {isAfgerondView && (
                      <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Afgerond</th>
+                   )}
+                   {isAfgerondView && (
+                     <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Dossier</th>
                    )}
                    {showSubstatus && (
                      <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Substatus</th>
