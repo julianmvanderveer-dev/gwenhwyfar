@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
 
     const { data: project, error: projErr } = await admin
       .from("projects")
-      .select("projectnaam, adviseur_id")
+      .select("projectnaam, adviseur_id, status")
       .eq("id", project_id)
       .single();
 
@@ -119,10 +119,38 @@ Deno.serve(async (req) => {
     }
 
     // --- Determine template and send audit notification ---
+    // Statuscheck vlak vóór verzenden: voorkomt dat een vertraagde/queued
+    // "reactie klaar" mail uitgaat nadat de audit al is afgerond.
+    let effectiveType = type as string;
+    const projectStatus = (project as any).status as string | null;
+
+    if (effectiveType === "audit_afgerond") {
+      if (projectStatus === "afgerond") {
+        // Audit is intussen volledig afgerond → stuur de afrondingsmail.
+        effectiveType = "audit_volledig_afgerond";
+      } else if (projectStatus !== "wacht_op_reactie") {
+        console.log("Skip audit_afgerond: project status =", projectStatus);
+        return new Response(JSON.stringify({ success: true, skipped: true, reason: "status_not_wacht_op_reactie" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } else if (effectiveType === "audit_volledig_afgerond") {
+      if (projectStatus !== "afgerond") {
+        console.log("Skip audit_volledig_afgerond: project status =", projectStatus);
+        return new Response(JSON.stringify({ success: true, skipped: true, reason: "status_not_afgerond" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     let templateName: string;
-    if (type === "audit_afgerond") {
+    if (effectiveType === "audit_afgerond") {
       templateName = "audit-afgerond";
-    } else if (type === "niet_akkoord") {
+    } else if (effectiveType === "audit_volledig_afgerond") {
+      templateName = "audit-volledig-afgerond";
+    } else if (effectiveType === "niet_akkoord") {
       templateName = "niet-akkoord";
     } else {
       return new Response(JSON.stringify({ error: "Ongeldig type" }), {
