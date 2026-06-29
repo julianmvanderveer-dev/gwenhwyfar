@@ -628,9 +628,10 @@ export default function ProjectDetail() {
   });
   const allTabs = [...onderdelen, "__ep2__"];
 
-  const canDeel2 = hasRole("auditor") && (project.status === "deel1_afgerond" || project.status === "deel2_bezig");
-  // Tekenaar/auditor mogen deel 1 blijven corrigeren totdat de auditor met deel 2 begint.
-  const canDeel1 = (hasRole("tekenaar") || hasRole("auditor")) &&
+  // Functiescheiding: ben je EP-adviseur van dit project, dan kun je geen
+  // tekenaar-/auditor-bewerkingen uitvoeren op dit project.
+  const canDeel2 = hasRole("auditor") && !isAdviseurVanProject && (project.status === "deel1_afgerond" || project.status === "deel2_bezig");
+  const canDeel1 = (hasRole("tekenaar") || hasRole("auditor")) && !isAdviseurVanProject &&
     (project.status === "nog_niet_begonnen" || project.status === "deel1_bezig" || project.status === "deel1_afgerond");
 
   const canEditFindingByDeel = (deel: number) => {
