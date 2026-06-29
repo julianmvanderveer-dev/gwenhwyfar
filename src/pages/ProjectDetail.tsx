@@ -17,6 +17,7 @@ import AandachtspuntenAdviseur from "@/components/projecten/AandachtspuntenAdvis
 import BeheerStandVanZaken from "@/components/projecten/BeheerStandVanZaken";
 import BatchVersturen from "@/components/projecten/BatchVersturen";
 import { useAppSettings } from "@/hooks/useAppSettings";
+import { useProjectRole } from "@/hooks/useProjectRole";
 
 type Project = Tables<"projects">;
 type Finding = Tables<"findings">;
@@ -42,6 +43,7 @@ export default function ProjectDetail() {
   const { user, hasRole } = useAuth();
   const { settings: appSettings } = useAppSettings();
   const [project, setProject] = useState<Project | null>(null);
+  const { isAdviseurVanProject } = useProjectRole(id);
   const [findings, setFindings] = useState<Finding[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [ep2Start, setEp2Start] = useState<string>("");
