@@ -75,6 +75,7 @@ export default function FindingBeoordeling() {
   // een akkoord-concept zodat het in de batch meegenomen wordt door de auditor.
   useEffect(() => {
     if (!finding || !adviseurContext) return;
+    if (isAdviseurVanProject) return;
     if (finding.status !== "reactie_ontvangen") return;
     if (!adviseurHeeftGeaccepteerd()) return;
     if (vereistAuditorActie()) return;
