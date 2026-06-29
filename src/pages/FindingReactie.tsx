@@ -284,7 +284,7 @@ export default function FindingReactie() {
         </div>
       )}
 
-      {finding.status !== "gesloten" && finding.status !== "reactie_ontvangen" && finding.status !== "reactie_goedgekeurd" && (
+      {finding.status !== "gesloten" && finding.status !== "reactie_ontvangen" && finding.status !== "reactie_goedgekeurd" && isAdviseurVanProject && (
         <div>
           {hasConcept && (
             <div className="bg-blue-50 border border-blue-200 text-blue-900 rounded p-3 mb-3 text-sm">
