@@ -245,7 +245,7 @@ export default function FindingBeoordeling() {
 
   const adviseurAkkoord = adviseurHeeftGeaccepteerd();
   const auditorActieNodig = vereistAuditorActie();
-  const showBeoordeling = finding.status === "reactie_ontvangen";
+  const showBeoordeling = finding.status === "reactie_ontvangen" && !isAdviseurVanProject;
   const isAfgesloten = finding.status === "reactie_goedgekeurd";
 
   return (
