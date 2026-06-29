@@ -87,7 +87,7 @@ export function useBatchVersturen(
           .eq("id", project.id);
       }
 
-      if (project.toegewezen_aan) {
+      if (project.toegewezen_aan && project.toegewezen_aan !== user.id) {
         await supabase.from("notificaties").insert({
           user_id: project.toegewezen_aan,
           bericht: `EP-adviseur heeft alle reacties verstuurd voor project ${project.projectnaam}`,
