@@ -708,6 +708,14 @@ export default function ProjectDetail() {
                 </span>
               </>
             )}
+            {isAdviseurVanProject && (
+              <>
+                {" · "}
+                <span className="inline-flex items-center rounded-full bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.5 text-[10px] font-semibold align-middle" title="Functiescheiding: je kunt op dit project geen auditor-acties uitvoeren">
+                  Jouw rol: EP-adviseur
+                </span>
+              </>
+            )}
           </p>
           {/* Dropbox-link dossier */}
           <div className="mt-1 flex items-center gap-2 text-xs">
