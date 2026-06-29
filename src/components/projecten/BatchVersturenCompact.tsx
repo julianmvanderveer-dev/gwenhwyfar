@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Send, Loader2 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { useBatchVersturen } from "@/hooks/useBatchVersturen";
+import { useProjectRole } from "@/hooks/useProjectRole";
 
 type Finding = Tables<"findings">;
 type Project = Tables<"projects">;
@@ -30,14 +30,14 @@ export default function BatchVersturenCompact({
   onSent,
   refreshSignal = 0,
 }: Props) {
-  const { hasRole } = useAuth();
   const navigate = useNavigate();
   const [project, setProject] = useState<Project | null>(null);
   const [findings, setFindings] = useState<Finding[]>([]);
   const [reloadKey, setReloadKey] = useState(0);
 
-  const isEpAdviseur = hasRole("ep_adviseur");
-  const isAuditor = hasRole("auditor") || hasRole("beheer");
+  const { magAdviseurActiesDoen, magAuditorActiesDoen } = useProjectRole(projectId);
+  const isEpAdviseur = magAdviseurActiesDoen;
+  const isAuditor = magAuditorActiesDoen;
 
   useEffect(() => {
     let active = true;

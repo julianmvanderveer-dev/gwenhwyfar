@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import type { Tables } from "@/integrations/supabase/types";
 import BatchVersturenCompact from "@/components/projecten/BatchVersturenCompact";
+import { useProjectRole } from "@/hooks/useProjectRole";
 
 type Finding = Tables<"findings">;
 type Message = Tables<"messages">;
@@ -40,14 +41,15 @@ export default function FindingBeoordeling() {
   const [autoClosed, setAutoClosed] = useState(false);
   const [modus, setModus] = useState<"keuze" | "niet_akkoord">("keuze");
   const [andereActiesOpen, setAndereActiesOpen] = useState(false);
+  const { isAdviseurVanProject } = useProjectRole(finding?.project_id);
 
   const handleSpeech = useCallback((transcript: string) => {
     setOpmerking((prev) => (prev ? prev + " " + transcript : transcript));
   }, []);
   const { listening, toggle, supported, analyserNode, interimText } = useSpeechRecognition(handleSpeech);
 
-  const isAuditor = hasRole("auditor");
-  const isBeheer = hasRole("beheer");
+  const isAuditor = hasRole("auditor") && !isAdviseurVanProject;
+  const isBeheer = hasRole("beheer") && !isAdviseurVanProject;
 
   useEffect(() => {
     if (!id) return;
@@ -73,6 +75,7 @@ export default function FindingBeoordeling() {
   // een akkoord-concept zodat het in de batch meegenomen wordt door de auditor.
   useEffect(() => {
     if (!finding || !adviseurContext) return;
+    if (isAdviseurVanProject) return;
     if (finding.status !== "reactie_ontvangen") return;
     if (!adviseurHeeftGeaccepteerd()) return;
     if (vereistAuditorActie()) return;
@@ -243,12 +246,18 @@ export default function FindingBeoordeling() {
 
   const adviseurAkkoord = adviseurHeeftGeaccepteerd();
   const auditorActieNodig = vereistAuditorActie();
-  const showBeoordeling = finding.status === "reactie_ontvangen";
+  const showBeoordeling = finding.status === "reactie_ontvangen" && !isAdviseurVanProject;
   const isAfgesloten = finding.status === "reactie_goedgekeurd";
 
   return (
     <div className="max-w-3xl mx-auto p-4 space-y-4">
       <h1 className="text-xl font-bold">Bevinding beoordelen</h1>
+
+      {isAdviseurVanProject && (
+        <div className="border border-amber-300 bg-amber-50 text-amber-900 rounded-lg p-3 text-sm">
+          <strong>Functiescheiding:</strong> Je bent EP-adviseur van dit project en kunt je eigen reactie niet beoordelen. Een andere auditor moet dit oppakken.
+        </div>
+      )}
 
       <section className="border rounded-lg bg-card p-4 text-sm space-y-3 shadow-sm">
         <div>

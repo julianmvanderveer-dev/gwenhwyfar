@@ -1,8 +1,8 @@
-import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Send, Loader2 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { useBatchVersturen } from "@/hooks/useBatchVersturen";
+import { useProjectRole } from "@/hooks/useProjectRole";
 
 type Finding = Tables<"findings">;
 type Project = Tables<"projects">;
@@ -14,9 +14,9 @@ interface Props {
 }
 
 export default function BatchVersturen({ project, findings, onSent }: Props) {
-  const { hasRole } = useAuth();
-  const isEpAdviseur = hasRole("ep_adviseur");
-  const isAuditor = hasRole("auditor") || hasRole("beheer");
+  const { magAdviseurActiesDoen, magAuditorActiesDoen } = useProjectRole(project?.id);
+  const isEpAdviseur = magAdviseurActiesDoen;
+  const isAuditor = magAuditorActiesDoen;
 
   const {
     busy,

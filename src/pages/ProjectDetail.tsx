@@ -17,6 +17,7 @@ import AandachtspuntenAdviseur from "@/components/projecten/AandachtspuntenAdvis
 import BeheerStandVanZaken from "@/components/projecten/BeheerStandVanZaken";
 import BatchVersturen from "@/components/projecten/BatchVersturen";
 import { useAppSettings } from "@/hooks/useAppSettings";
+import { useProjectRole } from "@/hooks/useProjectRole";
 
 type Project = Tables<"projects">;
 type Finding = Tables<"findings">;
@@ -42,6 +43,7 @@ export default function ProjectDetail() {
   const { user, hasRole } = useAuth();
   const { settings: appSettings } = useAppSettings();
   const [project, setProject] = useState<Project | null>(null);
+  const { isAdviseurVanProject } = useProjectRole(id);
   const [findings, setFindings] = useState<Finding[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [ep2Start, setEp2Start] = useState<string>("");
@@ -444,7 +446,7 @@ export default function ProjectDetail() {
   };
 
   const auditAfronden = async () => {
-    if (!hasRole("auditor")) {
+    if (!hasRole("auditor") || isAdviseurVanProject) {
       toast({ title: "Geen toegang", description: "Alleen een auditor kan de audit afronden.", variant: "destructive" });
       return;
     }
@@ -626,9 +628,10 @@ export default function ProjectDetail() {
   });
   const allTabs = [...onderdelen, "__ep2__"];
 
-  const canDeel2 = hasRole("auditor") && (project.status === "deel1_afgerond" || project.status === "deel2_bezig");
-  // Tekenaar/auditor mogen deel 1 blijven corrigeren totdat de auditor met deel 2 begint.
-  const canDeel1 = (hasRole("tekenaar") || hasRole("auditor")) &&
+  // Functiescheiding: ben je EP-adviseur van dit project, dan kun je geen
+  // tekenaar-/auditor-bewerkingen uitvoeren op dit project.
+  const canDeel2 = hasRole("auditor") && !isAdviseurVanProject && (project.status === "deel1_afgerond" || project.status === "deel2_bezig");
+  const canDeel1 = (hasRole("tekenaar") || hasRole("auditor")) && !isAdviseurVanProject &&
     (project.status === "nog_niet_begonnen" || project.status === "deel1_bezig" || project.status === "deel1_afgerond");
 
   const canEditFindingByDeel = (deel: number) => {
@@ -702,6 +705,14 @@ export default function ProjectDetail() {
                 {" · "}
                 <span className="inline-flex items-center rounded-full bg-accent/15 text-accent px-1.5 py-0.5 text-[10px] font-semibold align-middle">
                   Omgevingsvergunning
+                </span>
+              </>
+            )}
+            {isAdviseurVanProject && (
+              <>
+                {" · "}
+                <span className="inline-flex items-center rounded-full bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.5 text-[10px] font-semibold align-middle" title="Functiescheiding: je kunt op dit project geen auditor-acties uitvoeren">
+                  Jouw rol: EP-adviseur
                 </span>
               </>
             )}
