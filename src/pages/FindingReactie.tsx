@@ -10,6 +10,7 @@ import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 
 import type { Tables } from "@/integrations/supabase/types";
 import BatchVersturenCompact from "@/components/projecten/BatchVersturenCompact";
+import { useProjectRole } from "@/hooks/useProjectRole";
 
 type Finding = Tables<"findings">;
 type Message = Tables<"messages">;
@@ -33,6 +34,7 @@ export default function FindingReactie() {
   const [aanvullingBestand, setAanvullingBestand] = useState<File | null>(null);
   const aanvullingFileRef = useRef<HTMLInputElement>(null);
   const [refreshSignal, setRefreshSignal] = useState(0);
+  const { isAdviseurVanProject } = useProjectRole(finding?.project_id);
 
   const handleSpeech = useCallback((transcript: string) => {
     setBericht((prev) => (prev ? prev + " " + transcript : transcript));
