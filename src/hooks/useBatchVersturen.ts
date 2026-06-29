@@ -77,7 +77,17 @@ export function useBatchVersturen(
         .in("id", ids);
       if (updErr) throw updErr;
 
-      if (project.toegewezen_aan) {
+      // Functiescheiding: als de huidige user (EP-adviseur) ook de toegewezen auditor is,
+      // dan kan hij zijn eigen reactie niet beoordelen. Zet het project terug in de pool
+      // zodat een andere auditor het kan oppakken.
+      if (project.toegewezen_aan && project.toegewezen_aan === user.id) {
+        await supabase
+          .from("projects")
+          .update({ toegewezen_aan: null, toegewezen_op: null, toewijzing: "pool" as any })
+          .eq("id", project.id);
+      }
+
+      if (project.toegewezen_aan && project.toegewezen_aan !== user.id) {
         await supabase.from("notificaties").insert({
           user_id: project.toegewezen_aan,
           bericht: `EP-adviseur heeft alle reacties verstuurd voor project ${project.projectnaam}`,

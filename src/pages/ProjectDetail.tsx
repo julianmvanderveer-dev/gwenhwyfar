@@ -134,9 +134,14 @@ export default function ProjectDetail() {
     if ((hasRole("tekenaar") || hasRole("auditor")) && currentStatus === "nog_niet_begonnen") {
       const { data: proj } = await supabase.from("projects").select("toewijzing, toegewezen_aan").eq("id", id!).single();
       if (proj?.toewijzing === "pool" && !proj.toegewezen_aan) {
+        if (isAdviseurVanProject) {
+          toast({ title: "Je kunt dit project niet oppakken", description: "Je bent zelf EP-adviseur van dit project. Een andere auditor moet het oppakken.", variant: "destructive" });
+          navigate("/inbox");
+          return;
+        }
         const { data: claimed } = await supabase.rpc("claim_project", { _project_id: id!, _user_id: user!.id });
         if (!claimed) {
-          toast({ title: "Project niet beschikbaar", description: "Dit project is al door iemand anders opgepakt.", variant: "destructive" });
+          toast({ title: "Project niet beschikbaar", description: "Dit project is al door iemand anders opgepakt of je bent zelf EP-adviseur van dit project.", variant: "destructive" });
           navigate("/inbox");
           return;
         }
@@ -146,9 +151,14 @@ export default function ProjectDetail() {
     } else if (hasRole("auditor") && currentStatus === "deel1_afgerond") {
       const { data: proj } = await supabase.from("projects").select("toewijzing, toegewezen_aan").eq("id", id!).single();
       if (proj?.toewijzing === "pool" && !proj.toegewezen_aan) {
+        if (isAdviseurVanProject) {
+          toast({ title: "Je kunt dit project niet oppakken", description: "Je bent zelf EP-adviseur van dit project. Een andere auditor moet het oppakken.", variant: "destructive" });
+          navigate("/inbox");
+          return;
+        }
         const { data: claimed } = await supabase.rpc("claim_project", { _project_id: id!, _user_id: user!.id });
         if (!claimed) {
-          toast({ title: "Project niet beschikbaar", description: "Dit project is al door iemand anders opgepakt.", variant: "destructive" });
+          toast({ title: "Project niet beschikbaar", description: "Dit project is al door iemand anders opgepakt of je bent zelf EP-adviseur van dit project.", variant: "destructive" });
           navigate("/inbox");
           return;
         }
