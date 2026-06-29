@@ -446,7 +446,7 @@ export default function ProjectDetail() {
   };
 
   const auditAfronden = async () => {
-    if (!hasRole("auditor")) {
+    if (!hasRole("auditor") || isAdviseurVanProject) {
       toast({ title: "Geen toegang", description: "Alleen een auditor kan de audit afronden.", variant: "destructive" });
       return;
     }
