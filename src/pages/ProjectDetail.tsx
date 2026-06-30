@@ -166,6 +166,23 @@ export default function ProjectDetail() {
       await supabase.from("projects").update({ status: "deel2_bezig" as any }).eq("id", id!);
       loadProject();
     }
+    else if (hasRole("auditor") && (currentStatus === "wacht_op_reactie" || currentStatus === "deel2_bezig")) {
+      const { data: proj } = await supabase.from("projects").select("toewijzing, toegewezen_aan").eq("id", id!).single();
+      if (proj?.toewijzing === "pool" && !proj.toegewezen_aan) {
+        if (isAdviseurVanProject) {
+          toast({ title: "Je kunt dit project niet oppakken", description: "Je bent zelf EP-adviseur van dit project. Een andere auditor moet het oppakken.", variant: "destructive" });
+          navigate("/inbox");
+          return;
+        }
+        const { data: claimed } = await supabase.rpc("claim_project", { _project_id: id!, _user_id: user!.id });
+        if (!claimed) {
+          toast({ title: "Project niet beschikbaar", description: "Dit project is al door iemand anders opgepakt of je bent zelf EP-adviseur van dit project.", variant: "destructive" });
+          navigate("/inbox");
+          return;
+        }
+        loadProject();
+      }
+    }
   };
 
   const loadTemplates = async (categorie: string) => {
