@@ -67,6 +67,10 @@ export default function ProjectDetail() {
   const [editingDropbox, setEditingDropbox] = useState(false);
   const [dropboxDraft, setDropboxDraft] = useState("");
 
+  // Beheer: handmatige statuswijziging
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+  const [statusBezig, setStatusBezig] = useState(false);
+
   // Uitdraai state
   const [uitdraai, setUitdraai] = useState<Uitdraai | null>(null);
   const [uitdraaiUploading, setUitdraaiUploading] = useState(false);
