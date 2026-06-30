@@ -10,6 +10,17 @@ import { addDays } from "date-fns";
 import FindingToelichting from "@/components/FindingToelichting";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { statusBadge, beoordelingBadge } from "@/lib/badges";
 import { ArrowLeft, CheckCircle2, ClipboardCheck, ChevronLeft, ChevronRight, Download, Upload, Loader2, FileText, FolderOpen, Pencil, Check, X } from "lucide-react";
 import { generateAuditReport } from "@/lib/generateAuditReport";
@@ -55,6 +66,10 @@ export default function ProjectDetail() {
   // Dropbox link inline edit
   const [editingDropbox, setEditingDropbox] = useState(false);
   const [dropboxDraft, setDropboxDraft] = useState("");
+
+  // Beheer: handmatige statuswijziging
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+  const [statusBezig, setStatusBezig] = useState(false);
 
   // Uitdraai state
   const [uitdraai, setUitdraai] = useState<Uitdraai | null>(null);
@@ -709,6 +724,43 @@ export default function ProjectDetail() {
     gesloten: "Gesloten",
   };
 
+  const beheerStatusOpties = [
+    "nog_niet_begonnen",
+    "deel1_bezig",
+    "deel1_afgerond",
+    "deel2_bezig",
+    "wacht_op_reactie",
+    "afgerond",
+    "gesloten",
+  ] as const;
+
+  const wijzigStatus = async (nieuw: string) => {
+    if (!project) return;
+    setStatusBezig(true);
+    const oud = project.status;
+    const patch: Record<string, any> = { status: nieuw };
+    if ((oud === "afgerond" || oud === "gesloten") && nieuw !== "afgerond" && nieuw !== "gesloten") {
+      patch.gearchiveerd_op = null;
+    }
+    const { error } = await supabase.from("projects").update(patch as any).eq("id", project.id);
+    if (error) {
+      toast({ title: "Statuswijziging mislukt", description: error.message, variant: "destructive" });
+      setStatusBezig(false);
+      setPendingStatus(null);
+      return;
+    }
+    if (project.toegewezen_aan && project.toegewezen_aan !== user?.id) {
+      await supabase.from("notificaties").insert({
+        user_id: project.toegewezen_aan,
+        bericht: `Status van project "${project.projectnaam}" is door beheer gewijzigd van "${statusLabel[oud] ?? oud}" naar "${statusLabel[nieuw] ?? nieuw}".`,
+      });
+    }
+    toast({ title: "Status gewijzigd", description: `${statusLabel[oud] ?? oud} → ${statusLabel[nieuw] ?? nieuw}` });
+    setStatusBezig(false);
+    setPendingStatus(null);
+    loadProject();
+  };
+
   const hasUitdraaiData = uitdraai?.status === "klaar" && uitdraai.extracted_data && Object.keys(uitdraai.extracted_data).length > 0;
 
   return (
@@ -869,8 +921,53 @@ export default function ProjectDetail() {
               </Button>
             )}
           {statusBadge(project.status)}
+          {hasRole("beheer") && (
+            <Select
+              value={project.status}
+              onValueChange={(v) => {
+                if (v !== project.status) setPendingStatus(v);
+              }}
+            >
+              <SelectTrigger className="h-8 w-[210px] text-xs" title="Statuswijziging — gebruik met beleid">
+                <SelectValue placeholder="Wijzig status" />
+              </SelectTrigger>
+              <SelectContent>
+                {beheerStatusOpties.map((s) => (
+                  <SelectItem key={s} value={s} className="text-xs">
+                    {statusLabel[s] ?? s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </div>
+
+      <AlertDialog open={!!pendingStatus} onOpenChange={(o) => { if (!o && !statusBezig) setPendingStatus(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Projectstatus wijzigen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Je wijzigt de fase van <strong>{statusLabel[project.status] ?? project.status}</strong> naar{" "}
+              <strong>{pendingStatus ? (statusLabel[pendingStatus] ?? pendingStatus) : ""}</strong>.
+              <br />
+              Dit verandert alleen de fase — niet de toewijzing of bevindingen. Gebruik met beleid.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={statusBezig}>Annuleren</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={statusBezig}
+              onClick={(e) => {
+                e.preventDefault();
+                if (pendingStatus) wijzigStatus(pendingStatus);
+              }}
+            >
+              {statusBezig ? "Bezig…" : "Wijzigen"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Aandachtspunten adviseur */}
       {project.adviseur_id && (hasRole("beheer") || hasRole("tekenaar") || hasRole("auditor")) && (
