@@ -69,6 +69,8 @@ export default function ProjectDetail() {
 
   // Beheer: handmatige statuswijziging
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+  const [verwijderOpen, setVerwijderOpen] = useState(false);
+  const [verwijderBezig, setVerwijderBezig] = useState(false);
   const [statusBezig, setStatusBezig] = useState(false);
 
   // Uitdraai state
