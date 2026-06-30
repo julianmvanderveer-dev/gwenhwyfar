@@ -724,6 +724,43 @@ export default function ProjectDetail() {
     gesloten: "Gesloten",
   };
 
+  const beheerStatusOpties = [
+    "nog_niet_begonnen",
+    "deel1_bezig",
+    "deel1_afgerond",
+    "deel2_bezig",
+    "wacht_op_reactie",
+    "afgerond",
+    "gesloten",
+  ] as const;
+
+  const wijzigStatus = async (nieuw: string) => {
+    if (!project) return;
+    setStatusBezig(true);
+    const oud = project.status;
+    const patch: Record<string, any> = { status: nieuw };
+    if ((oud === "afgerond" || oud === "gesloten") && nieuw !== "afgerond" && nieuw !== "gesloten") {
+      patch.gearchiveerd_op = null;
+    }
+    const { error } = await supabase.from("projects").update(patch as any).eq("id", project.id);
+    if (error) {
+      toast({ title: "Statuswijziging mislukt", description: error.message, variant: "destructive" });
+      setStatusBezig(false);
+      setPendingStatus(null);
+      return;
+    }
+    if (project.toegewezen_aan && project.toegewezen_aan !== user?.id) {
+      await supabase.from("notificaties").insert({
+        user_id: project.toegewezen_aan,
+        bericht: `Status van project "${project.projectnaam}" is door beheer gewijzigd van "${statusLabel[oud] ?? oud}" naar "${statusLabel[nieuw] ?? nieuw}".`,
+      });
+    }
+    toast({ title: "Status gewijzigd", description: `${statusLabel[oud] ?? oud} → ${statusLabel[nieuw] ?? nieuw}` });
+    setStatusBezig(false);
+    setPendingStatus(null);
+    loadProject();
+  };
+
   const hasUitdraaiData = uitdraai?.status === "klaar" && uitdraai.extracted_data && Object.keys(uitdraai.extracted_data).length > 0;
 
   return (
