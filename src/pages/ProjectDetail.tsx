@@ -10,6 +10,17 @@ import { addDays } from "date-fns";
 import FindingToelichting from "@/components/FindingToelichting";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { statusBadge, beoordelingBadge } from "@/lib/badges";
 import { ArrowLeft, CheckCircle2, ClipboardCheck, ChevronLeft, ChevronRight, Download, Upload, Loader2, FileText, FolderOpen, Pencil, Check, X } from "lucide-react";
 import { generateAuditReport } from "@/lib/generateAuditReport";
