@@ -921,8 +921,53 @@ export default function ProjectDetail() {
               </Button>
             )}
           {statusBadge(project.status)}
+          {hasRole("beheer") && (
+            <Select
+              value={project.status}
+              onValueChange={(v) => {
+                if (v !== project.status) setPendingStatus(v);
+              }}
+            >
+              <SelectTrigger className="h-8 w-[210px] text-xs" title="Statuswijziging — gebruik met beleid">
+                <SelectValue placeholder="Wijzig status" />
+              </SelectTrigger>
+              <SelectContent>
+                {beheerStatusOpties.map((s) => (
+                  <SelectItem key={s} value={s} className="text-xs">
+                    {statusLabel[s] ?? s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </div>
+
+      <AlertDialog open={!!pendingStatus} onOpenChange={(o) => { if (!o && !statusBezig) setPendingStatus(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Projectstatus wijzigen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Je wijzigt de fase van <strong>{statusLabel[project.status] ?? project.status}</strong> naar{" "}
+              <strong>{pendingStatus ? (statusLabel[pendingStatus] ?? pendingStatus) : ""}</strong>.
+              <br />
+              Dit verandert alleen de fase — niet de toewijzing of bevindingen. Gebruik met beleid.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={statusBezig}>Annuleren</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={statusBezig}
+              onClick={(e) => {
+                e.preventDefault();
+                if (pendingStatus) wijzigStatus(pendingStatus);
+              }}
+            >
+              {statusBezig ? "Bezig…" : "Wijzigen"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Aandachtspunten adviseur */}
       {project.adviseur_id && (hasRole("beheer") || hasRole("tekenaar") || hasRole("auditor")) && (
