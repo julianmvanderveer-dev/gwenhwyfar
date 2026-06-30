@@ -1,31 +1,31 @@
 ## Doel
-Beheer kan handmatig de status van een project wijzigen, zodat foute fases (bv. te vroeg op `wacht_op_reactie` of `afgerond`) kunnen worden teruggezet en het project opnieuw door de auditor bewerkt kan worden.
+Beheer kan een project **volledig verwijderen** (inclusief bevindingen, reacties, uitdraai en externe rapportages), zowel vanuit het projectenoverzicht in de Inbox als vanuit de projectdetailpagina.
 
-## Plan
+## Huidige situatie
+- Foreign keys op `findings`, `externe_rapportages` en `project_uitdraai` staan al op `ON DELETE CASCADE` — een `DELETE FROM projects` ruimt de bijbehorende data dus automatisch op.
+- In de Inbox-tabel (`FaseTabel`) staat al een prullenbak-icoon per rij met bevestigingsdialoog. Die is functioneel, maar visueel klein en niet duidelijk "beheer-only".
+- Op de projectdetailpagina (`ProjectDetail.tsx`) ontbreekt een verwijder-knop volledig.
 
-### 1. UI: Statuswijziging in `src/pages/ProjectDetail.tsx` (header)
-- Alleen zichtbaar voor gebruikers met rol `beheer`.
-- Compact `Select`-element in de header (naast de huidige statusbadge) met alle bekende statussen:
-  `nog_niet_begonnen`, `deel1_bezig`, `deel1_afgerond`, `deel2_bezig`, `wacht_op_reactie`, `afgerond`, `gesloten`.
-- Bij wijziging:
-  - Bevestigingsdialoog (AlertDialog) met huidige → nieuwe status.
-  - `UPDATE projects SET status = <nieuw> WHERE id = ...`.
-  - Bij wijziging vanaf `afgerond`/`gesloten` terug naar een actieve fase: `gearchiveerd_op = NULL` zetten.
-  - Toast + `loadProject()`.
-- Geen automatische wijziging aan toewijzing/findings — beheer doet bewust een correctie. Wel een hint-tekst onder de select: "Wijzig met beleid — dit verandert alleen de fase, niet de toewijzing of bevindingen."
+## Wijzigingen
 
-### 2. Audit-spoor
-- Eenvoudige in-app notificatie naar de huidige `toegewezen_aan` (indien aanwezig) en naar de beheerder zelf: "Status van project X gewijzigd van A naar B door beheer."
-- Geen aparte audit-tabel — buiten scope.
+### 1. Projectdetailpagina (`src/pages/ProjectDetail.tsx`)
+- Voeg in de header, alleen zichtbaar als `hasRole("beheer")`, een rode "Project verwijderen"-knop toe (naast de bestaande status-select).
+- Klik opent een `AlertDialog` met duidelijke waarschuwing:
+  > "Weet je zeker dat je '{projectnaam}' volledig wilt verwijderen? Alle bevindingen, reacties, uitdraai en rapportages worden definitief verwijderd. Deze actie kan niet ongedaan gemaakt worden."
+- Bij bevestigen: `await supabase.from("projects").delete().eq("id", project.id)` → toast → `navigate("/inbox")`.
+- Bij eventuele FK-error: foutmelding tonen in toast.
 
-### 3. Buiten scope
-- Geen wijzigingen aan RLS (beheer heeft al schrijfrechten op `projects`).
-- Geen wijziging aan findings-statussen.
-- Geen wijziging aan `claim_project` of auto-claim-logica.
+### 2. Inbox-overzicht (`src/components/projecten/FaseTabel.tsx`)
+- De huidige rij-prullenbak blijft bestaan, maar wordt iets duidelijker:
+  - Tooltip "Project volledig verwijderen (alle bevindingen, reacties en uitdraai)".
+  - Tekst in de `AlertDialogDescription` aanscherpen zodat duidelijk is dát álles meegaat (nu staat er alleen "findings worden ook verwijderd").
+- Geen wijziging aan de logica zelf; `deleteProject` in `Inbox.tsx` blijft `delete from projects` (cascade doet de rest).
 
-## Technisch
-- Bestand: `src/pages/ProjectDetail.tsx`
-  - Imports uitbreiden: `AlertDialog*` (al gebruikt elders), `Select*` (al geïmporteerd).
-  - Nieuwe state: `nieuweStatus`, `bevestigOpen`.
-  - Handler `wijzigStatus(nieuw)` met update + optioneel `gearchiveerd_op` reset + notificatie-insert.
-  - Render-blok achter `hasRole("beheer")` in de header.
+### 3. Geen database-/RLS-wijzigingen nodig
+- Cascade staat al goed.
+- RLS-policy voor `projects DELETE` voor beheer bestaat al (anders zou de huidige Inbox-knop nu ook niet werken).
+
+## Buiten scope
+- Soft-delete / archief-herstel.
+- Verwijderen van losse bevindingen of reacties.
+- Audit-log van verwijderingen (zou later los kunnen).

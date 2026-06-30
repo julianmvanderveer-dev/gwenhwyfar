@@ -352,15 +352,15 @@ export default function FaseTabel({
                         <td className="px-2 py-2.5">
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" title="Project volledig verwijderen (alle bevindingen, reacties en uitdraai)">
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Project verwijderen?</AlertDialogTitle>
+                                <AlertDialogTitle>Project volledig verwijderen?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Weet je zeker dat je "{p.projectnaam}" wilt verwijderen? Alle bijbehorende findings worden ook verwijderd.
+                                  Weet je zeker dat je "{p.projectnaam}" volledig wilt verwijderen? Alle bevindingen, reacties, uitdraai en rapportages worden definitief verwijderd. Deze actie kan niet ongedaan gemaakt worden.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -369,7 +369,7 @@ export default function FaseTabel({
                                   onClick={() => onDelete(p.id)}
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                 >
-                                  Verwijderen
+                                  Definitief verwijderen
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>

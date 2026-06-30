@@ -22,7 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { statusBadge, beoordelingBadge } from "@/lib/badges";
-import { ArrowLeft, CheckCircle2, ClipboardCheck, ChevronLeft, ChevronRight, Download, Upload, Loader2, FileText, FolderOpen, Pencil, Check, X } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ClipboardCheck, ChevronLeft, ChevronRight, Download, Upload, Loader2, FileText, FolderOpen, Pencil, Check, X, Trash2 } from "lucide-react";
 import { generateAuditReport } from "@/lib/generateAuditReport";
 import AandachtspuntenAdviseur from "@/components/projecten/AandachtspuntenAdviseur";
 import BeheerStandVanZaken from "@/components/projecten/BeheerStandVanZaken";
@@ -69,6 +69,8 @@ export default function ProjectDetail() {
 
   // Beheer: handmatige statuswijziging
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+  const [verwijderOpen, setVerwijderOpen] = useState(false);
+  const [verwijderBezig, setVerwijderBezig] = useState(false);
   const [statusBezig, setStatusBezig] = useState(false);
 
   // Uitdraai state
@@ -940,8 +942,55 @@ export default function ProjectDetail() {
               </SelectContent>
             </Select>
           )}
+          {hasRole("beheer") && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 text-xs text-destructive border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
+              onClick={() => setVerwijderOpen(true)}
+              title="Project volledig verwijderen"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Verwijderen
+            </Button>
+          )}
         </div>
       </div>
+
+      <AlertDialog open={verwijderOpen} onOpenChange={(o) => { if (!o && !verwijderBezig) setVerwijderOpen(false); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Project volledig verwijderen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Weet je zeker dat je <strong>"{project.projectnaam}"</strong> volledig wilt verwijderen?
+              <br />
+              Alle bevindingen, reacties, uitdraai en rapportages worden definitief verwijderd. Deze actie kan niet ongedaan gemaakt worden.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={verwijderBezig}>Annuleren</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={verwijderBezig}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async (e) => {
+                e.preventDefault();
+                setVerwijderBezig(true);
+                const { error } = await supabase.from("projects").delete().eq("id", project.id);
+                setVerwijderBezig(false);
+                if (error) {
+                  toast({ title: "Verwijderen mislukt", description: error.message, variant: "destructive" });
+                  return;
+                }
+                setVerwijderOpen(false);
+                toast({ title: "Project verwijderd" });
+                navigate("/inbox");
+              }}
+            >
+              {verwijderBezig ? "Bezig…" : "Definitief verwijderen"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!pendingStatus} onOpenChange={(o) => { if (!o && !statusBezig) setPendingStatus(null); }}>
         <AlertDialogContent>
