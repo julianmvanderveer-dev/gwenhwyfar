@@ -942,7 +942,7 @@ export default function ProjectDetail() {
               </SelectContent>
             </Select>
           )}
-          {hasRole("beheer") && (
+          {(hasRole("beheer") || hasRole("auditor") || hasRole("tekenaar")) && (
             <Button
               variant="outline"
               size="sm"
