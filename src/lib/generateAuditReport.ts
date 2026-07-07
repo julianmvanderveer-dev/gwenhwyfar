@@ -47,7 +47,7 @@ const BENGCERT_LOGO_SVG = `
   <text x="46" y="27" font-family="'Poppins', system-ui, -apple-system, sans-serif" font-weight="700" font-size="18" fill="#28235D" letter-spacing="0.5">bengcert</text>
 </svg>`.trim();
 
-export function generateAuditReport({ project, findings, adviseurNaam, adviseurNummer, adviseurUserId, messages, logoUrl, templates, uitdraaiData }: ReportData) {
+export function buildAuditReportHtml({ project, findings, adviseurNaam, adviseurNummer, adviseurUserId, messages, logoUrl, templates, uitdraaiData }: ReportData): { html: string; documentTitle: string } {
   const hasUitdraai = uitdraaiData && Object.keys(uitdraaiData).length > 0;
   const colCount = hasUitdraai ? 6 : 5;
 
@@ -350,6 +350,11 @@ export function generateAuditReport({ project, findings, adviseurNaam, adviseurN
 </body>
 </html>`;
 
+  return { html, documentTitle };
+}
+
+export function generateAuditReport(data: ReportData) {
+  const { html } = buildAuditReportHtml(data);
   const win = window.open("", "_blank");
   if (win) {
     win.document.write(html);
