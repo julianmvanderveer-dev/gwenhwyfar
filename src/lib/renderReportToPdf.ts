@@ -9,22 +9,26 @@ export async function renderReportToPdfBlob(html: string): Promise<Blob> {
   const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
   const inner = bodyMatch ? bodyMatch[1] : html;
 
-  // Binnen viewport plaatsen (onzichtbaar) zodat html2canvas correcte
-  // afmetingen krijgt — negatieve offsets geven soms 0x0 rects.
+  // Binnen viewport plaatsen zodat html2canvas correcte afmetingen krijgt.
+  // Niet met opacity:0 verbergen: html2canvas rendert die transparantie mee,
+  // wat exact lege/3kb PDF's oplevert. De wrapper is normaal zichtbaar voor
+  // de renderer, maar wordt buiten de interactielaag gehouden.
   const container = document.createElement("div");
   container.style.cssText = [
     "position:fixed",
     "left:0",
     "top:0",
     "width:297mm",
+    "max-width:297mm",
     "padding:0",
     "margin:0",
     "background:#ffffff",
     "color:#1f2937",
     "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif",
-    "opacity:0",
     "pointer-events:none",
-    "z-index:-1",
+    "z-index:2147483647",
+    "transform:translateY(-100vh)",
+    "box-shadow:none",
   ].join(";");
   container.innerHTML = inner;
   document.body.appendChild(container);
@@ -33,6 +37,11 @@ export async function renderReportToPdfBlob(html: string): Promise<Blob> {
     // Laat browser layout + fonts settelen voordat html2canvas afvuurt.
     await new Promise((r) => requestAnimationFrame(() => r(null)));
     await new Promise((r) => setTimeout(r, 50));
+
+    const rect = container.getBoundingClientRect();
+    if (!rect.width || !container.scrollHeight) {
+      throw new Error("PDF-rendering mislukt: rapport heeft geen renderbare afmetingen");
+    }
 
     const opts = {
       margin: [10, 8, 10, 8],
@@ -43,6 +52,9 @@ export async function renderReportToPdfBlob(html: string): Promise<Blob> {
         useCORS: true,
         backgroundColor: "#ffffff",
         windowWidth: 1200,
+        windowHeight: Math.max(container.scrollHeight + 40, 800),
+        scrollX: 0,
+        scrollY: 0,
       },
       jsPDF: { unit: "mm", format: "a4", orientation: "landscape" as const },
       pagebreak: { mode: ["css", "legacy"] },
