@@ -115,7 +115,7 @@ export default function BulkPdfExport() {
 
           const adv = project.adviseur_id ? advMap.get(project.adviseur_id) : undefined;
 
-          const { html, documentTitle } = buildAuditReportHtml({
+          const { html } = buildAuditReportHtml({
             project: project as any,
             findings: (findings ?? []) as any,
             adviseurNaam: adv?.naam,
@@ -128,7 +128,12 @@ export default function BulkPdfExport() {
           });
 
           const blob = await renderReportToPdfBlob(html);
-          const filename = `${sanitize(documentTitle || project.projectnaam)}.pdf`;
+          const nrStr = adv?.nummer != null ? String(adv.nummer).padStart(3, "0") : "";
+          const cat = (project.audit_categorie ?? "").replace(/-/g, "");
+          const parts = [nrStr, adv?.naam ?? "", project.projectnaam, cat]
+            .map((s) => (s ?? "").toString().trim())
+            .filter(Boolean);
+          const filename = `${sanitize(parts.join(" "))}.pdf`;
           zip.file(filename, blob);
         } catch (e: any) {
           console.error("Fout bij", project.projectnaam, e);
