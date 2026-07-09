@@ -1496,12 +1496,8 @@ export default function ProjectDetail() {
               <select
                 className="w-full border border-input rounded-md px-3 py-2 text-sm bg-background"
                 value={ep2Beoordeling}
-                onChange={(e) => {
-                  setEp2Beoordeling(e.target.value);
-                  setEp2ManualOverride(true);
-                  void saveEp2Field("ep2_beoordeling", e.target.value);
-                }}
-                disabled={!canDeel2}
+                onChange={(e) => handleEp2Change(e.target.value)}
+                disabled={!canDeel2 && !canEditEp2Post}
               >
                 <option value="">— Selecteer —</option>
                 <option value="goed">GOED</option>
@@ -1509,7 +1505,7 @@ export default function ProjectDetail() {
                 <option value="kt">KT</option>
               </select>
               <p className="text-xs text-muted-foreground">{autoEp2Reden}</p>
-              {ep2ManualOverride && (
+              {ep2ManualOverride && !isProjectAfgerond && (
                 <button
                   type="button"
                   className="text-xs text-primary underline"
@@ -1521,12 +1517,41 @@ export default function ProjectDetail() {
                   Automatische waarde herstellen
                 </button>
               )}
+              {canEditEp2Post && (
+                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+                  Deze audit is afgerond. Een statuswijziging vraagt om een verplichte toelichting en wordt vastgelegd in de audit-trail hieronder.
+                </p>
+              )}
             </div>
 
             {(canDeel1 || canDeel2) && (
               <p className="text-xs text-muted-foreground">Wijzigingen worden automatisch opgeslagen.</p>
             )}
           </div>
+
+          {ep2History.length > 0 && (
+            <div className="border rounded-lg shadow-sm bg-card p-6 space-y-3 max-w-2xl">
+              <h3 className="text-sm font-semibold tracking-tight">Wijzigingsgeschiedenis EP2-status</h3>
+              <ul className="space-y-3">
+                {ep2History.map((h) => (
+                  <li key={h.id} className="border-l-2 border-primary/40 pl-3 text-sm">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{new Date(h.created_at).toLocaleString("nl-NL")}</span>
+                      <span>—</span>
+                      <span>{h.changed_by_naam ?? "Onbekend"}</span>
+                    </div>
+                    <div className="mt-1">
+                      <span className="font-medium">{(h.oude_status ?? "—").toUpperCase()}</span>
+                      <span className="mx-2 text-muted-foreground">→</span>
+                      <span className="font-medium">{h.nieuwe_status.toUpperCase()}</span>
+                    </div>
+                    <p className="mt-1 text-muted-foreground whitespace-pre-wrap">{h.reden}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div className="flex justify-between">
             {currentIndex > 0 ? (
               <Button variant="outline" size="sm" onClick={() => goTo(-1)} className="gap-1">
@@ -1536,6 +1561,33 @@ export default function ProjectDetail() {
           </div>
         </TabsContent>
       </Tabs>
+
+      <AlertDialog open={ep2DialogOpen} onOpenChange={(o) => { if (!ep2Bezig) setEp2DialogOpen(o); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>EP2-status wijzigen naar {ep2PendingStatus.toUpperCase()}</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deze audit is al afgerond. Leg hieronder vast waarom de status wordt gewijzigd (bijv. welke afwijkingen blijvend zijn en welke EP2-waarde dit oplevert). Deze toelichting is verplicht en wordt permanent bewaard.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <textarea
+            className="w-full border border-input rounded-md p-2 text-sm min-h-[120px] bg-background"
+            placeholder="Motivatie voor de statuswijziging..."
+            value={ep2Reden}
+            onChange={(e) => setEp2Reden(e.target.value)}
+            disabled={ep2Bezig}
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={ep2Bezig}>Annuleren</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); void bevestigEp2Wijziging(); }}
+              disabled={ep2Bezig || ep2Reden.trim().length < 5}
+            >
+              {ep2Bezig ? "Bezig..." : "Bevestigen"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Footer actions */}
       {(canDeel1 || canDeel2) && (
