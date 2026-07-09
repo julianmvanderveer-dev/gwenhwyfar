@@ -449,9 +449,8 @@ export default function Beheer() {
     }
   };
 
-  const adviseurEmails = new Set(adviseurs.map((a) => (a.email ?? "").toLowerCase()).filter(Boolean));
-  const isProjectteamLid = (p: { roles: Enums<"app_role">[]; email: string }) =>
-    !p.roles.includes("ep_adviseur") && !adviseurEmails.has((p.email ?? "").toLowerCase());
+  const isProjectteamLid = (p: { roles: Enums<"app_role">[] }) =>
+    PROJECT_ROLES.some((r) => p.roles.includes(r));
 
   const exportGebruikers = () => {
     const rows = profiles.filter(isProjectteamLid).map((p) => {
