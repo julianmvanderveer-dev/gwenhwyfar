@@ -13,6 +13,14 @@ interface ReportData {
   logoUrl?: string;
   templates: { code: string; onderdeel: string; controlepunt: string; deel: number }[];
   uitdraaiData?: Record<string, string>;
+  ep2History?: {
+    id: string;
+    oude_status: string | null;
+    nieuwe_status: string;
+    reden: string;
+    changed_by_naam: string | null;
+    created_at: string;
+  }[];
 }
 
 const beoordelingLabel: Record<string, string> = {
@@ -47,7 +55,13 @@ const BENGCERT_LOGO_SVG = `
   <text x="46" y="27" font-family="'Poppins', system-ui, -apple-system, sans-serif" font-weight="700" font-size="18" fill="#28235D" letter-spacing="0.5">bengcert</text>
 </svg>`.trim();
 
-export function buildAuditReportHtml({ project, findings, adviseurNaam, adviseurNummer, adviseurUserId, messages, logoUrl, templates, uitdraaiData }: ReportData): { html: string; documentTitle: string } {
+const ep2Label = (v: string | null | undefined): string => {
+  if (!v) return "—";
+  const map: Record<string, string> = { goed: "GOED", nkt: "NKT", kt: "KT" };
+  return map[v] ?? v.toUpperCase();
+};
+
+export function buildAuditReportHtml({ project, findings, adviseurNaam, adviseurNummer, adviseurUserId, messages, logoUrl, templates, uitdraaiData, ep2History }: ReportData): { html: string; documentTitle: string } {
   const hasUitdraai = uitdraaiData && Object.keys(uitdraaiData).length > 0;
   const colCount = hasUitdraai ? 6 : 5;
 
@@ -300,8 +314,33 @@ export function buildAuditReportHtml({ project, findings, adviseurNaam, adviseur
         <td style="width:25%;padding:4px 8px;"><div style="color:#6b7280;">Startwaarde</div><strong>${ep2Start ?? "—"} kWh/m²</strong></td>
         <td style="width:25%;padding:4px 8px;"><div style="color:#6b7280;">Eindwaarde</div><strong>${ep2Eind ?? "—"} kWh/m²</strong></td>
         <td style="width:25%;padding:4px 8px;"><div style="color:#6b7280;">Afwijking</div><strong>${afwijkingAbs != null ? afwijkingAbs.toFixed(2) + " kWh/m²" : "—"}${afwijkingPct != null ? ` (${afwijkingPct.toFixed(1)}%)` : ""}</strong></td>
-        <td style="width:25%;padding:4px 8px;"><div style="color:#6b7280;">Beoordeling</div><strong>${project.ep2_beoordeling ? (project.ep2_beoordeling === "goed" ? "Goed" : "Niet goed") : "—"}</strong></td>
+        <td style="width:25%;padding:4px 8px;"><div style="color:#6b7280;">Beoordeling</div><strong>${ep2Label(project.ep2_beoordeling)}</strong></td>
       </tr>
+    </table>
+  </div>
+  ` : ""}
+
+  ${ep2History && ep2History.length > 0 ? `
+  <div style="border:1px solid #e5e7eb;border-radius:6px;background:#fff;padding:12px 14px;margin-bottom:20px;">
+    <h2 style="margin:0 0 10px;font-size:13px;font-weight:600;color:#1B2A4A;">Wijzigingsgeschiedenis EP2-status</h2>
+    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+      <thead>
+        <tr style="background:#1B2A4A;color:#fff;">
+          <th style="padding:6px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;width:130px;">Datum</th>
+          <th style="padding:6px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;width:150px;">Door</th>
+          <th style="padding:6px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;width:110px;">Wijziging</th>
+          <th style="padding:6px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Toelichting</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${ep2History.map((h, i) => `
+          <tr style="${i % 2 !== 0 ? "background:#f8f9fa;" : ""}">
+            <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;font-size:11px;color:#374151;">${new Date(h.created_at).toLocaleString("nl-NL")}</td>
+            <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#374151;">${escapeHtml(h.changed_by_naam ?? "—")}</td>
+            <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#1f2937;font-weight:600;">${escapeHtml(ep2Label(h.oude_status))} → ${escapeHtml(ep2Label(h.nieuwe_status))}</td>
+            <td style="padding:6px 10px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#374151;">${escapeHtml(h.reden)}</td>
+          </tr>`).join("")}
+      </tbody>
     </table>
   </div>
   ` : ""}

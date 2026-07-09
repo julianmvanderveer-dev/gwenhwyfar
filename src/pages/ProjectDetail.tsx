@@ -63,6 +63,21 @@ export default function ProjectDetail() {
   const [ep2ManualOverride, setEp2ManualOverride] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("");
 
+  // EP2 statuswijziging na afronden
+  type Ep2HistoryEntry = {
+    id: string;
+    oude_status: string | null;
+    nieuwe_status: string;
+    reden: string;
+    changed_by_naam: string | null;
+    created_at: string;
+  };
+  const [ep2History, setEp2History] = useState<Ep2HistoryEntry[]>([]);
+  const [ep2DialogOpen, setEp2DialogOpen] = useState(false);
+  const [ep2PendingStatus, setEp2PendingStatus] = useState<string>("");
+  const [ep2Reden, setEp2Reden] = useState("");
+  const [ep2Bezig, setEp2Bezig] = useState(false);
+
   // Dropbox link inline edit
   const [editingDropbox, setEditingDropbox] = useState(false);
   const [dropboxDraft, setDropboxDraft] = useState("");
@@ -100,6 +115,20 @@ export default function ProjectDetail() {
       setEp2Beoordeling(project.ep2_beoordeling ?? "");
     }
   }, [project]);
+
+  const loadEp2History = useCallback(async () => {
+    if (!id) return;
+    const { data } = await supabase
+      .from("ep2_status_history" as any)
+      .select("id, oude_status, nieuwe_status, reden, changed_by_naam, created_at")
+      .eq("project_id", id)
+      .order("created_at", { ascending: false });
+    setEp2History(((data as unknown) as Ep2HistoryEntry[]) ?? []);
+  }, [id]);
+
+  useEffect(() => {
+    void loadEp2History();
+  }, [loadEp2History]);
 
   useEffect(() => {
     if (uitdraai?.extracted_data) {
@@ -636,6 +665,8 @@ export default function ProjectDetail() {
 
   // Auto-fill EP2 beoordeling tenzij handmatig overschreven
   useEffect(() => {
+    // Zodra project afgerond/gesloten is, nooit meer overschrijven met auto-berekening.
+    if (project && (project.status === "afgerond" || project.status === "gesloten")) return;
     if (!ep2ManualOverride) {
       setEp2Beoordeling((prev) => {
         if (prev !== autoEp2 && project) {
@@ -677,6 +708,66 @@ export default function ProjectDetail() {
   const canDeel2 = hasRole("auditor") && !isAdviseurVanProject && (project.status === "deel1_afgerond" || project.status === "deel2_bezig");
   const canDeel1 = (hasRole("tekenaar") || hasRole("auditor")) && !isAdviseurVanProject &&
     (project.status === "nog_niet_begonnen" || project.status === "deel1_bezig" || project.status === "deel1_afgerond");
+
+  // Na afronden mag de auditor de EP2-status nog corrigeren (met verplichte reden + audit-trail).
+  const isProjectAfgerond = project.status === "afgerond" || project.status === "gesloten" || project.status === "wacht_op_reactie";
+  const canEditEp2Post = hasRole("auditor") && !isAdviseurVanProject && isProjectAfgerond;
+
+  const handleEp2Change = (newValue: string) => {
+    if (canEditEp2Post) {
+      // Na afronden: dialog met verplichte reden.
+      setEp2PendingStatus(newValue);
+      setEp2Reden("");
+      setEp2DialogOpen(true);
+      return;
+    }
+    // Tijdens deel 2: direct opslaan zoals voorheen.
+    setEp2Beoordeling(newValue);
+    setEp2ManualOverride(true);
+    void saveEp2Field("ep2_beoordeling", newValue);
+  };
+
+  const bevestigEp2Wijziging = async () => {
+    if (!id || !user || !ep2PendingStatus) return;
+    if (ep2Reden.trim().length < 5) {
+      toast({ title: "Toelichting vereist", description: "Geef minimaal 5 tekens toelichting.", variant: "destructive" });
+      return;
+    }
+    setEp2Bezig(true);
+    const oldValue = ep2Beoordeling || project.ep2_beoordeling || null;
+    const { error: updErr } = await supabase
+      .from("projects")
+      .update({ ep2_beoordeling: ep2PendingStatus })
+      .eq("id", id);
+    if (updErr) {
+      toast({ title: "Opslaan mislukt", description: updErr.message, variant: "destructive" });
+      setEp2Bezig(false);
+      return;
+    }
+    const { data: prof } = await supabase.from("profiles").select("naam").eq("id", user.id).maybeSingle();
+    const { error: histErr } = await supabase.from("ep2_status_history" as any).insert({
+      project_id: id,
+      changed_by: user.id,
+      changed_by_naam: prof?.naam ?? null,
+      oude_status: oldValue,
+      nieuwe_status: ep2PendingStatus,
+      reden: ep2Reden.trim(),
+    } as any);
+    if (histErr) {
+      toast({ title: "Audit-trail opslaan mislukt", description: histErr.message, variant: "destructive" });
+      setEp2Bezig(false);
+      return;
+    }
+    setEp2Beoordeling(ep2PendingStatus);
+    setEp2ManualOverride(true);
+    setEp2DialogOpen(false);
+    setEp2Bezig(false);
+    setEp2PendingStatus("");
+    setEp2Reden("");
+    await loadProject();
+    await loadEp2History();
+    toast({ title: "EP2-status bijgewerkt", description: "Wijziging en toelichting zijn vastgelegd." });
+  };
 
   const canEditFindingByDeel = (deel: number) => {
     if (canDeel1 && deel === 1) return true;
@@ -915,6 +1006,7 @@ export default function ProjectDetail() {
                     logoUrl: appSettings.org_logo_url || undefined,
                     templates,
                     uitdraaiData: hasUitdraaiData ? localUitdraaiData : undefined,
+                    ep2History,
                   });
                 }}
               >
@@ -1405,12 +1497,8 @@ export default function ProjectDetail() {
               <select
                 className="w-full border border-input rounded-md px-3 py-2 text-sm bg-background"
                 value={ep2Beoordeling}
-                onChange={(e) => {
-                  setEp2Beoordeling(e.target.value);
-                  setEp2ManualOverride(true);
-                  void saveEp2Field("ep2_beoordeling", e.target.value);
-                }}
-                disabled={!canDeel2}
+                onChange={(e) => handleEp2Change(e.target.value)}
+                disabled={!canDeel2 && !canEditEp2Post}
               >
                 <option value="">— Selecteer —</option>
                 <option value="goed">GOED</option>
@@ -1418,7 +1506,7 @@ export default function ProjectDetail() {
                 <option value="kt">KT</option>
               </select>
               <p className="text-xs text-muted-foreground">{autoEp2Reden}</p>
-              {ep2ManualOverride && (
+              {ep2ManualOverride && !isProjectAfgerond && (
                 <button
                   type="button"
                   className="text-xs text-primary underline"
@@ -1430,12 +1518,41 @@ export default function ProjectDetail() {
                   Automatische waarde herstellen
                 </button>
               )}
+              {canEditEp2Post && (
+                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+                  Deze audit is afgerond. Een statuswijziging vraagt om een verplichte toelichting en wordt vastgelegd in de audit-trail hieronder.
+                </p>
+              )}
             </div>
 
             {(canDeel1 || canDeel2) && (
               <p className="text-xs text-muted-foreground">Wijzigingen worden automatisch opgeslagen.</p>
             )}
           </div>
+
+          {ep2History.length > 0 && (
+            <div className="border rounded-lg shadow-sm bg-card p-6 space-y-3 max-w-2xl">
+              <h3 className="text-sm font-semibold tracking-tight">Wijzigingsgeschiedenis EP2-status</h3>
+              <ul className="space-y-3">
+                {ep2History.map((h) => (
+                  <li key={h.id} className="border-l-2 border-primary/40 pl-3 text-sm">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{new Date(h.created_at).toLocaleString("nl-NL")}</span>
+                      <span>—</span>
+                      <span>{h.changed_by_naam ?? "Onbekend"}</span>
+                    </div>
+                    <div className="mt-1">
+                      <span className="font-medium">{(h.oude_status ?? "—").toUpperCase()}</span>
+                      <span className="mx-2 text-muted-foreground">→</span>
+                      <span className="font-medium">{h.nieuwe_status.toUpperCase()}</span>
+                    </div>
+                    <p className="mt-1 text-muted-foreground whitespace-pre-wrap">{h.reden}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div className="flex justify-between">
             {currentIndex > 0 ? (
               <Button variant="outline" size="sm" onClick={() => goTo(-1)} className="gap-1">
@@ -1445,6 +1562,33 @@ export default function ProjectDetail() {
           </div>
         </TabsContent>
       </Tabs>
+
+      <AlertDialog open={ep2DialogOpen} onOpenChange={(o) => { if (!ep2Bezig) setEp2DialogOpen(o); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>EP2-status wijzigen naar {ep2PendingStatus.toUpperCase()}</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deze audit is al afgerond. Leg hieronder vast waarom de status wordt gewijzigd (bijv. welke afwijkingen blijvend zijn en welke EP2-waarde dit oplevert). Deze toelichting is verplicht en wordt permanent bewaard.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <textarea
+            className="w-full border border-input rounded-md p-2 text-sm min-h-[120px] bg-background"
+            placeholder="Motivatie voor de statuswijziging..."
+            value={ep2Reden}
+            onChange={(e) => setEp2Reden(e.target.value)}
+            disabled={ep2Bezig}
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={ep2Bezig}>Annuleren</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); void bevestigEp2Wijziging(); }}
+              disabled={ep2Bezig || ep2Reden.trim().length < 5}
+            >
+              {ep2Bezig ? "Bezig..." : "Bevestigen"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Footer actions */}
       {(canDeel1 || canDeel2) && (

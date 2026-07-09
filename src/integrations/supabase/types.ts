@@ -184,6 +184,47 @@ export type Database = {
         }
         Relationships: []
       }
+      ep2_status_history: {
+        Row: {
+          changed_by: string | null
+          changed_by_naam: string | null
+          created_at: string
+          id: string
+          nieuwe_status: string
+          oude_status: string | null
+          project_id: string
+          reden: string
+        }
+        Insert: {
+          changed_by?: string | null
+          changed_by_naam?: string | null
+          created_at?: string
+          id?: string
+          nieuwe_status: string
+          oude_status?: string | null
+          project_id: string
+          reden: string
+        }
+        Update: {
+          changed_by?: string | null
+          changed_by_naam?: string | null
+          created_at?: string
+          id?: string
+          nieuwe_status?: string
+          oude_status?: string | null
+          project_id?: string
+          reden?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ep2_status_history_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       externe_rapportages: {
         Row: {
           bestand_pad: string | null
