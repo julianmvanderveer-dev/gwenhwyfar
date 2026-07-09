@@ -665,6 +665,8 @@ export default function ProjectDetail() {
 
   // Auto-fill EP2 beoordeling tenzij handmatig overschreven
   useEffect(() => {
+    // Zodra project afgerond/gesloten is, nooit meer overschrijven met auto-berekening.
+    if (project && (project.status === "afgerond" || project.status === "gesloten")) return;
     if (!ep2ManualOverride) {
       setEp2Beoordeling((prev) => {
         if (prev !== autoEp2 && project) {
@@ -706,6 +708,66 @@ export default function ProjectDetail() {
   const canDeel2 = hasRole("auditor") && !isAdviseurVanProject && (project.status === "deel1_afgerond" || project.status === "deel2_bezig");
   const canDeel1 = (hasRole("tekenaar") || hasRole("auditor")) && !isAdviseurVanProject &&
     (project.status === "nog_niet_begonnen" || project.status === "deel1_bezig" || project.status === "deel1_afgerond");
+
+  // Na afronden mag de auditor de EP2-status nog corrigeren (met verplichte reden + audit-trail).
+  const isProjectAfgerond = project.status === "afgerond" || project.status === "gesloten" || project.status === "wacht_op_reactie";
+  const canEditEp2Post = hasRole("auditor") && !isAdviseurVanProject && isProjectAfgerond;
+
+  const handleEp2Change = (newValue: string) => {
+    if (canEditEp2Post) {
+      // Na afronden: dialog met verplichte reden.
+      setEp2PendingStatus(newValue);
+      setEp2Reden("");
+      setEp2DialogOpen(true);
+      return;
+    }
+    // Tijdens deel 2: direct opslaan zoals voorheen.
+    setEp2Beoordeling(newValue);
+    setEp2ManualOverride(true);
+    void saveEp2Field("ep2_beoordeling", newValue);
+  };
+
+  const bevestigEp2Wijziging = async () => {
+    if (!id || !user || !ep2PendingStatus) return;
+    if (ep2Reden.trim().length < 5) {
+      toast({ title: "Toelichting vereist", description: "Geef minimaal 5 tekens toelichting.", variant: "destructive" });
+      return;
+    }
+    setEp2Bezig(true);
+    const oldValue = ep2Beoordeling || project.ep2_beoordeling || null;
+    const { error: updErr } = await supabase
+      .from("projects")
+      .update({ ep2_beoordeling: ep2PendingStatus })
+      .eq("id", id);
+    if (updErr) {
+      toast({ title: "Opslaan mislukt", description: updErr.message, variant: "destructive" });
+      setEp2Bezig(false);
+      return;
+    }
+    const { data: prof } = await supabase.from("profiles").select("naam").eq("id", user.id).maybeSingle();
+    const { error: histErr } = await supabase.from("ep2_status_history" as any).insert({
+      project_id: id,
+      changed_by: user.id,
+      changed_by_naam: prof?.naam ?? null,
+      oude_status: oldValue,
+      nieuwe_status: ep2PendingStatus,
+      reden: ep2Reden.trim(),
+    } as any);
+    if (histErr) {
+      toast({ title: "Audit-trail opslaan mislukt", description: histErr.message, variant: "destructive" });
+      setEp2Bezig(false);
+      return;
+    }
+    setEp2Beoordeling(ep2PendingStatus);
+    setEp2ManualOverride(true);
+    setEp2DialogOpen(false);
+    setEp2Bezig(false);
+    setEp2PendingStatus("");
+    setEp2Reden("");
+    await loadProject();
+    await loadEp2History();
+    toast({ title: "EP2-status bijgewerkt", description: "Wijziging en toelichting zijn vastgelegd." });
+  };
 
   const canEditFindingByDeel = (deel: number) => {
     if (canDeel1 && deel === 1) return true;
