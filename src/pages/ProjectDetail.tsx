@@ -63,6 +63,21 @@ export default function ProjectDetail() {
   const [ep2ManualOverride, setEp2ManualOverride] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("");
 
+  // EP2 statuswijziging na afronden
+  type Ep2HistoryEntry = {
+    id: string;
+    oude_status: string | null;
+    nieuwe_status: string;
+    reden: string;
+    changed_by_naam: string | null;
+    created_at: string;
+  };
+  const [ep2History, setEp2History] = useState<Ep2HistoryEntry[]>([]);
+  const [ep2DialogOpen, setEp2DialogOpen] = useState(false);
+  const [ep2PendingStatus, setEp2PendingStatus] = useState<string>("");
+  const [ep2Reden, setEp2Reden] = useState("");
+  const [ep2Bezig, setEp2Bezig] = useState(false);
+
   // Dropbox link inline edit
   const [editingDropbox, setEditingDropbox] = useState(false);
   const [dropboxDraft, setDropboxDraft] = useState("");
@@ -100,6 +115,20 @@ export default function ProjectDetail() {
       setEp2Beoordeling(project.ep2_beoordeling ?? "");
     }
   }, [project]);
+
+  const loadEp2History = useCallback(async () => {
+    if (!id) return;
+    const { data } = await supabase
+      .from("ep2_status_history" as any)
+      .select("id, oude_status, nieuwe_status, reden, changed_by_naam, created_at")
+      .eq("project_id", id)
+      .order("created_at", { ascending: false });
+    setEp2History((data as Ep2HistoryEntry[]) ?? []);
+  }, [id]);
+
+  useEffect(() => {
+    void loadEp2History();
+  }, [loadEp2History]);
 
   useEffect(() => {
     if (uitdraai?.extracted_data) {
