@@ -1006,6 +1006,7 @@ export default function ProjectDetail() {
                     logoUrl: appSettings.org_logo_url || undefined,
                     templates,
                     uitdraaiData: hasUitdraaiData ? localUitdraaiData : undefined,
+                    ep2History,
                   });
                 }}
               >
