@@ -1,22 +1,16 @@
-## Probleem
+Julian van der Veer (julian@borgch.nl) krijgt alle vier de rollen toegewezen: **beheer**, **auditor**, **tekenaar** en **ep_adviseur**.
 
-Op `/finding/:id/reactie` gebruikt de "Terug"-knop `navigate(-1)`. Voor een EP-adviseur die via het dashboard klikt op "Reageren", is de vorige route `/inbox` (het hoofdmenu) — niet het projectoverzicht met de andere afwijkingen.
+## Aanpak
+Via een data-insert op de `user_roles` tabel worden de ontbrekende rollen toegevoegd voor de user die hoort bij e-mail `julian@borgch.nl`. Bestaande rollen blijven ongewijzigd (via `ON CONFLICT DO NOTHING`).
 
-## Wijziging
-
-In `src/pages/FindingReactie.tsx` (regel 617): laat "Terug" voor een EP-adviseur direct naar het projectoverzicht navigeren, zodat de andere afwijkingen zichtbaar blijven.
-
-```ts
-<Button
-  variant="ghost"
-  onClick={() =>
-    finding.project_id
-      ? navigate(`/project/${finding.project_id}`)
-      : navigate(-1)
-  }
->
-  Terug
-</Button>
+## Technisch
+```sql
+INSERT INTO public.user_roles (user_id, role)
+SELECT u.id, r.role
+FROM auth.users u
+CROSS JOIN (VALUES ('beheer'), ('auditor'), ('tekenaar'), ('ep_adviseur')) AS r(role)
+WHERE u.email = 'julian@borgch.nl'
+ON CONFLICT (user_id, role) DO NOTHING;
 ```
 
-Omdat "Terug" nu hetzelfde doet als de bestaande knop "Audit inzien", verwijder ik die tweede knop om dubbelop te voorkomen.
+Na uitvoeren even uitloggen en opnieuw inloggen zodat de rollen in de app-sessie geladen worden.
