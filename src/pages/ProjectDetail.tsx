@@ -123,7 +123,7 @@ export default function ProjectDetail() {
       .select("id, oude_status, nieuwe_status, reden, changed_by_naam, created_at")
       .eq("project_id", id)
       .order("created_at", { ascending: false });
-    setEp2History((data as Ep2HistoryEntry[]) ?? []);
+    setEp2History(((data as unknown) as Ep2HistoryEntry[]) ?? []);
   }, [id]);
 
   useEffect(() => {
