@@ -614,17 +614,16 @@ export default function FindingReactie() {
       )}
 
       <div className="mt-4 flex gap-2">
-        <Button variant="ghost" onClick={() => navigate(-1)}>
+        <Button
+          variant="ghost"
+          onClick={() =>
+            finding.project_id
+              ? navigate(`/project/${finding.project_id}`)
+              : navigate(-1)
+          }
+        >
           Terug
         </Button>
-        {finding.project_id && (
-          <Button
-            variant="outline"
-            onClick={() => navigate(`/project/${finding.project_id}`)}
-          >
-            Audit inzien
-          </Button>
-        )}
       </div>
     </div>
   );
