@@ -296,7 +296,7 @@ export function buildAuditReportHtml({ project, findings, adviseurNaam, adviseur
       <td style="width:50%;vertical-align:top;padding-right:16px;">
         <table style="width:100%;border-collapse:collapse;">
           <tr><td style="padding:3px 12px 3px 0;color:#6b7280;font-weight:500;width:120px;">Categorie</td><td style="padding:3px 0;font-weight:600;">${project.audit_categorie}</td></tr>
-          <tr><td style="padding:3px 12px 3px 0;color:#6b7280;font-weight:500;">Soort</td><td style="padding:3px 0;font-weight:600;">${project.audit_soort === "dossieraudit" ? "Dossieraudit" : "Projectaudit"}</td></tr>
+          <tr><td style="padding:3px 12px 3px 0;color:#6b7280;font-weight:500;">Soort</td><td style="padding:3px 0;font-weight:600;">${auditSoortLabel(project.audit_soort)}</td></tr>
           <tr><td style="padding:3px 12px 3px 0;color:#6b7280;font-weight:500;">Toelatingsaudit</td><td style="padding:3px 0;font-weight:600;">${project.toelatingsaudit ? "Ja" : "Nee"}</td></tr>
           <tr><td style="padding:3px 12px 3px 0;color:#6b7280;font-weight:500;">Prioriteit</td><td style="padding:3px 0;font-weight:600;">${project.prioriteit ? "Ja" : "Nee"}</td></tr>
         </table>
