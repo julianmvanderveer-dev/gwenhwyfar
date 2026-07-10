@@ -61,6 +61,11 @@ const ep2Label = (v: string | null | undefined): string => {
   return map[v] ?? v.toUpperCase();
 };
 
+const auditSoortLabel = (v: string | null | undefined): string => {
+  if (!v) return "";
+  return v === "dossieraudit" ? "Dossieraudit" : "Projectaudit";
+};
+
 export function buildAuditReportHtml({ project, findings, adviseurNaam, adviseurNummer, adviseurUserId, messages, logoUrl, templates, uitdraaiData, ep2History }: ReportData): { html: string; documentTitle: string } {
   const hasUitdraai = uitdraaiData && Object.keys(uitdraaiData).length > 0;
   const colCount = hasUitdraai ? 6 : 5;
@@ -121,9 +126,10 @@ export function buildAuditReportHtml({ project, findings, adviseurNaam, adviseur
 
   const aanmaakDatum = new Date(project.datum_aangemaakt).toLocaleDateString("nl-NL");
 
-  // Bestandsnaam / titel: "1{nr} {adviseur} {projectnaam}"
-  const nrStr = adviseurNummer != null ? `1${String(adviseurNummer).padStart(3, "0")}` : "";
-  const titleParts = [nrStr, adviseurNaam ?? "", project.projectnaam]
+  // Bestandsnaam / titel: "{nr} {adviseur} {projectnaam} {auditsoort}"
+  const nrStr = adviseurNummer != null ? String(adviseurNummer).padStart(3, "0") : "";
+  const soortLabel = auditSoortLabel(project.audit_soort);
+  const titleParts = [nrStr, adviseurNaam ?? "", project.projectnaam, soortLabel]
     .map((s) => (s ?? "").toString().trim())
     .filter(Boolean);
   const documentTitle = titleParts.join(" ");
@@ -290,7 +296,7 @@ export function buildAuditReportHtml({ project, findings, adviseurNaam, adviseur
       <td style="width:50%;vertical-align:top;padding-right:16px;">
         <table style="width:100%;border-collapse:collapse;">
           <tr><td style="padding:3px 12px 3px 0;color:#6b7280;font-weight:500;width:120px;">Categorie</td><td style="padding:3px 0;font-weight:600;">${project.audit_categorie}</td></tr>
-          <tr><td style="padding:3px 12px 3px 0;color:#6b7280;font-weight:500;">Soort</td><td style="padding:3px 0;font-weight:600;">${project.audit_soort === "dossieraudit" ? "Dossieraudit" : "Projectaudit"}</td></tr>
+          <tr><td style="padding:3px 12px 3px 0;color:#6b7280;font-weight:500;">Soort</td><td style="padding:3px 0;font-weight:600;">${auditSoortLabel(project.audit_soort)}</td></tr>
           <tr><td style="padding:3px 12px 3px 0;color:#6b7280;font-weight:500;">Toelatingsaudit</td><td style="padding:3px 0;font-weight:600;">${project.toelatingsaudit ? "Ja" : "Nee"}</td></tr>
           <tr><td style="padding:3px 12px 3px 0;color:#6b7280;font-weight:500;">Prioriteit</td><td style="padding:3px 0;font-weight:600;">${project.prioriteit ? "Ja" : "Nee"}</td></tr>
         </table>

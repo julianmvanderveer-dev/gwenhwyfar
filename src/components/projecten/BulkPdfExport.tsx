@@ -130,7 +130,8 @@ export default function BulkPdfExport() {
           const blob = await renderReportToPdfBlob(html);
           const nrStr = adv?.nummer != null ? String(adv.nummer).padStart(3, "0") : "";
           const cat = (project.audit_categorie ?? "").replace(/-/g, "");
-          const parts = [nrStr, adv?.naam ?? "", project.projectnaam, cat]
+          const soort = project.audit_soort === "dossieraudit" ? "Dossieraudit" : "Projectaudit";
+          const parts = [nrStr, adv?.naam ?? "", project.projectnaam, cat, soort]
             .map((s) => (s ?? "").toString().trim())
             .filter(Boolean);
           const filename = `${sanitize(parts.join(" "))}.pdf`;
