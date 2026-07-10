@@ -126,9 +126,10 @@ export function buildAuditReportHtml({ project, findings, adviseurNaam, adviseur
 
   const aanmaakDatum = new Date(project.datum_aangemaakt).toLocaleDateString("nl-NL");
 
-  // Bestandsnaam / titel: "1{nr} {adviseur} {projectnaam}"
-  const nrStr = adviseurNummer != null ? `1${String(adviseurNummer).padStart(3, "0")}` : "";
-  const titleParts = [nrStr, adviseurNaam ?? "", project.projectnaam]
+  // Bestandsnaam / titel: "{nr} {adviseur} {projectnaam} {auditsoort}"
+  const nrStr = adviseurNummer != null ? String(adviseurNummer).padStart(3, "0") : "";
+  const soortLabel = auditSoortLabel(project.audit_soort);
+  const titleParts = [nrStr, adviseurNaam ?? "", project.projectnaam, soortLabel]
     .map((s) => (s ?? "").toString().trim())
     .filter(Boolean);
   const documentTitle = titleParts.join(" ");
