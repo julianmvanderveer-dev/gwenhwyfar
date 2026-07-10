@@ -61,6 +61,11 @@ const ep2Label = (v: string | null | undefined): string => {
   return map[v] ?? v.toUpperCase();
 };
 
+const auditSoortLabel = (v: string | null | undefined): string => {
+  if (!v) return "";
+  return v === "dossieraudit" ? "Dossieraudit" : "Projectaudit";
+};
+
 export function buildAuditReportHtml({ project, findings, adviseurNaam, adviseurNummer, adviseurUserId, messages, logoUrl, templates, uitdraaiData, ep2History }: ReportData): { html: string; documentTitle: string } {
   const hasUitdraai = uitdraaiData && Object.keys(uitdraaiData).length > 0;
   const colCount = hasUitdraai ? 6 : 5;
