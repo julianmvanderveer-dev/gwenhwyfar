@@ -13,6 +13,7 @@ type Row = {
   finding_id: string;
   controlepunt: string;
   onderdeel: string;
+  toelichting: string | null;
   type_afwijking: string | null;
   goedgekeurd_op: string | null;
   created_at: string;
@@ -49,7 +50,7 @@ export default function FoutenAnalyse() {
       const { data, error } = await supabase
         .from("findings")
         .select(
-          `id, controlepunt, onderdeel, type_afwijking, goedgekeurd_op, created_at,
+          `id, controlepunt, onderdeel, toelichting, type_afwijking, goedgekeurd_op, created_at,
            concept_reactie, status, beoordeling,
            project:projects!inner(id, projectnaam, audit_categorie, audit_soort, adviseur_id,
              adviseur:adviseurs(id, naam, nummer))`,
@@ -73,6 +74,7 @@ export default function FoutenAnalyse() {
           finding_id: f.id,
           controlepunt: f.controlepunt,
           onderdeel: f.onderdeel,
+          toelichting: f.toelichting ?? null,
           type_afwijking: f.type_afwijking,
           goedgekeurd_op: f.goedgekeurd_op,
           created_at: f.created_at,
@@ -127,24 +129,54 @@ export default function FoutenAnalyse() {
     return Array.from(map.values()).sort((a, b) => a.naam.localeCompare(b.naam));
   }, [rows]);
 
+  // Helper: verzamel unieke, niet-lege toelichtingen (max N)
+  const collectToelichtingen = (items: { toelichting: string | null }[], max = 3): string[] => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const it of items) {
+      const t = (it.toelichting ?? "").trim();
+      if (!t) continue;
+      const norm = t.toLowerCase();
+      if (seen.has(norm)) continue;
+      seen.add(norm);
+      out.push(t);
+      if (out.length >= max) break;
+    }
+    return out;
+  };
+
   // Globaal: top controlepunten
   const globaal = useMemo(() => {
-    const m = new Map<string, { controlepunt: string; onderdeel: string; aantal: number; adviseurs: Set<string> }>();
+    const m = new Map<
+      string,
+      { controlepunt: string; onderdeel: string; aantal: number; adviseurs: Set<string>; items: Row[] }
+    >();
     for (const r of filtered) {
       const key = `${r.onderdeel}||${r.controlepunt}`;
-      const cur = m.get(key) ?? { controlepunt: r.controlepunt, onderdeel: r.onderdeel, aantal: 0, adviseurs: new Set() };
+      const cur =
+        m.get(key) ??
+        { controlepunt: r.controlepunt, onderdeel: r.onderdeel, aantal: 0, adviseurs: new Set<string>(), items: [] as Row[] };
       cur.aantal += 1;
       if (r.adviseur_id) cur.adviseurs.add(r.adviseur_id);
+      cur.items.push(r);
       m.set(key, cur);
     }
-    return Array.from(m.values()).sort((a, b) => b.aantal - a.aantal);
+    return Array.from(m.values())
+      .map((g) => ({ ...g, toelichtingen: collectToelichtingen(g.items, 3) }))
+      .sort((a, b) => b.aantal - a.aantal);
   }, [filtered]);
 
   // Per adviseur: top controlepunten
   const perAdviseur = useMemo(() => {
     const m = new Map<
       string,
-      { adviseur_id: string; naam: string; nummer: number | null; totaal: number; punten: Map<string, { controlepunt: string; onderdeel: string; aantal: number }> }
+      {
+        adviseur_id: string;
+        naam: string;
+        nummer: number | null;
+        totaal: number;
+        punten: Map<string, { controlepunt: string; onderdeel: string; aantal: number; items: Row[] }>;
+      }
     >();
     for (const r of filtered) {
       const id = r.adviseur_id ?? "__geen__";
@@ -157,13 +189,21 @@ export default function FoutenAnalyse() {
       };
       bucket.totaal += 1;
       const pkey = `${r.onderdeel}||${r.controlepunt}`;
-      const p = bucket.punten.get(pkey) ?? { controlepunt: r.controlepunt, onderdeel: r.onderdeel, aantal: 0 };
+      const p =
+        bucket.punten.get(pkey) ??
+        { controlepunt: r.controlepunt, onderdeel: r.onderdeel, aantal: 0, items: [] as Row[] };
       p.aantal += 1;
+      p.items.push(r);
       bucket.punten.set(pkey, p);
       m.set(id, bucket);
     }
     return Array.from(m.values())
-      .map((b) => ({ ...b, top: Array.from(b.punten.values()).sort((a, c) => c.aantal - a.aantal) }))
+      .map((b) => ({
+        ...b,
+        top: Array.from(b.punten.values())
+          .map((p) => ({ ...p, toelichtingen: collectToelichtingen(p.items, 2) }))
+          .sort((a, c) => c.aantal - a.aantal),
+      }))
       .sort((a, b) => b.totaal - a.totaal);
   }, [filtered]);
 
