@@ -228,6 +228,7 @@ export default function FoutenAnalyse() {
       Audit_soort: r.audit_soort ?? "",
       Onderdeel: r.onderdeel,
       Controlepunt: r.controlepunt,
+      Aard_afwijking: (r.toelichting ?? "").replace(/\s+/g, " ").trim(),
       Type_afwijking: r.type_afwijking ?? "",
     }));
     downloadCsv(rowsCsv as any, `foutenanalyse_${new Date().toISOString().slice(0, 10)}.csv`);
