@@ -255,14 +255,22 @@ export default function FoutenAnalyse() {
     const globaalRows = globaal
       .slice(0, 50)
       .map(
-        (g, i) => `
+        (g, i) => {
+          const aard = g.toelichtingen.length
+            ? g.toelichtingen.map((t) => `<div class="aard-item">• ${esc(t)}</div>`).join("")
+            : '<span class="aard-empty">—</span>';
+          return `
         <tr>
           <td class="num">#${i + 1}</td>
-          <td>${esc(g.controlepunt)}</td>
+          <td>
+            <div class="cp">${esc(g.controlepunt)}</div>
+            <div class="aard">${aard}</div>
+          </td>
           <td>${esc(g.onderdeel)}</td>
           <td class="num">${g.aantal}</td>
           <td class="num">${g.adviseurs.size}</td>
-        </tr>`,
+        </tr>`;
+        },
       )
       .join("");
 
@@ -271,13 +279,21 @@ export default function FoutenAnalyse() {
         const rowsHtml = a.top
           .slice(0, 15)
           .map(
-            (p, i) => `
+            (p, i) => {
+              const aard = p.toelichtingen.length
+                ? p.toelichtingen.map((t) => `<div class="aard-item">• ${esc(t)}</div>`).join("")
+                : '<span class="aard-empty">—</span>';
+              return `
             <tr>
               <td class="num">#${i + 1}</td>
-              <td>${esc(p.controlepunt)}</td>
+              <td>
+                <div class="cp">${esc(p.controlepunt)}</div>
+                <div class="aard">${aard}</div>
+              </td>
               <td>${esc(p.onderdeel)}</td>
               <td class="num">${p.aantal}</td>
-            </tr>`,
+            </tr>`;
+            },
           )
           .join("");
         const nr = a.nummer != null ? String(a.nummer).padStart(3, "0") : "—";
