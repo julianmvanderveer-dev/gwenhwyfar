@@ -407,6 +407,9 @@ export default function FoutenAnalyse() {
             <Button variant="outline" size="sm" onClick={exportCsv} className="gap-1.5">
               <Download className="h-3.5 w-3.5" /> CSV
             </Button>
+            <Button variant="outline" size="sm" onClick={exportPdf} className="gap-1.5">
+              <FileText className="h-3.5 w-3.5" /> Download PDF
+            </Button>
           </div>
         </div>
       </div>
