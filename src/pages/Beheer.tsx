@@ -9,9 +9,10 @@ import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { downloadCsv } from "@/lib/csv";
 import type { Tables, Enums } from "@/integrations/supabase/types";
-import { Download, Plus, Pencil, Check, X, Trash2, Settings, Users, Eye, EyeOff, ArrowRightLeft, RotateCcw, MessageSquare, Upload, Image, Mail, Send, FileDown } from "lucide-react";
+import { Download, Plus, Pencil, Check, X, Trash2, Settings, Users, Eye, EyeOff, ArrowRightLeft, RotateCcw, MessageSquare, Upload, Image, Mail, Send, FileDown, AlertTriangle } from "lucide-react";
 import ProjectenExport from "@/components/projecten/ProjectenExport";
 import BulkPdfExport from "@/components/projecten/BulkPdfExport";
+import FoutenAnalyse from "@/components/beheer/FoutenAnalyse";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -503,6 +504,10 @@ export default function Beheer() {
             <FileDown className="h-3.5 w-3.5" />
             Exports
           </TabsTrigger>
+          <TabsTrigger value="foutenanalyse" className="gap-1.5">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            Foutenanalyse
+          </TabsTrigger>
           <TabsTrigger value="feedback" className="gap-1.5">
             <MessageSquare className="h-3.5 w-3.5" />
             Feedback
@@ -986,6 +991,11 @@ export default function Beheer() {
         <TabsContent value="exports" className="space-y-4">
           <ProjectenExport />
           <BulkPdfExport />
+        </TabsContent>
+
+        {/* TAB: Foutenanalyse */}
+        <TabsContent value="foutenanalyse" className="space-y-4">
+          <FoutenAnalyse />
         </TabsContent>
 
         {/* TAB: Feedback */}
