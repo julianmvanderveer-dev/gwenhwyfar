@@ -333,6 +333,10 @@ export default function FoutenAnalyse() {
   th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
   th { background: #f8fafc; font-size: 9px; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; font-weight: 600; }
   td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; width: 60px; }
+  .cp { font-weight: 500; }
+  .aard { margin-top: 3px; font-size: 10px; color: #475569; }
+  .aard-item { margin-top: 1px; }
+  .aard-empty { color: #94a3b8; font-style: italic; }
   .adviseur { page-break-inside: avoid; margin-bottom: 12px; }
   .empty { color: #64748b; font-style: italic; padding: 12px 0; }
   footer { margin-top: 24px; padding-top: 8px; border-top: 1px solid #e2e8f0; font-size: 9px; color: #94a3b8; text-align: center; }
