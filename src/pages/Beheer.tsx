@@ -504,6 +504,10 @@ export default function Beheer() {
             <FileDown className="h-3.5 w-3.5" />
             Exports
           </TabsTrigger>
+          <TabsTrigger value="foutenanalyse" className="gap-1.5">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            Foutenanalyse
+          </TabsTrigger>
           <TabsTrigger value="feedback" className="gap-1.5">
             <MessageSquare className="h-3.5 w-3.5" />
             Feedback
