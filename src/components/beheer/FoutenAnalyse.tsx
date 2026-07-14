@@ -506,6 +506,13 @@ export default function FoutenAnalyse() {
                           <div className="text-xs text-muted-foreground">
                             {g.onderdeel} · {g.adviseurs.size} adviseur{g.adviseurs.size === 1 ? "" : "s"}
                           </div>
+                          {g.toelichtingen.length > 0 && (
+                            <ul className="mt-1.5 text-xs text-muted-foreground space-y-0.5 list-disc pl-4">
+                              {g.toelichtingen.map((t, ti) => (
+                                <li key={ti} className="line-clamp-2">{t}</li>
+                              ))}
+                            </ul>
+                          )}
                         </div>
                       </div>
                       <Badge variant="secondary" className="shrink-0 tabular-nums">{g.aantal}×</Badge>
@@ -557,6 +564,13 @@ export default function FoutenAnalyse() {
                               <div className="min-w-0">
                                 <div className="text-sm truncate">{p.controlepunt}</div>
                                 <div className="text-xs text-muted-foreground">{p.onderdeel}</div>
+                                {p.toelichtingen.length > 0 && (
+                                  <ul className="mt-1 text-xs text-muted-foreground space-y-0.5 list-disc pl-4">
+                                    {p.toelichtingen.map((t, ti) => (
+                                      <li key={ti} className="line-clamp-2">{t}</li>
+                                    ))}
+                                  </ul>
+                                )}
                               </div>
                             </div>
                             <span className="text-xs tabular-nums text-muted-foreground shrink-0">{p.aantal}×</span>
