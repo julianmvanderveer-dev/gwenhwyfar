@@ -13,6 +13,7 @@ type Row = {
   finding_id: string;
   controlepunt: string;
   onderdeel: string;
+  toelichting: string | null;
   type_afwijking: string | null;
   goedgekeurd_op: string | null;
   created_at: string;
@@ -49,7 +50,7 @@ export default function FoutenAnalyse() {
       const { data, error } = await supabase
         .from("findings")
         .select(
-          `id, controlepunt, onderdeel, type_afwijking, goedgekeurd_op, created_at,
+          `id, controlepunt, onderdeel, toelichting, type_afwijking, goedgekeurd_op, created_at,
            concept_reactie, status, beoordeling,
            project:projects!inner(id, projectnaam, audit_categorie, audit_soort, adviseur_id,
              adviseur:adviseurs(id, naam, nummer))`,
@@ -73,6 +74,7 @@ export default function FoutenAnalyse() {
           finding_id: f.id,
           controlepunt: f.controlepunt,
           onderdeel: f.onderdeel,
+          toelichting: f.toelichting ?? null,
           type_afwijking: f.type_afwijking,
           goedgekeurd_op: f.goedgekeurd_op,
           created_at: f.created_at,
@@ -127,24 +129,54 @@ export default function FoutenAnalyse() {
     return Array.from(map.values()).sort((a, b) => a.naam.localeCompare(b.naam));
   }, [rows]);
 
+  // Helper: verzamel unieke, niet-lege toelichtingen (max N)
+  const collectToelichtingen = (items: { toelichting: string | null }[], max = 3): string[] => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const it of items) {
+      const t = (it.toelichting ?? "").trim();
+      if (!t) continue;
+      const norm = t.toLowerCase();
+      if (seen.has(norm)) continue;
+      seen.add(norm);
+      out.push(t);
+      if (out.length >= max) break;
+    }
+    return out;
+  };
+
   // Globaal: top controlepunten
   const globaal = useMemo(() => {
-    const m = new Map<string, { controlepunt: string; onderdeel: string; aantal: number; adviseurs: Set<string> }>();
+    const m = new Map<
+      string,
+      { controlepunt: string; onderdeel: string; aantal: number; adviseurs: Set<string>; items: Row[] }
+    >();
     for (const r of filtered) {
       const key = `${r.onderdeel}||${r.controlepunt}`;
-      const cur = m.get(key) ?? { controlepunt: r.controlepunt, onderdeel: r.onderdeel, aantal: 0, adviseurs: new Set() };
+      const cur =
+        m.get(key) ??
+        { controlepunt: r.controlepunt, onderdeel: r.onderdeel, aantal: 0, adviseurs: new Set<string>(), items: [] as Row[] };
       cur.aantal += 1;
       if (r.adviseur_id) cur.adviseurs.add(r.adviseur_id);
+      cur.items.push(r);
       m.set(key, cur);
     }
-    return Array.from(m.values()).sort((a, b) => b.aantal - a.aantal);
+    return Array.from(m.values())
+      .map((g) => ({ ...g, toelichtingen: collectToelichtingen(g.items, 3) }))
+      .sort((a, b) => b.aantal - a.aantal);
   }, [filtered]);
 
   // Per adviseur: top controlepunten
   const perAdviseur = useMemo(() => {
     const m = new Map<
       string,
-      { adviseur_id: string; naam: string; nummer: number | null; totaal: number; punten: Map<string, { controlepunt: string; onderdeel: string; aantal: number }> }
+      {
+        adviseur_id: string;
+        naam: string;
+        nummer: number | null;
+        totaal: number;
+        punten: Map<string, { controlepunt: string; onderdeel: string; aantal: number; items: Row[] }>;
+      }
     >();
     for (const r of filtered) {
       const id = r.adviseur_id ?? "__geen__";
@@ -157,13 +189,21 @@ export default function FoutenAnalyse() {
       };
       bucket.totaal += 1;
       const pkey = `${r.onderdeel}||${r.controlepunt}`;
-      const p = bucket.punten.get(pkey) ?? { controlepunt: r.controlepunt, onderdeel: r.onderdeel, aantal: 0 };
+      const p =
+        bucket.punten.get(pkey) ??
+        { controlepunt: r.controlepunt, onderdeel: r.onderdeel, aantal: 0, items: [] as Row[] };
       p.aantal += 1;
+      p.items.push(r);
       bucket.punten.set(pkey, p);
       m.set(id, bucket);
     }
     return Array.from(m.values())
-      .map((b) => ({ ...b, top: Array.from(b.punten.values()).sort((a, c) => c.aantal - a.aantal) }))
+      .map((b) => ({
+        ...b,
+        top: Array.from(b.punten.values())
+          .map((p) => ({ ...p, toelichtingen: collectToelichtingen(p.items, 2) }))
+          .sort((a, c) => c.aantal - a.aantal),
+      }))
       .sort((a, b) => b.totaal - a.totaal);
   }, [filtered]);
 
@@ -188,6 +228,7 @@ export default function FoutenAnalyse() {
       Audit_soort: r.audit_soort ?? "",
       Onderdeel: r.onderdeel,
       Controlepunt: r.controlepunt,
+      Aard_afwijking: (r.toelichting ?? "").replace(/\s+/g, " ").trim(),
       Type_afwijking: r.type_afwijking ?? "",
     }));
     downloadCsv(rowsCsv as any, `foutenanalyse_${new Date().toISOString().slice(0, 10)}.csv`);
@@ -214,14 +255,22 @@ export default function FoutenAnalyse() {
     const globaalRows = globaal
       .slice(0, 50)
       .map(
-        (g, i) => `
+        (g, i) => {
+          const aard = g.toelichtingen.length
+            ? g.toelichtingen.map((t) => `<div class="aard-item">• ${esc(t)}</div>`).join("")
+            : '<span class="aard-empty">—</span>';
+          return `
         <tr>
           <td class="num">#${i + 1}</td>
-          <td>${esc(g.controlepunt)}</td>
+          <td>
+            <div class="cp">${esc(g.controlepunt)}</div>
+            <div class="aard">${aard}</div>
+          </td>
           <td>${esc(g.onderdeel)}</td>
           <td class="num">${g.aantal}</td>
           <td class="num">${g.adviseurs.size}</td>
-        </tr>`,
+        </tr>`;
+        },
       )
       .join("");
 
@@ -230,13 +279,21 @@ export default function FoutenAnalyse() {
         const rowsHtml = a.top
           .slice(0, 15)
           .map(
-            (p, i) => `
+            (p, i) => {
+              const aard = p.toelichtingen.length
+                ? p.toelichtingen.map((t) => `<div class="aard-item">• ${esc(t)}</div>`).join("")
+                : '<span class="aard-empty">—</span>';
+              return `
             <tr>
               <td class="num">#${i + 1}</td>
-              <td>${esc(p.controlepunt)}</td>
+              <td>
+                <div class="cp">${esc(p.controlepunt)}</div>
+                <div class="aard">${aard}</div>
+              </td>
               <td>${esc(p.onderdeel)}</td>
               <td class="num">${p.aantal}</td>
-            </tr>`,
+            </tr>`;
+            },
           )
           .join("");
         const nr = a.nummer != null ? String(a.nummer).padStart(3, "0") : "—";
@@ -276,6 +333,10 @@ export default function FoutenAnalyse() {
   th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
   th { background: #f8fafc; font-size: 9px; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; font-weight: 600; }
   td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; width: 60px; }
+  .cp { font-weight: 500; }
+  .aard { margin-top: 3px; font-size: 10px; color: #475569; }
+  .aard-item { margin-top: 1px; }
+  .aard-empty { color: #94a3b8; font-style: italic; }
   .adviseur { page-break-inside: avoid; margin-bottom: 12px; }
   .empty { color: #64748b; font-style: italic; padding: 12px 0; }
   footer { margin-top: 24px; padding-top: 8px; border-top: 1px solid #e2e8f0; font-size: 9px; color: #94a3b8; text-align: center; }
@@ -445,6 +506,13 @@ export default function FoutenAnalyse() {
                           <div className="text-xs text-muted-foreground">
                             {g.onderdeel} · {g.adviseurs.size} adviseur{g.adviseurs.size === 1 ? "" : "s"}
                           </div>
+                          {g.toelichtingen.length > 0 && (
+                            <ul className="mt-1.5 text-xs text-muted-foreground space-y-0.5 list-disc pl-4">
+                              {g.toelichtingen.map((t, ti) => (
+                                <li key={ti} className="line-clamp-2">{t}</li>
+                              ))}
+                            </ul>
+                          )}
                         </div>
                       </div>
                       <Badge variant="secondary" className="shrink-0 tabular-nums">{g.aantal}×</Badge>
@@ -496,6 +564,13 @@ export default function FoutenAnalyse() {
                               <div className="min-w-0">
                                 <div className="text-sm truncate">{p.controlepunt}</div>
                                 <div className="text-xs text-muted-foreground">{p.onderdeel}</div>
+                                {p.toelichtingen.length > 0 && (
+                                  <ul className="mt-1 text-xs text-muted-foreground space-y-0.5 list-disc pl-4">
+                                    {p.toelichtingen.map((t, ti) => (
+                                      <li key={ti} className="line-clamp-2">{t}</li>
+                                    ))}
+                                  </ul>
+                                )}
                               </div>
                             </div>
                             <span className="text-xs tabular-nums text-muted-foreground shrink-0">{p.aantal}×</span>
