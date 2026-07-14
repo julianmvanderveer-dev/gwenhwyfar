@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { downloadCsv } from "@/lib/csv";
-import { AlertTriangle, Download, TrendingUp, Users as UsersIcon } from "lucide-react";
+import { AlertTriangle, Download, FileText, TrendingUp, Users as UsersIcon } from "lucide-react";
 
 type Row = {
   finding_id: string;
@@ -191,6 +191,135 @@ export default function FoutenAnalyse() {
       Type_afwijking: r.type_afwijking ?? "",
     }));
     downloadCsv(rowsCsv as any, `foutenanalyse_${new Date().toISOString().slice(0, 10)}.csv`);
+  };
+
+  const exportPdf = () => {
+    const esc = (s: unknown) =>
+      String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
+    const soortLabel = (s: string | null) =>
+      s === "dossieraudit" ? "Dossieraudit" : s === "projectaudit" ? "Projectaudit" : s ?? "—";
+
+    const filterBits: string[] = [];
+    if (van) filterBits.push(`vanaf ${van}`);
+    if (tot) filterBits.push(`t/m ${tot}`);
+    if (categorie !== ALLE) filterBits.push(`categorie: ${categorie}`);
+    if (soort !== ALLE) filterBits.push(`soort: ${soortLabel(soort)}`);
+    if (onderdeel !== ALLE) filterBits.push(`onderdeel: ${onderdeel}`);
+    if (adviseurFilter !== ALLE) {
+      const a = adviseurs.find((x) => x.id === adviseurFilter);
+      filterBits.push(`adviseur: ${a?.naam ?? adviseurFilter}`);
+    }
+    const filtersLine = filterBits.length ? filterBits.join(" · ") : "geen filters";
+
+    const globaalRows = globaal
+      .slice(0, 50)
+      .map(
+        (g, i) => `
+        <tr>
+          <td class="num">#${i + 1}</td>
+          <td>${esc(g.controlepunt)}</td>
+          <td>${esc(g.onderdeel)}</td>
+          <td class="num">${g.aantal}</td>
+          <td class="num">${g.adviseurs.size}</td>
+        </tr>`,
+      )
+      .join("");
+
+    const adviseurBlocks = perAdviseur
+      .map((a) => {
+        const rowsHtml = a.top
+          .slice(0, 15)
+          .map(
+            (p, i) => `
+            <tr>
+              <td class="num">#${i + 1}</td>
+              <td>${esc(p.controlepunt)}</td>
+              <td>${esc(p.onderdeel)}</td>
+              <td class="num">${p.aantal}</td>
+            </tr>`,
+          )
+          .join("");
+        const nr = a.nummer != null ? String(a.nummer).padStart(3, "0") : "—";
+        return `
+        <section class="adviseur">
+          <h3><span class="nr">${nr}</span> ${esc(a.naam)} <span class="totaal">${a.totaal} blijvende afwijking${a.totaal === 1 ? "" : "en"}</span></h3>
+          <table>
+            <thead><tr><th>#</th><th>Controlepunt</th><th>Onderdeel</th><th class="num">Aantal</th></tr></thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </section>`;
+      })
+      .join("");
+
+    const now = new Date();
+    const datumStr = now.toLocaleDateString("nl-NL");
+    const bestandsdatum = now.toISOString().slice(0, 10);
+    const title = `Foutenanalyse ${bestandsdatum}`;
+
+    const html = `<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<title>${title}</title>
+<style>
+  @page { size: A4; margin: 18mm 14mm; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1B2A4A; margin: 0; font-size: 11px; line-height: 1.4; }
+  h1 { font-size: 20px; margin: 0 0 4px; color: #1B2A4A; }
+  h2 { font-size: 14px; margin: 24px 0 8px; padding-bottom: 4px; border-bottom: 2px solid #1B2A4A; }
+  h3 { font-size: 12px; margin: 14px 0 6px; display: flex; align-items: baseline; gap: 8px; }
+  h3 .nr { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #64748b; font-weight: 500; }
+  h3 .totaal { margin-left: auto; font-weight: 500; color: #b91c1c; font-size: 10px; }
+  .meta { color: #475569; font-size: 10px; margin-bottom: 4px; }
+  .intro { background: #f1f5f9; border-left: 3px solid #7AB929; padding: 8px 12px; margin: 12px 0 18px; font-size: 10px; color: #334155; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+  th { background: #f8fafc; font-size: 9px; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; font-weight: 600; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; width: 60px; }
+  .adviseur { page-break-inside: avoid; margin-bottom: 12px; }
+  .empty { color: #64748b; font-style: italic; padding: 12px 0; }
+  footer { margin-top: 24px; padding-top: 8px; border-top: 1px solid #e2e8f0; font-size: 9px; color: #94a3b8; text-align: center; }
+</style>
+</head>
+<body>
+  <h1>Foutenanalyse</h1>
+  <div class="meta">Gegenereerd op ${datumStr} · ${filtered.length} blijvende afwijking${filtered.length === 1 ? "" : "en"} in selectie</div>
+  <div class="meta"><strong>Filters:</strong> ${esc(filtersLine)}</div>
+  <div class="intro">
+    Blijvende afwijkingen zijn afgeronde bevindingen waarbij de EP-adviseur de afwijking heeft geaccepteerd
+    (dus niet succesvol heeft weerlegd).
+  </div>
+
+  <h2>Globale top — meest voorkomende blijvende fouten</h2>
+  ${
+    globaal.length === 0
+      ? '<div class="empty">Geen blijvende afwijkingen in deze selectie.</div>'
+      : `<table>
+          <thead><tr><th>#</th><th>Controlepunt</th><th>Onderdeel</th><th class="num">Aantal</th><th class="num">Adviseurs</th></tr></thead>
+          <tbody>${globaalRows}</tbody>
+        </table>`
+  }
+
+  <h2>Per adviseur</h2>
+  ${perAdviseur.length === 0 ? '<div class="empty">Geen adviseurs in deze selectie.</div>' : adviseurBlocks}
+
+  <footer>Foutenanalyse · ${datumStr}</footer>
+</body>
+</html>`;
+
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+    win.document.title = title;
+    // Wacht tot alles gerenderd is voor het printdialoog opent
+    win.onload = () => {
+      setTimeout(() => {
+        win.focus();
+        win.print();
+      }, 100);
+    };
   };
 
   if (loading) {
