@@ -993,6 +993,11 @@ export default function Beheer() {
           <BulkPdfExport />
         </TabsContent>
 
+        {/* TAB: Foutenanalyse */}
+        <TabsContent value="foutenanalyse" className="space-y-4">
+          <FoutenAnalyse />
+        </TabsContent>
+
         {/* TAB: Feedback */}
         <TabsContent value="feedback" className="space-y-4">
           <div className="border rounded-lg overflow-hidden shadow-sm bg-card">
