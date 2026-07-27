@@ -1,1 +1,0 @@
-ALTER TABLE public.findings ADD COLUMN toegewezen_beoordelaar uuid REFERENCES public.profiles(id);

@@ -1,1 +1,0 @@
-ALTER TABLE public.findings ADD COLUMN upload_vereist boolean NOT NULL DEFAULT false;

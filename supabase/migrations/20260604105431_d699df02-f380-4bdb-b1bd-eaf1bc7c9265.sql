@@ -1,2 +1,0 @@
-ALTER TABLE public.findings ADD COLUMN IF NOT EXISTS afwijking_kleiner_1pct boolean NOT NULL DEFAULT false;
-ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS is_omgevingsvergunning boolean NOT NULL DEFAULT false;

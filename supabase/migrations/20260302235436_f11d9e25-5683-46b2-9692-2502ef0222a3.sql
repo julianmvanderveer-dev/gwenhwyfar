@@ -1,1 +1,0 @@
-ALTER TABLE public.projects ADD COLUMN ep2_startwaarde numeric, ADD COLUMN ep2_eindwaarde numeric, ADD COLUMN ep2_beoordeling text;

@@ -2,109 +2,72 @@
 @tailwind components;
 @tailwind utilities;
 
-/* BengCert huisstijl — navy / groen / blauw / goud */
-
 @layer base {
   :root {
-    --background: 210 20% 97%;
-    --foreground: 220 42% 20%;
-
+    --background: 40 20% 98%;
+    --foreground: 220 15% 12%;
     --card: 0 0% 100%;
-    --card-foreground: 220 42% 20%;
-
+    --card-foreground: 220 15% 12%;
     --popover: 0 0% 100%;
-    --popover-foreground: 220 42% 20%;
-
-    --primary: 90 63% 44%;
+    --popover-foreground: 220 15% 12%;
+    --primary: 160 84% 33%;
     --primary-foreground: 0 0% 100%;
-
-    --secondary: 210 25% 93%;
-    --secondary-foreground: 220 42% 20%;
-
-    --muted: 210 20% 95%;
-    --muted-foreground: 215 14% 46%;
-
-    --accent: 212 65% 49%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 72% 51%;
+    --secondary: 160 20% 94%;
+    --secondary-foreground: 160 40% 20%;
+    --muted: 220 14% 94%;
+    --muted-foreground: 220 10% 44%;
+    --accent: 160 60% 92%;
+    --accent-foreground: 160 50% 18%;
+    --destructive: 0 72% 46%;
     --destructive-foreground: 0 0% 100%;
-
-    --warning: 38 92% 55%;
-    --warning-foreground: 0 0% 100%;
-
-    --success: 90 63% 44%;
-    --success-foreground: 0 0% 100%;
-
-    --border: 214 20% 88%;
-    --input: 214 20% 88%;
-    --ring: 90 63% 44%;
-
-    --radius: 0.5rem;
-
-    --sidebar-background: 220 42% 20%;
-    --sidebar-foreground: 210 20% 95%;
-    --sidebar-primary: 90 63% 44%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 35% 25%;
-    --sidebar-accent-foreground: 210 20% 95%;
-    --sidebar-border: 220 30% 28%;
-    --sidebar-ring: 90 63% 44%;
+    --border: 220 13% 89%;
+    --input: 220 13% 89%;
+    --ring: 160 84% 33%;
+    --waarschuwing: 32 95% 44%;
+    --succes: 160 84% 33%;
+    --radius: 0.75rem;
   }
 
   .dark {
-    --background: 220 42% 7%;
-    --foreground: 210 20% 95%;
-
-    --card: 220 38% 11%;
-    --card-foreground: 210 20% 95%;
-
-    --popover: 220 38% 11%;
-    --popover-foreground: 210 20% 95%;
-
-    --primary: 90 63% 44%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 220 30% 16%;
-    --secondary-foreground: 210 20% 95%;
-
-    --muted: 220 25% 14%;
-    --muted-foreground: 215 14% 60%;
-
-    --accent: 212 65% 55%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 210 20% 95%;
-
-    --warning: 38 92% 55%;
-    --warning-foreground: 0 0% 100%;
-
-    --success: 90 63% 44%;
-    --success-foreground: 0 0% 100%;
-
-    --border: 220 25% 18%;
-    --input: 220 25% 18%;
-    --ring: 90 63% 44%;
-
-    --sidebar-background: 220 42% 5%;
-    --sidebar-foreground: 210 20% 95%;
-    --sidebar-primary: 90 63% 44%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 35% 12%;
-    --sidebar-accent-foreground: 210 20% 95%;
-    --sidebar-border: 220 25% 14%;
-    --sidebar-ring: 90 63% 44%;
+    --background: 222 18% 8%;
+    --foreground: 220 14% 93%;
+    --card: 222 16% 12%;
+    --card-foreground: 220 14% 93%;
+    --popover: 222 16% 12%;
+    --popover-foreground: 220 14% 93%;
+    --primary: 160 74% 42%;
+    --primary-foreground: 222 18% 6%;
+    --secondary: 222 14% 17%;
+    --secondary-foreground: 220 14% 88%;
+    --muted: 222 14% 17%;
+    --muted-foreground: 220 10% 62%;
+    --accent: 160 30% 18%;
+    --accent-foreground: 160 40% 85%;
+    --destructive: 0 66% 54%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 222 13% 20%;
+    --input: 222 13% 22%;
+    --ring: 160 74% 42%;
+    --waarschuwing: 32 90% 55%;
+    --succes: 160 74% 42%;
   }
-}
 
-@layer base {
   * {
     @apply border-border;
   }
 
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
   body {
-    @apply bg-background text-foreground;
-    font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+    @apply bg-background text-foreground antialiased;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      "Helvetica Neue", Arial, sans-serif;
+    overscroll-behavior-y: none;
+  }
+
+  .bedrag {
+    font-variant-numeric: tabular-nums;
   }
 }

@@ -1,30 +1,16 @@
-import React from "react";
+import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import App from "./App.tsx";
+import App from "./App";
+import { seedDatabase } from "./lib/db";
 import "./index.css";
 
-class ErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { error: Error | null }
-> {
-  state = { error: null as Error | null };
-  static getDerivedStateFromError(error: Error) {
-    return { error };
+seedDatabase().finally(() => {
+  const root = document.getElementById("root");
+  if (root) {
+    createRoot(root).render(
+      <StrictMode>
+        <App />
+      </StrictMode>
+    );
   }
-  render() {
-    if (this.state.error) {
-      return (
-        <pre style={{ padding: 16, whiteSpace: "pre-wrap", color: "red" }}>
-          {String(this.state.error?.stack || this.state.error)}
-        </pre>
-      );
-    }
-    return this.props.children;
-  }
-}
-
-createRoot(document.getElementById("root")!).render(
-  <ErrorBoundary>
-    <App />
-  </ErrorBoundary>
-);
+});

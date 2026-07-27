@@ -1,68 +1,34 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "@/hooks/useAuth";
-import { AppSettingsProvider } from "@/hooks/useAppSettings";
-import Login from "./pages/Login";
-import Inbox from "./pages/Inbox";
-import ProjectDetail from "./pages/ProjectDetail";
-import ProjectAanmaken from "./pages/ProjectAanmaken";
-import FindingReactie from "./pages/FindingReactie";
-import FindingBeoordeling from "./pages/FindingBeoordeling";
-import Beheer from "./pages/Beheer";
-import ChecklistBeheer from "./pages/ChecklistBeheer";
-import AppLayout from "./components/AppLayout";
-import ResetPassword from "./pages/ResetPassword";
-import Unsubscribe from "./pages/Unsubscribe";
-import NotFound from "./pages/NotFound";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { ThemeProvider } from "next-themes";
+import { Toaster } from "@/components/ui/sonner";
+import { TabBalk } from "@/components/TabBalk";
+import Vandaag from "@/schermen/Vandaag";
+import Toevoegen from "@/schermen/Toevoegen";
+import Budget from "@/schermen/Budget";
+import Doelen from "@/schermen/Doelen";
+import Overzicht from "@/schermen/Overzicht";
+import Instellingen from "@/schermen/Instellingen";
 
-const queryClient = new QueryClient();
-
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-  if (loading) return <div className="p-4">Laden...</div>;
-  if (!user) return <Navigate to="/login" replace />;
-  return <>{children}</>;
-}
-
-function PublicRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-  if (loading) return <div className="p-4">Laden...</div>;
-  if (user) return <Navigate to="/inbox" replace />;
-  return <>{children}</>;
-}
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
+export default function App() {
+  return (
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <BrowserRouter>
-        <AppSettingsProvider>
-        <AuthProvider>
-          <Routes>
-            <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/unsubscribe" element={<Unsubscribe />} />
-            <Route path="/" element={<Navigate to="/inbox" replace />} />
-            <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-              <Route path="/inbox" element={<Inbox />} />
-              <Route path="/project/nieuw" element={<ProjectAanmaken />} />
-              <Route path="/project/:id" element={<ProjectDetail />} />
-              <Route path="/finding/:id/reactie" element={<FindingReactie />} />
-              <Route path="/finding/:id/beoordeling" element={<FindingBeoordeling />} />
-              <Route path="/beheer" element={<Beheer />} />
-              <Route path="/checklist-beheer" element={<ChecklistBeheer />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-        </AppSettingsProvider>
+        <div className="mx-auto flex min-h-dvh max-w-lg flex-col">
+          <main className="flex-1 pb-24">
+            <Routes>
+              <Route path="/" element={<Vandaag />} />
+              <Route path="/toevoegen" element={<Toevoegen />} />
+              <Route path="/budget" element={<Budget />} />
+              <Route path="/doelen" element={<Doelen />} />
+              <Route path="/overzicht" element={<Overzicht />} />
+              <Route path="/instellingen" element={<Instellingen />} />
+              <Route path="*" element={<Vandaag />} />
+            </Routes>
+          </main>
+          <TabBalk />
+        </div>
+        <Toaster position="top-center" />
       </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
-
-export default App;
+    </ThemeProvider>
+  );
+}

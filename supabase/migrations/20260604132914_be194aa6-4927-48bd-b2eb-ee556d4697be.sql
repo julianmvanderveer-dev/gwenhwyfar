@@ -1,1 +1,0 @@
-ALTER TABLE public.projects ADD COLUMN dropbox_link text;

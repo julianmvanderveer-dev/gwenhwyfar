@@ -1,1 +1,0 @@
-ALTER TYPE public.beoordeling_type ADD VALUE IF NOT EXISTS 'nvt';
