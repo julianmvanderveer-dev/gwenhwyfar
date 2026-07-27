@@ -28,6 +28,8 @@ export interface Transactie {
   spaardoelId?: number;
   /** Epoch ms van aanmaak, voor stabiele sortering binnen een dag */
   aangemaakt: number;
+  /** Aangemaakt door de demodata-knop; wordt gewist met "demodata wissen" */
+  demo?: boolean;
 }
 
 export interface Spaardoel {
@@ -41,6 +43,7 @@ export interface Spaardoel {
   /** jjjj-mm-dd, optioneel */
   streefdatum?: string;
   behaald: boolean;
+  demo?: boolean;
 }
 
 export interface Werkgever {
@@ -58,6 +61,7 @@ export interface Snelknop {
   categorieId: number;
   /** Hoe vaak gebruikt, voor sortering */
   gebruikt: number;
+  demo?: boolean;
 }
 
 export interface Instellingen {
