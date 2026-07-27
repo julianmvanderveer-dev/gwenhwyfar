@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils";
 const MAANDLETTERS = ["j", "f", "m", "a", "m", "j", "j", "a", "s", "o", "n", "d"];
 
 export default function Overzicht() {
-  const nu = new Date();
+  const nu = useMemo(() => new Date(), []);
   const [jaar, setJaar] = useState(nu.getFullYear());
 
   const transacties = useLiveQuery(() => db.transacties.toArray());

@@ -11,16 +11,16 @@ import {
 
 describe("euro", () => {
   it("formatteert met euroteken en komma", () => {
-    // Intl gebruikt een vaste spatie tussen € en het bedrag
-    expect(euro(1250).replace(/ /g, " ")).toBe("€ 12,50");
-    expect(euro(0).replace(/ /g, " ")).toBe("€ 0,00");
-    expect(euro(-2500).replace(/ /g, " ")).toBe("€ -25,00");
-    expect(euro(123456789).replace(/ /g, " ")).toBe("€ 1.234.567,89");
+    // Intl gebruikt een vaste spatie (U+00A0) tussen € en het bedrag
+    expect(euro(1250).replace(/\u00a0/g, " ")).toBe("€ 12,50");
+    expect(euro(0).replace(/\u00a0/g, " ")).toBe("€ 0,00");
+    expect(euro(-2500).replace(/\u00a0/g, " ")).toBe("€ -25,00");
+    expect(euro(123456789).replace(/\u00a0/g, " ")).toBe("€ 1.234.567,89");
   });
 
   it("toont nooit NaN of Infinity", () => {
-    expect(euro(Number.NaN).replace(/ /g, " ")).toBe("€ 0,00");
-    expect(euro(Number.POSITIVE_INFINITY).replace(/ /g, " ")).toBe("€ 0,00");
+    expect(euro(Number.NaN).replace(/\u00a0/g, " ")).toBe("€ 0,00");
+    expect(euro(Number.POSITIVE_INFINITY).replace(/\u00a0/g, " ")).toBe("€ 0,00");
   });
 });
 
