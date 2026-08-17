@@ -200,6 +200,44 @@ export default function BeheerStandVanZaken({ project, findings }: { project: Pr
     toast({ title: "EP-adviseur losgekoppeld" });
   };
 
+  const magAdviseurWijzigen = hasRole("beheer") || hasRole("auditor") || hasRole("tekenaar");
+
+  const startAdviseurBewerken = async () => {
+    setAdviseurBewerken(true);
+    setNieuweAdviseurId(project.adviseur_id ?? "");
+    if (adviseurLijst.length === 0) {
+      const { data } = await supabase
+        .from("adviseurs")
+        .select("id, nummer, naam")
+        .eq("actief", true)
+        .order("nummer");
+      setAdviseurLijst(data ?? []);
+    }
+  };
+
+  const opslaanAdviseur = async () => {
+    if (!nieuweAdviseurId || nieuweAdviseurId === project.adviseur_id) {
+      setAdviseurBewerken(false);
+      return;
+    }
+    const gekozen = adviseurLijst.find((a) => a.id === nieuweAdviseurId);
+    if (!confirm(`EP-adviseur van dit project wijzigen naar "${gekozen?.naam ?? ""}"?`)) return;
+    setAdviseurOpslaan(true);
+    const { error } = await supabase
+      .from("projects")
+      .update({ adviseur_id: nieuweAdviseurId })
+      .eq("id", project.id);
+    setAdviseurOpslaan(false);
+    if (error) {
+      toast({ title: "Wijzigen mislukt", description: error.message, variant: "destructive" });
+      return;
+    }
+    (project as Project).adviseur_id = nieuweAdviseurId;
+    setAdviseurNaam(gekozen?.naam ?? null);
+    setAdviseurBewerken(false);
+    toast({ title: "EP-adviseur gewijzigd", description: gekozen?.naam });
+  };
+
   // Bepaal "bal ligt bij"
   let balLigtBij: string;
   if (reactiesTeBeoordelen > 0) {
