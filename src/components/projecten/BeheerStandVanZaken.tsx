@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
-import { UserCog, UserCheck, Clock, Activity, Trash2 } from "lucide-react";
+import { UserCog, UserCheck, Clock, Activity, Trash2, Pencil, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
@@ -57,6 +57,10 @@ export default function BeheerStandVanZaken({ project, findings }: { project: Pr
   const [toegewezenNaam, setToegewezenNaam] = useState<string | null>(null);
   const [toegewezenRol, setToegewezenRol] = useState<string | null>(null);
   const [adviseurNaam, setAdviseurNaam] = useState<string | null>(null);
+  const [adviseurLijst, setAdviseurLijst] = useState<{ id: string; nummer: number; naam: string }[]>([]);
+  const [adviseurBewerken, setAdviseurBewerken] = useState(false);
+  const [nieuweAdviseurId, setNieuweAdviseurId] = useState<string>("");
+  const [adviseurOpslaan, setAdviseurOpslaan] = useState(false);
 
   useEffect(() => {
     let cancelled = false;

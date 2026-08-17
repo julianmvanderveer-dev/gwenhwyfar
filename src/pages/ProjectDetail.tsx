@@ -1115,8 +1115,8 @@ export default function ProjectDetail() {
         <AandachtspuntenAdviseur adviseurId={project.adviseur_id} projectId={project.id} />
       )}
 
-      {/* Stand van zaken (alleen beheer) */}
-      {hasRole("beheer") && (
+      {/* Stand van zaken (intern team) */}
+      {(hasRole("beheer") || hasRole("auditor") || hasRole("tekenaar")) && (
         <BeheerStandVanZaken project={project} findings={findings} />
       )}
 
