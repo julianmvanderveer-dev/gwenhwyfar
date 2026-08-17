@@ -292,8 +292,55 @@ export default function BeheerStandVanZaken({ project, findings }: { project: Pr
               <UserCheck className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="text-muted-foreground">EP-adviseur</div>
+                {adviseurBewerken ? (
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <select
+                      className="border rounded px-2 py-1 text-xs flex-1 bg-background min-w-0"
+                      value={nieuweAdviseurId}
+                      onChange={(e) => setNieuweAdviseurId(e.target.value)}
+                    >
+                      <option value="">— Kies EP-adviseur —</option>
+                      {adviseurLijst.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {String(a.nummer).padStart(3, "0")} - {a.naam}
+                        </option>
+                      ))}
+                    </select>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 shrink-0"
+                      disabled={!nieuweAdviseurId || adviseurOpslaan}
+                      aria-label="Opslaan"
+                      onClick={opslaanAdviseur}
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 shrink-0"
+                      aria-label="Annuleren"
+                      onClick={() => setAdviseurBewerken(false)}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ) : (
                 <div className="font-medium flex items-center gap-1">
                   <span className="truncate">{adviseurNaam ?? "—"}</span>
+                  {magAdviseurWijzigen && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 shrink-0"
+                      aria-label={project.adviseur_id ? "EP-adviseur wijzigen" : "EP-adviseur koppelen"}
+                      title={project.adviseur_id ? "EP-adviseur wijzigen" : "EP-adviseur koppelen"}
+                      onClick={startAdviseurBewerken}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                   {hasRole("beheer") && project.adviseur_id && (
                     <Button
                       variant="ghost"
@@ -307,6 +354,7 @@ export default function BeheerStandVanZaken({ project, findings }: { project: Pr
                     </Button>
                   )}
                 </div>
+                )}
               </div>
             </div>
           </div>
