@@ -139,6 +139,8 @@ export default function BeheerStandVanZaken({ project, findings }: { project: Pr
       if (project.adviseur_id) {
         const { data } = await supabase.from("adviseurs").select("naam").eq("id", project.adviseur_id).maybeSingle();
         if (!cancelled) setAdviseurNaam(data?.naam ?? null);
+      } else if (!cancelled) {
+        setAdviseurNaam(null);
       }
     };
     load();
