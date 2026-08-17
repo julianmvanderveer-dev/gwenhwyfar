@@ -1,29 +1,27 @@
+# EP-adviseur van een project kunnen wijzigen
+
 ## Doel
-- De downloadbare PDF-rapporten vermelden in de bestandsnaam het auditsoort: **Projectaudit** of **Dossieraudit**.
-- Het adviseursnummer in de bestandsnaam bestaat uit exact drie cijfers, zonder de extra voorloop-`1` die er nu soms voor staat (dus `001`, niet `1001`).
+Bij een project moet de gekoppelde EP-adviseur gewijzigd kunnen worden (nu kan hij alleen losgekoppeld worden). Daarnaast eenmalig: project `2142GM_17` koppelen aan Wilco Blankenstijn (adviseurnr. 100).
 
-## Aanpassingen
+## Huidige situatie (gecontroleerd)
+- Het blok "Stand van zaken" op de projectdetailpagina toont de EP-adviseur met alleen een prullenbak-knop (loskoppelen), zichtbaar voor beheer.
+- Project `2142GM_17` heeft nu geen EP-adviseur gekoppeld (leeg veld).
+- Wilco Blankenstijn bestaat als actieve EP-adviseur (nr. 100).
 
-### 1. `src/lib/generateAuditReport.ts`
-- Voeg een helper `auditSoortLabel` toe die `projectaudit` → "Projectaudit" en `dossieraudit` → "Dossieraudit" vertaalt.
-- Pas `nrStr` aan: gebruik alleen `String(adviseurNummer).padStart(3, "0")`, zonder voorloop-`1`.
-- Neem het auditsoort-label op in `documentTitle`.
+## Wat er komt
 
-Voorbeeld van de nieuwe titel:
-```
-001 Jan Jansen 1234AB_5 Projectaudit
-```
+### 1. EP-adviseur wijzigen in het project
+In het "Stand van zaken"-blok wordt de EP-adviseur-regel uitgebreid met een potlood-knop (wijzigen) naast de bestaande prullenbak:
+- Klikken opent een keuzelijst met alle actieve EP-adviseurs, gesorteerd op nummer, weergegeven als `100 - Wilco Blankenstijn`.
+- Kiezen + bevestigen slaat de nieuwe koppeling op en het scherm toont direct de nieuwe naam.
+- Werkt ook als er nog géén adviseur gekoppeld is (dan heet de knop "EP-adviseur koppelen").
+- Beschikbaar voor beheer, auditor en tekenaar (dezelfde groep die het project mag beheren); EP-adviseurs zelf kunnen dit niet.
+- Bevestigingsstap voorkomt per ongeluk wisselen; melding bevestigt de wijziging.
 
-### 2. `src/components/projecten/BulkPdfExport.tsx`
-- Voeg het auditsoort-label toe aan de `parts`-array die per project de PDF-bestandsnaam samenstelt.
-- Het adviseursnummer hier is al correct (`padStart(3, "0")` zonder extra `1`); dat blijft zo.
+### 2. Eenmalige toewijzing
+Project `2142GM_17` wordt direct gekoppeld aan Wilco Blankenstijn.
 
-Voorbeeld van de nieuwe bestandsnaam in de bulk-ZIP:
-```
-001 Jan Jansen 1234AB_5 EPWB Projectaudit.pdf
-```
-
-## Niet in scope
-- Geen database-wijzigingen.
-- Geen wijziging aan de inhoud van het rapport zelf (alleen bestandsnaam/titel).
-- Geen aanpassingen aan de naam van de bulk-ZIP zelf.
+## Technisch
+- Aanpassing in `src/components/projecten/BeheerStandVanZaken.tsx`: state voor bewerkmodus, laden van `adviseurs` (actief, op nummer), `update({ adviseur_id })` op `projects`, lokale naam bijwerken.
+- Rolcheck via bestaande `hasRole` (`beheer`/`auditor`/`tekenaar`).
+- Eenmalige data-update via een directe update op de projects-rij (geen schemawijziging nodig).
