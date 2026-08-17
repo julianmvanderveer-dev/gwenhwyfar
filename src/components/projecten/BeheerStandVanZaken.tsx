@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
-import { UserCog, UserCheck, Clock, Activity, Trash2 } from "lucide-react";
+import { UserCog, UserCheck, Clock, Activity, Trash2, Pencil, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
@@ -57,6 +57,10 @@ export default function BeheerStandVanZaken({ project, findings }: { project: Pr
   const [toegewezenNaam, setToegewezenNaam] = useState<string | null>(null);
   const [toegewezenRol, setToegewezenRol] = useState<string | null>(null);
   const [adviseurNaam, setAdviseurNaam] = useState<string | null>(null);
+  const [adviseurLijst, setAdviseurLijst] = useState<{ id: string; nummer: number; naam: string }[]>([]);
+  const [adviseurBewerken, setAdviseurBewerken] = useState(false);
+  const [nieuweAdviseurId, setNieuweAdviseurId] = useState<string>("");
+  const [adviseurOpslaan, setAdviseurOpslaan] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -135,6 +139,8 @@ export default function BeheerStandVanZaken({ project, findings }: { project: Pr
       if (project.adviseur_id) {
         const { data } = await supabase.from("adviseurs").select("naam").eq("id", project.adviseur_id).maybeSingle();
         if (!cancelled) setAdviseurNaam(data?.naam ?? null);
+      } else if (!cancelled) {
+        setAdviseurNaam(null);
       }
     };
     load();
@@ -194,6 +200,44 @@ export default function BeheerStandVanZaken({ project, findings }: { project: Pr
     toast({ title: "EP-adviseur losgekoppeld" });
   };
 
+  const magAdviseurWijzigen = hasRole("beheer") || hasRole("auditor") || hasRole("tekenaar");
+
+  const startAdviseurBewerken = async () => {
+    setAdviseurBewerken(true);
+    setNieuweAdviseurId(project.adviseur_id ?? "");
+    if (adviseurLijst.length === 0) {
+      const { data } = await supabase
+        .from("adviseurs")
+        .select("id, nummer, naam")
+        .eq("actief", true)
+        .order("nummer");
+      setAdviseurLijst(data ?? []);
+    }
+  };
+
+  const opslaanAdviseur = async () => {
+    if (!nieuweAdviseurId || nieuweAdviseurId === project.adviseur_id) {
+      setAdviseurBewerken(false);
+      return;
+    }
+    const gekozen = adviseurLijst.find((a) => a.id === nieuweAdviseurId);
+    if (!confirm(`EP-adviseur van dit project wijzigen naar "${gekozen?.naam ?? ""}"?`)) return;
+    setAdviseurOpslaan(true);
+    const { error } = await supabase
+      .from("projects")
+      .update({ adviseur_id: nieuweAdviseurId })
+      .eq("id", project.id);
+    setAdviseurOpslaan(false);
+    if (error) {
+      toast({ title: "Wijzigen mislukt", description: error.message, variant: "destructive" });
+      return;
+    }
+    (project as Project).adviseur_id = nieuweAdviseurId;
+    setAdviseurNaam(gekozen?.naam ?? null);
+    setAdviseurBewerken(false);
+    toast({ title: "EP-adviseur gewijzigd", description: gekozen?.naam });
+  };
+
   // Bepaal "bal ligt bij"
   let balLigtBij: string;
   if (reactiesTeBeoordelen > 0) {
@@ -248,8 +292,55 @@ export default function BeheerStandVanZaken({ project, findings }: { project: Pr
               <UserCheck className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="text-muted-foreground">EP-adviseur</div>
+                {adviseurBewerken ? (
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <select
+                      className="border rounded px-2 py-1 text-xs flex-1 bg-background min-w-0"
+                      value={nieuweAdviseurId}
+                      onChange={(e) => setNieuweAdviseurId(e.target.value)}
+                    >
+                      <option value="">— Kies EP-adviseur —</option>
+                      {adviseurLijst.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {String(a.nummer).padStart(3, "0")} - {a.naam}
+                        </option>
+                      ))}
+                    </select>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 shrink-0"
+                      disabled={!nieuweAdviseurId || adviseurOpslaan}
+                      aria-label="Opslaan"
+                      onClick={opslaanAdviseur}
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 shrink-0"
+                      aria-label="Annuleren"
+                      onClick={() => setAdviseurBewerken(false)}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ) : (
                 <div className="font-medium flex items-center gap-1">
                   <span className="truncate">{adviseurNaam ?? "—"}</span>
+                  {magAdviseurWijzigen && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 shrink-0"
+                      aria-label={project.adviseur_id ? "EP-adviseur wijzigen" : "EP-adviseur koppelen"}
+                      title={project.adviseur_id ? "EP-adviseur wijzigen" : "EP-adviseur koppelen"}
+                      onClick={startAdviseurBewerken}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                   {hasRole("beheer") && project.adviseur_id && (
                     <Button
                       variant="ghost"
@@ -263,6 +354,7 @@ export default function BeheerStandVanZaken({ project, findings }: { project: Pr
                     </Button>
                   )}
                 </div>
+                )}
               </div>
             </div>
           </div>

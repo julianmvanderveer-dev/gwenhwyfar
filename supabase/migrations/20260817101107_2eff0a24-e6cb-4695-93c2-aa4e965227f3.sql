@@ -1,0 +1,1 @@
+UPDATE public.projects SET adviseur_id = '9214cd58-802c-4bb0-ab0f-09b5f1c0bb99' WHERE id = 'fe99addc-6d10-41aa-babe-af9d995b6e04';
