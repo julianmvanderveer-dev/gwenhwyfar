@@ -1666,6 +1666,40 @@ export default function ProjectDetail() {
       </AlertDialog>
 
       {/* Footer actions */}
+      <AlertDialog
+        open={!!ep2WaardeDialog}
+        onOpenChange={(o) => { if (!o && !ep2WaardeBezig) annuleerEp2Waarde(); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              EP2 {ep2WaardeDialog?.field === "ep2_startwaarde" ? "startwaarde" : "eindwaarde"} wijzigen
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Deze audit is al beoordeeld/afgerond. De wijziging wordt vastgelegd in de wijzigingsgeschiedenis. Een toelichting is optioneel.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <textarea
+            className="w-full border border-input rounded-md p-2 text-sm min-h-[100px] bg-background"
+            placeholder="Optionele toelichting..."
+            value={ep2WaardeReden}
+            onChange={(e) => setEp2WaardeReden(e.target.value)}
+            disabled={ep2WaardeBezig}
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={ep2WaardeBezig} onClick={(e) => { e.preventDefault(); annuleerEp2Waarde(); }}>
+              Annuleren
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); void bevestigEp2Waarde(); }}
+              disabled={ep2WaardeBezig}
+            >
+              {ep2WaardeBezig ? "Bezig..." : "Opslaan"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {(canDeel1 || canDeel2) && (
         <div className="border rounded-lg bg-card p-4 flex items-center gap-3 shadow-sm">
           {canDeel1 && (
