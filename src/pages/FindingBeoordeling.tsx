@@ -39,7 +39,8 @@ export default function FindingBeoordeling() {
   const [selectedTekenaar, setSelectedTekenaar] = useState("");
   const [adviseurContext, setAdviseurContext] = useState<AdviseurContext | null>(null);
   const [autoClosed, setAutoClosed] = useState(false);
-  const [modus, setModus] = useState<"keuze" | "niet_akkoord">("keuze");
+  const [modus, setModus] = useState<"keuze" | "niet_akkoord" | "vervallen">("keuze");
+  const [vervallenToelichting, setVervallenToelichting] = useState("");
   const [andereActiesOpen, setAndereActiesOpen] = useState(false);
   const { isAdviseurVanProject } = useProjectRole(finding?.project_id);
 
