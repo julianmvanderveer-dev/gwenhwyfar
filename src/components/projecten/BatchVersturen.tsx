@@ -30,6 +30,7 @@ export default function BatchVersturen({ project, findings, onSent }: Props) {
     verstuurAuditor,
     akkoordCount,
     nietAkkoordCount,
+    vervallenCount,
   } = useBatchVersturen(project, findings, onSent);
 
   // EP-adviseur paneel
@@ -67,7 +68,7 @@ export default function BatchVersturen({ project, findings, onSent }: Props) {
             <p className="text-sm text-muted-foreground mt-1">
               {auditorConcepten.length} van {wachtOpAuditor.length} reactie(s) beoordeeld
               {auditorConcepten.length > 0 &&
-                ` — ${akkoordCount} goedgekeurd, ${nietAkkoordCount} niet akkoord`}
+                ` — ${akkoordCount} goedgekeurd, ${vervallenCount} vervallen, ${nietAkkoordCount} niet akkoord`}
               .
               {klaar
                 ? " Je kunt alles in één keer versturen naar de EP-adviseur."

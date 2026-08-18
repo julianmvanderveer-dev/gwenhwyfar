@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
-import { Mic, MicOff, Forward, Download, CheckCircle2, AlertTriangle, ChevronDown } from "lucide-react";
+import { Mic, MicOff, Forward, Download, CheckCircle2, XCircle, AlertTriangle, ChevronDown } from "lucide-react";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import AudioVisualizer from "@/components/AudioVisualizer";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -39,7 +39,8 @@ export default function FindingBeoordeling() {
   const [selectedTekenaar, setSelectedTekenaar] = useState("");
   const [adviseurContext, setAdviseurContext] = useState<AdviseurContext | null>(null);
   const [autoClosed, setAutoClosed] = useState(false);
-  const [modus, setModus] = useState<"keuze" | "niet_akkoord">("keuze");
+  const [modus, setModus] = useState<"keuze" | "niet_akkoord" | "vervallen">("keuze");
+  const [vervallenToelichting, setVervallenToelichting] = useState("");
   const [andereActiesOpen, setAndereActiesOpen] = useState(false);
   const { isAdviseurVanProject } = useProjectRole(finding?.project_id);
 
@@ -235,6 +236,31 @@ export default function FindingBeoordeling() {
     setLoading(false);
   };
 
+  const afwijkingVervalt = async () => {
+    setLoading(true);
+    const concept = {
+      type: "vervallen",
+      toelichting: vervallenToelichting.trim() || null,
+      opgeslagen_op: new Date().toISOString(),
+    };
+    const { error } = await supabase
+      .from("findings")
+      .update({ concept_beoordeling: concept as any })
+      .eq("id", id!);
+    if (error) {
+      toast({ title: "Fout bij opslaan", description: error.message, variant: "destructive" });
+    } else {
+      toast({
+        title: "Concept opgeslagen — afwijking vervalt",
+        description: "De bevinding wordt op 'Goed' gezet zodra je de beoordelingen verstuurt.",
+      });
+      loadFinding();
+      setModus("keuze");
+      setVervallenToelichting("");
+    }
+    setLoading(false);
+  };
+
   const getAfzenderLabel = (message: Message) => {
     if (adviseurContext?.user_id && message.afzender_id === adviseurContext.user_id) {
       return adviseurContext.naam ? `EP-adviseur — ${adviseurContext.naam}` : "EP-adviseur";
@@ -355,6 +381,8 @@ export default function FindingBeoordeling() {
                   Concept opgeslagen —{" "}
                   {((finding as any).concept_beoordeling as any).type === "akkoord"
                     ? "Goedgekeurd"
+                    : ((finding as any).concept_beoordeling as any).type === "vervallen"
+                    ? "Afwijking vervalt (wordt 'Goed')"
                     : "Niet akkoord (heropenen voor adviseur)"}
                 </p>
                 <p className="mt-1 text-xs">
@@ -379,8 +407,9 @@ export default function FindingBeoordeling() {
             const concept = (finding as any).concept_beoordeling as { type: string } | null;
             const isAkkoord = concept?.type === "akkoord";
             const isNietAkkoord = concept?.type === "niet_akkoord";
+            const isVervallen = concept?.type === "vervallen";
             return (
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button
                   onClick={akkoord}
                   disabled={loading || isAkkoord}
@@ -389,6 +418,18 @@ export default function FindingBeoordeling() {
                 >
                   <CheckCircle2 className="h-4 w-4" />
                   {isAkkoord ? "Goedgekeurd (concept)" : "Reactie goedkeuren"}
+                </Button>
+                <Button
+                  variant={isVervallen ? "secondary" : "outline"}
+                  className="gap-1.5"
+                  onClick={() => {
+                    if (isVervallen) setVervallenToelichting((concept as any)?.toelichting ?? "");
+                    setModus("vervallen");
+                  }}
+                  disabled={loading}
+                >
+                  <XCircle className="h-4 w-4" />
+                  {isVervallen ? "Wijzig: afwijking vervalt" : "Afwijking vervalt"}
                 </Button>
                 <Button
                   variant={isNietAkkoord ? "secondary" : "outline"}
@@ -407,6 +448,41 @@ export default function FindingBeoordeling() {
               </div>
             );
           })()}
+
+          {modus === "vervallen" && (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Je gaat akkoord met de EP-adviseur: dit is geen afwijking. De bevinding wordt op
+                "Goed" gezet en telt niet meer mee in het rapport, de EP2-telling en de
+                foutenanalyse. De berichtenhistorie blijft bewaard.
+              </p>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Toelichting (optioneel)</label>
+                <Textarea
+                  value={vervallenToelichting}
+                  onChange={(e) => setVervallenToelichting(e.target.value)}
+                  placeholder="Waarom vervalt deze afwijking?"
+                  rows={3}
+                  className="text-sm"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={afwijkingVervalt} disabled={loading} className="gap-1.5">
+                  <XCircle className="h-4 w-4" />
+                  Afwijking laten vervallen
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setModus("keuze");
+                    setVervallenToelichting("");
+                  }}
+                >
+                  Annuleren
+                </Button>
+              </div>
+            </div>
+          )}
 
           {modus === "niet_akkoord" && (
             <div className="space-y-3">
