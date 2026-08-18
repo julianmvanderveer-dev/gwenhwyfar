@@ -46,6 +46,12 @@ export const faseConfig: Record<FaseKey, {
     icon: AlertTriangle,
     accentClass: "text-destructive",
   },
+  wacht_op_herafmelding: {
+    titel: "Wacht op nieuwe afmelding",
+    omschrijving: "Kritiek (KT): EP-adviseur moet nieuw label aanleveren.",
+    icon: FileUp,
+    accentClass: "text-destructive",
+  },
   afgerond: {
     titel: "Afgerond",
     omschrijving: "Audit goedgekeurd. Nog 14 dagen zichtbaar.",
