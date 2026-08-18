@@ -16,6 +16,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import AfgerondeAudits from "@/components/dashboard/AfgerondeAudits";
 
 interface FindingRow {
   id: string;
@@ -465,6 +466,7 @@ export default function MedewerkerDashboard() {
             </>
           );
         })()}
+        <AfgerondeAudits />
       </TabsContent>
     </Tabs>
   );
