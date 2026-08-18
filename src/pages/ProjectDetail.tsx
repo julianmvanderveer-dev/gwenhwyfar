@@ -1530,8 +1530,8 @@ export default function ProjectDetail() {
                 step="0.01"
                 value={ep2Start}
                 onChange={(e) => setEp2Start(e.target.value)}
-                onBlur={(e) => saveEp2Field("ep2_startwaarde", e.target.value)}
-                disabled={!(canDeel1 || canDeel2)}
+                onBlur={(e) => handleEp2WaardeBlur("ep2_startwaarde", e.target.value)}
+                disabled={!(canDeel1 || canDeel2 || canEditEp2Post)}
                 placeholder="bijv. 125.50"
               />
             </div>
@@ -1543,8 +1543,8 @@ export default function ProjectDetail() {
                 step="0.01"
                 value={ep2Eind}
                 onChange={(e) => setEp2Eind(e.target.value)}
-                onBlur={(e) => saveEp2Field("ep2_eindwaarde", e.target.value)}
-                disabled={!canDeel2}
+                onBlur={(e) => handleEp2WaardeBlur("ep2_eindwaarde", e.target.value)}
+                disabled={!(canDeel2 || canEditEp2Post)}
                 placeholder="bijv. 130.00"
               />
             </div>
