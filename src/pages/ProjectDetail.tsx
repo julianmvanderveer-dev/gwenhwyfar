@@ -26,6 +26,7 @@ import { ArrowLeft, CheckCircle2, ClipboardCheck, ChevronLeft, ChevronRight, Dow
 import { generateAuditReport } from "@/lib/generateAuditReport";
 import AandachtspuntenAdviseur from "@/components/projecten/AandachtspuntenAdviseur";
 import BeheerStandVanZaken from "@/components/projecten/BeheerStandVanZaken";
+import Herafmelding from "@/components/projecten/Herafmelding";
 import BatchVersturen from "@/components/projecten/BatchVersturen";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { useProjectRole } from "@/hooks/useProjectRole";
@@ -1194,6 +1195,16 @@ export default function ProjectDetail() {
       {(hasRole("beheer") || hasRole("auditor") || hasRole("tekenaar")) && (
         <BeheerStandVanZaken project={project} findings={findings} />
       )}
+
+      {/* Herafmelding bij blijvende kritieke tekortkoming */}
+      <Herafmelding
+        projectId={project.id}
+        projectStatus={project.status}
+        onChanged={() => {
+          loadProject();
+          loadFindings();
+        }}
+      />
 
       {/* Batch versturen reacties / beoordelingen */}
       <BatchVersturen

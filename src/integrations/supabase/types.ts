@@ -390,6 +390,70 @@ export type Database = {
           },
         ]
       }
+      herafmeldingen: {
+        Row: {
+          afkeur_reden: string | null
+          beoordeeld_door: string | null
+          beoordeeld_op: string | null
+          bestand_pad: string
+          bestandsnaam: string
+          created_at: string
+          id: string
+          ingediend_door: string | null
+          project_id: string
+          status: string
+          toelichting: string | null
+        }
+        Insert: {
+          afkeur_reden?: string | null
+          beoordeeld_door?: string | null
+          beoordeeld_op?: string | null
+          bestand_pad: string
+          bestandsnaam: string
+          created_at?: string
+          id?: string
+          ingediend_door?: string | null
+          project_id: string
+          status?: string
+          toelichting?: string | null
+        }
+        Update: {
+          afkeur_reden?: string | null
+          beoordeeld_door?: string | null
+          beoordeeld_op?: string | null
+          bestand_pad?: string
+          bestandsnaam?: string
+          created_at?: string
+          id?: string
+          ingediend_door?: string | null
+          project_id?: string
+          status?: string
+          toelichting?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "herafmeldingen_beoordeeld_door_fkey"
+            columns: ["beoordeeld_door"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "herafmeldingen_ingediend_door_fkey"
+            columns: ["ingediend_door"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "herafmeldingen_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           afzender_id: string
@@ -815,6 +879,7 @@ export type Database = {
         | "deel1_afgerond"
         | "deel2_bezig"
         | "wacht_op_reactie"
+        | "wacht_op_herafmelding"
       toewijzing_type: "specifiek" | "pool"
     }
     CompositeTypes: {
@@ -966,6 +1031,7 @@ export const Constants = {
         "deel1_afgerond",
         "deel2_bezig",
         "wacht_op_reactie",
+        "wacht_op_herafmelding",
       ],
       toewijzing_type: ["specifiek", "pool"],
     },

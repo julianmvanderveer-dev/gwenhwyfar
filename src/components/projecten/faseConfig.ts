@@ -1,4 +1,4 @@
-import { FolderKanban, Clock3, AlertTriangle, CheckCircle2, Mail, FileCheck } from "lucide-react";
+import { FolderKanban, Clock3, AlertTriangle, CheckCircle2, Mail, FileCheck, FileUp } from "lucide-react";
 
 export type FaseKey =
   | "nieuw"
@@ -6,6 +6,7 @@ export type FaseKey =
   | "wacht_op_deel2"
   | "deel2_bezig"
   | "wacht_op_reactie_ep"
+  | "wacht_op_herafmelding"
   | "afgerond"
   | "reactie_ontvangen";
 
@@ -45,6 +46,12 @@ export const faseConfig: Record<FaseKey, {
     icon: AlertTriangle,
     accentClass: "text-destructive",
   },
+  wacht_op_herafmelding: {
+    titel: "Wacht op nieuwe afmelding",
+    omschrijving: "Kritiek (KT): EP-adviseur moet nieuw label aanleveren.",
+    icon: FileUp,
+    accentClass: "text-destructive",
+  },
   afgerond: {
     titel: "Afgerond",
     omschrijving: "Audit goedgekeurd. Nog 14 dagen zichtbaar.",
@@ -65,6 +72,7 @@ export const orderedFases: FaseKey[] = [
   "wacht_op_deel2",
   "deel2_bezig",
   "wacht_op_reactie_ep",
+  "wacht_op_herafmelding",
   "afgerond",
   "reactie_ontvangen",
 ];
@@ -82,6 +90,7 @@ export const bezigFases: FaseKey[] = [
   "wacht_op_deel2",
   "deel2_bezig",
   "wacht_op_reactie_ep",
+  "wacht_op_herafmelding",
   "reactie_ontvangen",
 ];
 
@@ -102,6 +111,7 @@ export function getProjectFase(
     case "deel1_afgerond": return "wacht_op_deel2";
     case "deel2_bezig": return "deel2_bezig";
     case "wacht_op_reactie": return hasReactieOntvangen ? "reactie_ontvangen" : "wacht_op_reactie_ep";
+    case "wacht_op_herafmelding": return "wacht_op_herafmelding";
     case "afgerond": return "afgerond";
     default: return "nieuw";
   }

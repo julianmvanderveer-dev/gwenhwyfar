@@ -257,7 +257,7 @@ export function useBatchVersturen(
           // Vereiste: EP-adviseur met e-mailadres voordat we de audit afronden
           const { data: projMeta } = await supabase
             .from("projects")
-            .select("adviseur_id, adviseurs:adviseur_id(email)")
+            .select("adviseur_id, ep2_beoordeling, adviseurs:adviseur_id(email)")
             .eq("id", project.id)
             .maybeSingle();
           const adviseurEmail = (projMeta as any)?.adviseurs?.email as string | null | undefined;
@@ -267,6 +267,32 @@ export function useBatchVersturen(
               description: "De EP-adviseur heeft geen e-mailadres. Vul dit eerst in bij Beheer → Adviseurs.",
               variant: "destructive",
             });
+            return;
+          }
+
+          const isKritiek = String((projMeta as any)?.ep2_beoordeling ?? "").toLowerCase() === "kt";
+
+          if (isKritiek) {
+            // Bij een blijvende kritieke tekortkoming moet het project opnieuw
+            // worden afgemeld: EP-adviseur levert een nieuw label aan.
+            await supabase
+              .from("projects")
+              .update({ status: "wacht_op_herafmelding" as any })
+              .eq("id", project.id);
+
+            supabase.functions
+              .invoke("notify-adviseur", {
+                body: { type: "herafmelding_vereist", project_id: project.id },
+              })
+              .then(({ error }) => {
+                if (error) console.error("Notificatie herafmelding fout:", error);
+              });
+
+            toast({
+              title: "Nieuwe afmelding vereist",
+              description: "De audit blijft kritiek (KT). De EP-adviseur moet een nieuw label aanleveren.",
+            });
+            onSent?.();
             return;
           }
 

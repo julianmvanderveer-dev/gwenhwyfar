@@ -48,6 +48,7 @@ export const statusBadge = (val: string | null, variant?: "kt" | "nk") => {
     afgerond: "bg-green-100 text-green-700",
     wacht_op_reactie: variant === "kt" ? "bg-red-100 text-red-700" : "bg-orange-100 text-orange-700",
     reactie_ontvangen: "bg-yellow-100 text-yellow-700",
+    wacht_op_herafmelding: "bg-purple-100 text-purple-700",
     gesloten: "bg-green-200 text-green-800",
     reactie_goedgekeurd: "bg-green-100 text-green-700",
   };
@@ -59,6 +60,7 @@ export const statusBadge = (val: string | null, variant?: "kt" | "nk") => {
     afgerond: "Afgerond",
     wacht_op_reactie: "Reactie EP-adviseur gevraagd",
     reactie_ontvangen: "Reactie ontvangen",
+    wacht_op_herafmelding: "Wacht op nieuwe afmelding",
     gesloten: "Gesloten",
     reactie_goedgekeurd: "Reactie goedgekeurd",
   };
