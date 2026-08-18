@@ -236,6 +236,31 @@ export default function FindingBeoordeling() {
     setLoading(false);
   };
 
+  const afwijkingVervalt = async () => {
+    setLoading(true);
+    const concept = {
+      type: "vervallen",
+      toelichting: vervallenToelichting.trim() || null,
+      opgeslagen_op: new Date().toISOString(),
+    };
+    const { error } = await supabase
+      .from("findings")
+      .update({ concept_beoordeling: concept as any })
+      .eq("id", id!);
+    if (error) {
+      toast({ title: "Fout bij opslaan", description: error.message, variant: "destructive" });
+    } else {
+      toast({
+        title: "Concept opgeslagen — afwijking vervalt",
+        description: "De bevinding wordt op 'Goed' gezet zodra je de beoordelingen verstuurt.",
+      });
+      loadFinding();
+      setModus("keuze");
+      setVervallenToelichting("");
+    }
+    setLoading(false);
+  };
+
   const getAfzenderLabel = (message: Message) => {
     if (adviseurContext?.user_id && message.afzender_id === adviseurContext.user_id) {
       return adviseurContext.naam ? `EP-adviseur — ${adviseurContext.naam}` : "EP-adviseur";
