@@ -15,7 +15,7 @@ export type ConceptReactie = {
 };
 
 export type ConceptBeoordeling = {
-  type: "akkoord" | "niet_akkoord";
+  type: "akkoord" | "niet_akkoord" | "vervallen";
   toelichting?: string | null;
   upload_vereist?: boolean;
   opgeslagen_op: string;
@@ -51,7 +51,10 @@ export function useBatchVersturen(
   const akkoordCount = auditorConcepten.filter(
     (f) => ((f as any).concept_beoordeling as ConceptBeoordeling)?.type === "akkoord",
   ).length;
-  const nietAkkoordCount = auditorConcepten.length - akkoordCount;
+  const vervallenCount = auditorConcepten.filter(
+    (f) => ((f as any).concept_beoordeling as ConceptBeoordeling)?.type === "vervallen",
+  ).length;
+  const nietAkkoordCount = auditorConcepten.length - akkoordCount - vervallenCount;
 
   const verstuurAdviseur = async () => {
     if (!user || !project) return;
@@ -120,6 +123,7 @@ export function useBatchVersturen(
     setBusy(true);
     try {
       const akkoordIds: string[] = [];
+      const vervallenIds: string[] = [];
       const heropenenIds: string[] = [];
       const heropenenUploadVereist: string[] = [];
       const messages: any[] = [];
@@ -135,6 +139,13 @@ export function useBatchVersturen(
               bericht: `[Goedgekeurd] ${c.toelichting}`,
             });
           }
+        } else if (c.type === "vervallen") {
+          vervallenIds.push(f.id);
+          messages.push({
+            finding_id: f.id,
+            afzender_id: user.id,
+            bericht: `[Goedgekeurd] Afwijking vervallen — ${c.toelichting ?? "auditor gaat akkoord met de weerlegging van de EP-adviseur."}`.trim(),
+          });
         } else {
           heropenenIds.push(f.id);
           if (c.upload_vereist) heropenenUploadVereist.push(f.id);
@@ -160,6 +171,23 @@ export function useBatchVersturen(
             concept_beoordeling: null,
           })
           .in("id", akkoordIds);
+        if (error) throw error;
+      }
+
+      if (vervallenIds.length > 0) {
+        const { error } = await supabase
+          .from("findings")
+          .update({
+            status: "reactie_goedgekeurd" as any,
+            beoordeling: "goed" as any,
+            type_afwijking: null,
+            deadline: null,
+            upload_vereist: false,
+            zichtbaar_voor_adviseur: false,
+            goedgekeurd_op: new Date().toISOString(),
+            concept_beoordeling: null,
+          })
+          .in("id", vervallenIds);
         if (error) throw error;
       }
 
@@ -207,7 +235,7 @@ export function useBatchVersturen(
 
       toast({
         title: "Beoordelingen verstuurd",
-        description: `${akkoordIds.length} goedgekeurd, ${heropenenIds.length} heropend.`,
+        description: `${akkoordIds.length} goedgekeurd, ${vervallenIds.length} vervallen, ${heropenenIds.length} heropend.`,
       });
 
       // Als er geen heropende bevindingen zijn, controleer of het hele project nu klaar is.
@@ -295,5 +323,6 @@ export function useBatchVersturen(
     verstuurAuditor,
     akkoordCount,
     nietAkkoordCount,
+    vervallenCount,
   };
 }

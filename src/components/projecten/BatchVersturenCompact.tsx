@@ -76,6 +76,7 @@ export default function BatchVersturenCompact({
     verstuurAuditor,
     akkoordCount,
     nietAkkoordCount,
+    vervallenCount,
   } = useBatchVersturen(project, findings, handleSent);
 
   if (!project) return null;
@@ -121,7 +122,7 @@ export default function BatchVersturenCompact({
             </span>{" "}
             beoordeling(en) klaar
             {auditorConcepten.length > 0 &&
-              ` (${akkoordCount} goedgekeurd, ${nietAkkoordCount} niet akkoord)`}
+              ` (${akkoordCount} goedgekeurd, ${vervallenCount} vervallen, ${nietAkkoordCount} niet akkoord)`}
             .
             {!klaar && " Beoordeel ook de overige reacties om te kunnen versturen."}
           </p>
