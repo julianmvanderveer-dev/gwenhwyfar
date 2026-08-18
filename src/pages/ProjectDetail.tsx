@@ -778,9 +778,6 @@ export default function ProjectDetail() {
   };
 
   const canEditFindingByDeel = (deel: number) => {
-    return canEditFindingByDeelInner(deel);
-  };
-  const canEditFindingByDeelInner = (deel: number) => {
     if (canDeel1 && deel === 1) return true;
     if (canDeel2) return true;
     return false;
