@@ -78,6 +78,14 @@ export default function ProjectDetail() {
   const [ep2Reden, setEp2Reden] = useState("");
   const [ep2Bezig, setEp2Bezig] = useState(false);
 
+  // EP2 waardewijziging (start-/eindwaarde) na afronden
+  const [ep2WaardeDialog, setEp2WaardeDialog] = useState<{
+    field: "ep2_startwaarde" | "ep2_eindwaarde";
+    nieuweWaarde: string;
+  } | null>(null);
+  const [ep2WaardeReden, setEp2WaardeReden] = useState("");
+  const [ep2WaardeBezig, setEp2WaardeBezig] = useState(false);
+
   // Dropbox link inline edit
   const [editingDropbox, setEditingDropbox] = useState(false);
   const [dropboxDraft, setDropboxDraft] = useState("");
