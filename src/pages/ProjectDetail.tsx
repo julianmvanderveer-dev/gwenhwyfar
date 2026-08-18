@@ -78,6 +78,14 @@ export default function ProjectDetail() {
   const [ep2Reden, setEp2Reden] = useState("");
   const [ep2Bezig, setEp2Bezig] = useState(false);
 
+  // EP2 waardewijziging (start-/eindwaarde) na afronden
+  const [ep2WaardeDialog, setEp2WaardeDialog] = useState<{
+    field: "ep2_startwaarde" | "ep2_eindwaarde";
+    nieuweWaarde: string;
+  } | null>(null);
+  const [ep2WaardeReden, setEp2WaardeReden] = useState("");
+  const [ep2WaardeBezig, setEp2WaardeBezig] = useState(false);
+
   // Dropbox link inline edit
   const [editingDropbox, setEditingDropbox] = useState(false);
   const [dropboxDraft, setDropboxDraft] = useState("");
@@ -775,6 +783,73 @@ export default function ProjectDetail() {
     return false;
   };
 
+  const formatEp2Waarde = (v: string | number | null | undefined) => {
+    if (v === null || v === undefined || v === "") return "leeg";
+    const n = typeof v === "number" ? v : parseFloat(v);
+    return isNaN(n) ? "leeg" : n.toFixed(2).replace(".", ",");
+  };
+
+  const handleEp2WaardeBlur = (field: "ep2_startwaarde" | "ep2_eindwaarde", value: string) => {
+    const huidig = field === "ep2_startwaarde" ? project.ep2_startwaarde : project.ep2_eindwaarde;
+    const huidigStr = huidig === null || huidig === undefined ? "" : String(huidig);
+    const nieuwNum = value === "" ? null : parseFloat(value);
+    const huidigNum = huidigStr === "" ? null : parseFloat(huidigStr);
+    if (nieuwNum === huidigNum || (nieuwNum !== null && huidigNum !== null && nieuwNum === huidigNum)) return;
+
+    if (canEditEp2Post && !canDeel2) {
+      setEp2WaardeReden("");
+      setEp2WaardeDialog({ field, nieuweWaarde: value });
+      return;
+    }
+    void saveEp2Field(field, value);
+  };
+
+  const annuleerEp2Waarde = () => {
+    if (!ep2WaardeDialog) return;
+    if (ep2WaardeDialog.field === "ep2_startwaarde") {
+      setEp2Start(project.ep2_startwaarde?.toString() ?? "");
+    } else {
+      setEp2Eind(project.ep2_eindwaarde?.toString() ?? "");
+    }
+    setEp2WaardeDialog(null);
+    setEp2WaardeReden("");
+  };
+
+  const bevestigEp2Waarde = async () => {
+    if (!id || !user || !ep2WaardeDialog) return;
+    const { field, nieuweWaarde } = ep2WaardeDialog;
+    setEp2WaardeBezig(true);
+    const label = field === "ep2_startwaarde" ? "startwaarde" : "eindwaarde";
+    const oud = field === "ep2_startwaarde" ? project.ep2_startwaarde : project.ep2_eindwaarde;
+
+    const { error: updErr } = await supabase
+      .from("projects")
+      .update({ [field]: nieuweWaarde ? parseFloat(nieuweWaarde) : null } as any)
+      .eq("id", id);
+    if (updErr) {
+      toast({ title: "Opslaan mislukt", description: updErr.message, variant: "destructive" });
+      setEp2WaardeBezig(false);
+      return;
+    }
+
+    const { data: prof } = await supabase.from("profiles").select("naam").eq("id", user.id).maybeSingle();
+    await supabase.from("ep2_status_history" as any).insert({
+      project_id: id,
+      changed_by: user.id,
+      changed_by_naam: prof?.naam ?? null,
+      oude_status: `${label} ${formatEp2Waarde(oud)}`,
+      nieuwe_status: `${label} ${formatEp2Waarde(nieuweWaarde)}`,
+      reden: ep2WaardeReden.trim() || "Geen toelichting opgegeven",
+    } as any);
+
+    setEp2WaardeDialog(null);
+    setEp2WaardeReden("");
+    setEp2WaardeBezig(false);
+    await loadProject();
+    await loadEp2History();
+    toast({ title: "EP2-waarde bijgewerkt", description: "De wijziging is vastgelegd in de wijzigingsgeschiedenis." });
+  };
+
   // Correctiemodus: zolang adviseur nog niet heeft gereageerd mogen tekenaar (deel 1)
   // of auditor (deel 2) een al-verstuurde bevinding nog corrigeren.
   const canCorrectFinding = (f: Finding) => {
@@ -1455,8 +1530,8 @@ export default function ProjectDetail() {
                 step="0.01"
                 value={ep2Start}
                 onChange={(e) => setEp2Start(e.target.value)}
-                onBlur={(e) => saveEp2Field("ep2_startwaarde", e.target.value)}
-                disabled={!(canDeel1 || canDeel2)}
+                onBlur={(e) => handleEp2WaardeBlur("ep2_startwaarde", e.target.value)}
+                disabled={!(canDeel1 || canDeel2 || canEditEp2Post)}
                 placeholder="bijv. 125.50"
               />
             </div>
@@ -1468,8 +1543,8 @@ export default function ProjectDetail() {
                 step="0.01"
                 value={ep2Eind}
                 onChange={(e) => setEp2Eind(e.target.value)}
-                onBlur={(e) => saveEp2Field("ep2_eindwaarde", e.target.value)}
-                disabled={!canDeel2}
+                onBlur={(e) => handleEp2WaardeBlur("ep2_eindwaarde", e.target.value)}
+                disabled={!(canDeel2 || canEditEp2Post)}
                 placeholder="bijv. 130.00"
               />
             </div>
@@ -1591,6 +1666,40 @@ export default function ProjectDetail() {
       </AlertDialog>
 
       {/* Footer actions */}
+      <AlertDialog
+        open={!!ep2WaardeDialog}
+        onOpenChange={(o) => { if (!o && !ep2WaardeBezig) annuleerEp2Waarde(); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              EP2 {ep2WaardeDialog?.field === "ep2_startwaarde" ? "startwaarde" : "eindwaarde"} wijzigen
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Deze audit is al beoordeeld/afgerond. De wijziging wordt vastgelegd in de wijzigingsgeschiedenis. Een toelichting is optioneel.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <textarea
+            className="w-full border border-input rounded-md p-2 text-sm min-h-[100px] bg-background"
+            placeholder="Optionele toelichting..."
+            value={ep2WaardeReden}
+            onChange={(e) => setEp2WaardeReden(e.target.value)}
+            disabled={ep2WaardeBezig}
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={ep2WaardeBezig} onClick={(e) => { e.preventDefault(); annuleerEp2Waarde(); }}>
+              Annuleren
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); void bevestigEp2Waarde(); }}
+              disabled={ep2WaardeBezig}
+            >
+              {ep2WaardeBezig ? "Bezig..." : "Opslaan"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {(canDeel1 || canDeel2) && (
         <div className="border rounded-lg bg-card p-4 flex items-center gap-3 shadow-sm">
           {canDeel1 && (
