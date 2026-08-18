@@ -783,6 +783,73 @@ export default function ProjectDetail() {
     return false;
   };
 
+  const formatEp2Waarde = (v: string | number | null | undefined) => {
+    if (v === null || v === undefined || v === "") return "leeg";
+    const n = typeof v === "number" ? v : parseFloat(v);
+    return isNaN(n) ? "leeg" : n.toFixed(2).replace(".", ",");
+  };
+
+  const handleEp2WaardeBlur = (field: "ep2_startwaarde" | "ep2_eindwaarde", value: string) => {
+    const huidig = field === "ep2_startwaarde" ? project.ep2_startwaarde : project.ep2_eindwaarde;
+    const huidigStr = huidig === null || huidig === undefined ? "" : String(huidig);
+    const nieuwNum = value === "" ? null : parseFloat(value);
+    const huidigNum = huidigStr === "" ? null : parseFloat(huidigStr);
+    if (nieuwNum === huidigNum || (nieuwNum !== null && huidigNum !== null && nieuwNum === huidigNum)) return;
+
+    if (canEditEp2Post && !canDeel2) {
+      setEp2WaardeReden("");
+      setEp2WaardeDialog({ field, nieuweWaarde: value });
+      return;
+    }
+    void saveEp2Field(field, value);
+  };
+
+  const annuleerEp2Waarde = () => {
+    if (!ep2WaardeDialog) return;
+    if (ep2WaardeDialog.field === "ep2_startwaarde") {
+      setEp2Start(project.ep2_startwaarde?.toString() ?? "");
+    } else {
+      setEp2Eind(project.ep2_eindwaarde?.toString() ?? "");
+    }
+    setEp2WaardeDialog(null);
+    setEp2WaardeReden("");
+  };
+
+  const bevestigEp2Waarde = async () => {
+    if (!id || !user || !ep2WaardeDialog) return;
+    const { field, nieuweWaarde } = ep2WaardeDialog;
+    setEp2WaardeBezig(true);
+    const label = field === "ep2_startwaarde" ? "startwaarde" : "eindwaarde";
+    const oud = field === "ep2_startwaarde" ? project.ep2_startwaarde : project.ep2_eindwaarde;
+
+    const { error: updErr } = await supabase
+      .from("projects")
+      .update({ [field]: nieuweWaarde ? parseFloat(nieuweWaarde) : null } as any)
+      .eq("id", id);
+    if (updErr) {
+      toast({ title: "Opslaan mislukt", description: updErr.message, variant: "destructive" });
+      setEp2WaardeBezig(false);
+      return;
+    }
+
+    const { data: prof } = await supabase.from("profiles").select("naam").eq("id", user.id).maybeSingle();
+    await supabase.from("ep2_status_history" as any).insert({
+      project_id: id,
+      changed_by: user.id,
+      changed_by_naam: prof?.naam ?? null,
+      oude_status: `${label} ${formatEp2Waarde(oud)}`,
+      nieuwe_status: `${label} ${formatEp2Waarde(nieuweWaarde)}`,
+      reden: ep2WaardeReden.trim() || "Geen toelichting opgegeven",
+    } as any);
+
+    setEp2WaardeDialog(null);
+    setEp2WaardeReden("");
+    setEp2WaardeBezig(false);
+    await loadProject();
+    await loadEp2History();
+    toast({ title: "EP2-waarde bijgewerkt", description: "De wijziging is vastgelegd in de wijzigingsgeschiedenis." });
+  };
+
   // Correctiemodus: zolang adviseur nog niet heeft gereageerd mogen tekenaar (deel 1)
   // of auditor (deel 2) een al-verstuurde bevinding nog corrigeren.
   const canCorrectFinding = (f: Finding) => {
