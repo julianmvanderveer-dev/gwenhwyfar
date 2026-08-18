@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { type, project_id, finding_id } = await req.json();
+    const { type, project_id, finding_id, extra } = await req.json();
 
     if (!type || !project_id) {
       return new Response(JSON.stringify({ error: "type and project_id required" }), {
@@ -152,6 +152,10 @@ Deno.serve(async (req) => {
       templateName = "audit-volledig-afgerond";
     } else if (effectiveType === "niet_akkoord") {
       templateName = "niet-akkoord";
+    } else if (effectiveType === "herafmelding_vereist") {
+      templateName = "herafmelding-vereist";
+    } else if (effectiveType === "herafmelding_beoordeeld") {
+      templateName = "herafmelding-beoordeeld";
     } else {
       return new Response(JSON.stringify({ error: "Ongeldig type" }), {
         status: 400,
@@ -178,6 +182,7 @@ Deno.serve(async (req) => {
             adviseurNaam: adviseur.naam,
             projectnaam: project.projectnaam,
             projectId: project_id,
+            ...(extra ?? {}),
           },
         }),
       }
