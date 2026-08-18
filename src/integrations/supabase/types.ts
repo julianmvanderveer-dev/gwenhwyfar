@@ -815,6 +815,7 @@ export type Database = {
         | "deel1_afgerond"
         | "deel2_bezig"
         | "wacht_op_reactie"
+        | "wacht_op_herafmelding"
       toewijzing_type: "specifiek" | "pool"
     }
     CompositeTypes: {
@@ -966,6 +967,7 @@ export const Constants = {
         "deel1_afgerond",
         "deel2_bezig",
         "wacht_op_reactie",
+        "wacht_op_herafmelding",
       ],
       toewijzing_type: ["specifiek", "pool"],
     },
