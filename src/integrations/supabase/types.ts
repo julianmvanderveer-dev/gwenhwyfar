@@ -770,6 +770,10 @@ export type Database = {
         Args: { _role: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
       }
+      is_beoordelaar_van_project: {
+        Args: { _project_id: string }
+        Returns: boolean
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
