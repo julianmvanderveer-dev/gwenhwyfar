@@ -517,12 +517,24 @@ export default function ProjectDetail() {
       toewijzing: "pool",
     }).eq("id", id!);
     toast({ title: "Deel 1 afgerond", description: "Project is vrijgegeven naar de auditor-pool" });
-    loadProject();
+    navigate("/inbox");
   };
 
   const auditAfronden = async () => {
     if (!hasRole("auditor") || isAdviseurVanProject) {
       toast({ title: "Geen toegang", description: "Alleen een auditor kan de audit afronden.", variant: "destructive" });
+      return;
+    }
+    const ontbrekend: string[] = [];
+    if (project?.ep2_startwaarde === null || project?.ep2_startwaarde === undefined) ontbrekend.push("startwaarde");
+    if (project?.ep2_eindwaarde === null || project?.ep2_eindwaarde === undefined) ontbrekend.push("eindwaarde");
+    if (!project?.ep2_beoordeling) ontbrekend.push("beoordeling");
+    if (ontbrekend.length > 0) {
+      toast({
+        title: "EP2 nog niet compleet",
+        description: `Vul eerst het tabblad EP2 Beoordeling in. Ontbreekt: ${ontbrekend.join(", ")}.`,
+        variant: "destructive",
+      });
       return;
     }
     if (!project?.adviseur_id) {
