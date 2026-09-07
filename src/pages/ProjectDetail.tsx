@@ -1733,7 +1733,14 @@ export default function ProjectDetail() {
             <Button onClick={deel1Afronden} className="shadow-sm">Deel 1 afronden</Button>
           )}
           {canDeel2 && (
-            <Button onClick={auditAfronden} className="shadow-sm">Audit afronden</Button>
+            <div className="flex flex-col gap-1">
+              <Button onClick={auditAfronden} className="shadow-sm" disabled={!ep2Compleet}>Audit afronden</Button>
+              {!ep2Compleet && (
+                <span className="text-xs text-muted-foreground">
+                  Vul eerst het tabblad EP2 Beoordeling in (startwaarde, eindwaarde en beoordeling).
+                </span>
+              )}
+            </div>
           )}
         </div>
       )}
