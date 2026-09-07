@@ -204,40 +204,33 @@ export default function ProjectDetail() {
       await supabase.from("projects").update({ status: "deel1_bezig" as any }).eq("id", id!);
       loadProject();
     } else if (hasRole("auditor") && currentStatus === "deel1_afgerond") {
+      // Geen automatische claim meer: een project in de pool blijft in de pool
+      // totdat een auditor het bewust oppakt.
       const { data: proj } = await supabase.from("projects").select("toewijzing, toegewezen_aan").eq("id", id!).single();
-      if (proj?.toewijzing === "pool" && !proj.toegewezen_aan) {
-        if (isAdviseurVanProject) {
-          toast({ title: "Je kunt dit project niet oppakken", description: "Je bent zelf EP-adviseur van dit project. Een andere auditor moet het oppakken.", variant: "destructive" });
-          navigate("/inbox");
-          return;
-        }
-        const { data: claimed } = await supabase.rpc("claim_project", { _project_id: id!, _user_id: user!.id });
-        if (!claimed) {
-          toast({ title: "Project niet beschikbaar", description: "Dit project is al door iemand anders opgepakt of je bent zelf EP-adviseur van dit project.", variant: "destructive" });
-          navigate("/inbox");
-          return;
-        }
-      }
+      if (proj?.toewijzing === "pool" && !proj.toegewezen_aan) return;
       await supabase.from("projects").update({ status: "deel2_bezig" as any }).eq("id", id!);
       loadProject();
     }
-    else if (hasRole("auditor") && (currentStatus === "wacht_op_reactie" || currentStatus === "deel2_bezig")) {
-      const { data: proj } = await supabase.from("projects").select("toewijzing, toegewezen_aan").eq("id", id!).single();
-      if (proj?.toewijzing === "pool" && !proj.toegewezen_aan) {
-        if (isAdviseurVanProject) {
-          toast({ title: "Je kunt dit project niet oppakken", description: "Je bent zelf EP-adviseur van dit project. Een andere auditor moet het oppakken.", variant: "destructive" });
-          navigate("/inbox");
-          return;
-        }
-        const { data: claimed } = await supabase.rpc("claim_project", { _project_id: id!, _user_id: user!.id });
-        if (!claimed) {
-          toast({ title: "Project niet beschikbaar", description: "Dit project is al door iemand anders opgepakt of je bent zelf EP-adviseur van dit project.", variant: "destructive" });
-          navigate("/inbox");
-          return;
-        }
-        loadProject();
-      }
+  };
+
+  const projectOppakken = async () => {
+    if (!id || !user) return;
+    if (isAdviseurVanProject) {
+      toast({ title: "Je kunt dit project niet oppakken", description: "Je bent zelf EP-adviseur van dit project. Een andere auditor moet het oppakken.", variant: "destructive" });
+      return;
     }
+    const { data: claimed } = await supabase.rpc("claim_project", { _project_id: id, _user_id: user.id });
+    if (!claimed) {
+      toast({ title: "Project niet beschikbaar", description: "Dit project is al door iemand anders opgepakt.", variant: "destructive" });
+      loadProject();
+      return;
+    }
+    const huidig = project?.status;
+    if (huidig === "deel1_afgerond") {
+      await supabase.from("projects").update({ status: "deel2_bezig" as any }).eq("id", id);
+    }
+    toast({ title: "Project opgepakt", description: "Je kunt nu aan dit project werken." });
+    loadProject();
   };
 
   const loadTemplates = async (categorie: string) => {
