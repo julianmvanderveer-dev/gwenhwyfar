@@ -717,9 +717,20 @@ export default function ProjectDetail() {
   });
   const allTabs = [...onderdelen, "__ep2__"];
 
+  // Project ligt nog in de pool: pas na bewust oppakken mag er gewerkt worden.
+  const isOppakbaar = project.toewijzing === "pool" && !project.toegewezen_aan;
+  const toonOppakken = hasRole("auditor") && !isAdviseurVanProject && isOppakbaar &&
+    (project.status === "deel1_afgerond" || project.status === "deel2_bezig" || project.status === "wacht_op_reactie");
+
+  // EP2 moet compleet zijn voordat de audit afgerond kan worden.
+  const ep2Compleet =
+    project.ep2_startwaarde !== null && project.ep2_startwaarde !== undefined &&
+    project.ep2_eindwaarde !== null && project.ep2_eindwaarde !== undefined &&
+    !!project.ep2_beoordeling;
+
   // Functiescheiding: ben je EP-adviseur van dit project, dan kun je geen
   // tekenaar-/auditor-bewerkingen uitvoeren op dit project.
-  const canDeel2 = hasRole("auditor") && !isAdviseurVanProject && (project.status === "deel1_afgerond" || project.status === "deel2_bezig");
+  const canDeel2 = hasRole("auditor") && !isAdviseurVanProject && !isOppakbaar && (project.status === "deel1_afgerond" || project.status === "deel2_bezig");
   const canDeel1 = (hasRole("tekenaar") || hasRole("auditor")) && !isAdviseurVanProject &&
     (project.status === "nog_niet_begonnen" || project.status === "deel1_bezig" || project.status === "deel1_afgerond");
 
