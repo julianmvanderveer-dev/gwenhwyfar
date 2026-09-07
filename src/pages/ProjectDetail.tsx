@@ -1202,6 +1202,16 @@ export default function ProjectDetail() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {toonOppakken && (
+        <div className="border rounded-lg bg-amber-50 border-amber-200 p-4 flex items-center gap-3">
+          <div className="text-sm text-amber-900">
+            <strong>Dit project ligt in de pool.</strong> Je kunt het bekijken, maar pas bewerken nadat je het hebt opgepakt.
+          </div>
+          <Button className="ml-auto shadow-sm" onClick={projectOppakken}>Dit project oppakken</Button>
+        </div>
+      )}
+
+
       {/* Aandachtspunten adviseur */}
       {project.adviseur_id && (hasRole("beheer") || hasRole("tekenaar") || hasRole("auditor")) && (
         <AandachtspuntenAdviseur adviseurId={project.adviseur_id} projectId={project.id} />
