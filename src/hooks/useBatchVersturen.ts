@@ -257,7 +257,7 @@ export function useBatchVersturen(
           // Vereiste: EP-adviseur met e-mailadres voordat we de audit afronden
           const { data: projMeta } = await supabase
             .from("projects")
-            .select("adviseur_id, ep2_beoordeling, adviseurs:adviseur_id(email)")
+            .select("adviseur_id, ep2_beoordeling, ep2_startwaarde, ep2_eindwaarde, adviseurs:adviseur_id(email)")
             .eq("id", project.id)
             .maybeSingle();
           const adviseurEmail = (projMeta as any)?.adviseurs?.email as string | null | undefined;
@@ -269,6 +269,20 @@ export function useBatchVersturen(
             });
             return;
           }
+
+          const ontbrekend: string[] = [];
+          if ((projMeta as any)?.ep2_startwaarde === null || (projMeta as any)?.ep2_startwaarde === undefined) ontbrekend.push("startwaarde");
+          if ((projMeta as any)?.ep2_eindwaarde === null || (projMeta as any)?.ep2_eindwaarde === undefined) ontbrekend.push("eindwaarde");
+          if (!(projMeta as any)?.ep2_beoordeling) ontbrekend.push("beoordeling");
+          if (ontbrekend.length > 0) {
+            toast({
+              title: "EP2 nog niet compleet",
+              description: `Vul eerst het tabblad EP2 Beoordeling in. Ontbreekt: ${ontbrekend.join(", ")}.`,
+              variant: "destructive",
+            });
+            return;
+          }
+
 
           const isKritiek = String((projMeta as any)?.ep2_beoordeling ?? "").toLowerCase() === "kt";
 
