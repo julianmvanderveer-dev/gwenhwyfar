@@ -571,8 +571,8 @@ export default function Beheer() {
             </div>
           </div>
 
-          <div className="border rounded-lg overflow-hidden shadow-sm bg-card">
-            <table className="w-full text-sm">
+          <div className="border rounded-lg overflow-x-auto shadow-sm bg-card">
+            <table className="w-full min-w-[1100px] text-sm">
               <thead>
                 {/* Group headers */}
                  <tr className="border-b bg-secondary/60">
@@ -796,7 +796,7 @@ export default function Beheer() {
             </Button>
           </div>
 
-          <div className="border rounded-lg overflow-hidden shadow-sm bg-card">
+          <div className="border rounded-lg overflow-x-auto shadow-sm bg-card">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-secondary/60">
@@ -890,7 +890,7 @@ export default function Beheer() {
 
         {/* TAB: Toewijzingen */}
         <TabsContent value="toewijzingen" className="space-y-4">
-          <div className="border rounded-lg overflow-hidden shadow-sm bg-card">
+          <div className="border rounded-lg overflow-x-auto shadow-sm bg-card">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-secondary/60">
@@ -1000,7 +1000,7 @@ export default function Beheer() {
 
         {/* TAB: Feedback */}
         <TabsContent value="feedback" className="space-y-4">
-          <div className="border rounded-lg overflow-hidden shadow-sm bg-card">
+          <div className="border rounded-lg overflow-x-auto shadow-sm bg-card">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-secondary/40">
