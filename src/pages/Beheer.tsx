@@ -572,7 +572,7 @@ export default function Beheer() {
           </div>
 
           <div className="border rounded-lg overflow-x-auto shadow-sm bg-card">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[1100px] text-sm">
               <thead>
                 {/* Group headers */}
                  <tr className="border-b bg-secondary/60">
