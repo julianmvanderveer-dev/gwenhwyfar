@@ -296,42 +296,14 @@ Deno.serve(async (req) => {
     let newUserId: string;
 
     if (invite || !password) {
-      const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
-        data: { naam },
-      });
-
-      if (inviteError) {
-        return new Response(JSON.stringify({ error: inviteError.message }), {
+      const { user_id } = await ensureAccountAndWelcome(email.trim().toLowerCase(), naam);
+      if (!user_id) {
+        return new Response(JSON.stringify({ error: "Account kon niet worden aangemaakt" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-
-      newUserId = inviteData.user.id;
-
-      // Notify Julian about the new invite
-      try {
-        await fetch(
-          `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-transactional-email`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-            },
-            body: JSON.stringify({
-              templateName: "audit-afgerond",
-              recipientEmail: "julian@borgch.nl",
-              templateData: {
-                adviseurNaam: "Julian",
-                projectnaam: `[Nieuw teamlid uitgenodigd] ${naam} (${email})`,
-              },
-            }),
-          }
-        );
-      } catch (notifyErr) {
-        console.error("Failed to notify about new invite:", notifyErr);
-      }
+      newUserId = user_id;
     } else {
       const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
         email,
