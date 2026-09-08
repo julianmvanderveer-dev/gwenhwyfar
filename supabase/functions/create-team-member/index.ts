@@ -205,9 +205,69 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Action: resend invite
+    // Helper: zorg dat account bestaat met standaardwachtwoord + stuur welkomstmail
+    const DEFAULT_PASSWORD = "BengCert26";
+
+    const ensureAccountAndWelcome = async (email: string, naam?: string) => {
+      let bestaatAl = false;
+      let user_id: string | undefined;
+
+      const { data: created, error: createErr } = await adminClient.auth.admin.createUser({
+        email,
+        password: DEFAULT_PASSWORD,
+        email_confirm: true,
+        user_metadata: { naam },
+      });
+
+      if (createErr) {
+        const msg = createErr.message?.toLowerCase() ?? "";
+        const alreadyExists = msg.includes("already") || msg.includes("registered") || msg.includes("exist");
+        if (!alreadyExists) throw new Error(createErr.message);
+        bestaatAl = true;
+
+        // Bestaand account: wachtwoord terugzetten naar standaardwachtwoord en bevestigen
+        const { data: list } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+        const existing = (list?.users ?? []).find(
+          (u) => u.email?.toLowerCase() === email
+        );
+        if (existing) {
+          user_id = existing.id;
+          await adminClient.auth.admin.updateUserById(existing.id, {
+            password: DEFAULT_PASSWORD,
+            email_confirm: true,
+          });
+        }
+      } else {
+        user_id = created.user?.id;
+      }
+
+      const res = await fetch(
+        `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-transactional-email`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({
+            templateName: "platform-uitnodiging",
+            recipientEmail: email,
+            templateData: { naam, wachtwoord: DEFAULT_PASSWORD, bestaatAl: false },
+            cc: "julian@borgch.nl",
+          }),
+        }
+      );
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(`Versturen welkomstmail mislukt: ${txt}`);
+      }
+
+      return { user_id, bestaatAl };
+    };
+
+    // Action: resend invite -> welkomstmail met standaardwachtwoord
     if (body.resend_invite) {
-      const { email } = body;
+      const email: string | undefined = body.email?.trim().toLowerCase();
       if (!email) {
         return new Response(JSON.stringify({ error: "E-mail is verplicht" }), {
           status: 400,
@@ -215,45 +275,13 @@ Deno.serve(async (req) => {
         });
       }
 
-      const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
-        data: { naam: body.naam },
-      });
+      const { user_id, bestaatAl } = await ensureAccountAndWelcome(email, body.naam);
 
-      if (inviteError) {
-        return new Response(JSON.stringify({ error: inviteError.message }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      // Notify Julian about the resend
-      try {
-        await fetch(
-          `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-transactional-email`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-            },
-            body: JSON.stringify({
-              templateName: "audit-afgerond",
-              recipientEmail: "julian@borgch.nl",
-              templateData: {
-                adviseurNaam: "Julian",
-                projectnaam: `[Uitnodiging opnieuw verstuurd] ${body.naam ?? email} (${email})`,
-              },
-            }),
-          }
-        );
-      } catch (notifyErr) {
-        console.error("Failed to notify about resend:", notifyErr);
-      }
-
-      return new Response(JSON.stringify({ success: true, invited: true, user_id: inviteData.user.id }), {
+      return new Response(JSON.stringify({ success: true, invited: true, user_id, bestaatAl }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
 
     // Original create flow
     const { naam, email, password, roles, invite } = body;
@@ -268,42 +296,14 @@ Deno.serve(async (req) => {
     let newUserId: string;
 
     if (invite || !password) {
-      const { data: inviteData, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
-        data: { naam },
-      });
-
-      if (inviteError) {
-        return new Response(JSON.stringify({ error: inviteError.message }), {
+      const { user_id } = await ensureAccountAndWelcome(email.trim().toLowerCase(), naam);
+      if (!user_id) {
+        return new Response(JSON.stringify({ error: "Account kon niet worden aangemaakt" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-
-      newUserId = inviteData.user.id;
-
-      // Notify Julian about the new invite
-      try {
-        await fetch(
-          `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-transactional-email`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-            },
-            body: JSON.stringify({
-              templateName: "audit-afgerond",
-              recipientEmail: "julian@borgch.nl",
-              templateData: {
-                adviseurNaam: "Julian",
-                projectnaam: `[Nieuw teamlid uitgenodigd] ${naam} (${email})`,
-              },
-            }),
-          }
-        );
-      } catch (notifyErr) {
-        console.error("Failed to notify about new invite:", notifyErr);
-      }
+      newUserId = user_id;
     } else {
       const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
         email,
