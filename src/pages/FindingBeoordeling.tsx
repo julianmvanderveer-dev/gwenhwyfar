@@ -192,6 +192,7 @@ export default function FindingBeoordeling() {
     setLoading(true);
     const concept = {
       type: "akkoord",
+      toelichting: akkoordToelichting.trim() || null,
       opgeslagen_op: new Date().toISOString(),
     };
     const { error } = await supabase
@@ -202,13 +203,17 @@ export default function FindingBeoordeling() {
       toast({ title: "Fout bij opslaan", description: error.message, variant: "destructive" });
     } else {
       toast({
-        title: "Concept opgeslagen",
-        description: "Verstuur al je beoordelingen in één keer via het projectoverzicht.",
+        title: "Concept opgeslagen — goedgekeurd",
+        description: "De afwijking blijft staan. Verstuur al je beoordelingen via het projectoverzicht.",
       });
       loadFinding();
+      setModus("keuze");
+      setAkkoordToelichting("");
     }
     setLoading(false);
   };
+
+
 
   const nietAkkoord = async () => {
     setLoading(true);
