@@ -379,35 +379,53 @@ export default function FindingBeoordeling() {
             <h2 className="font-semibold">Beoordeling door Auditor</h2>
             <p className="text-muted-foreground text-xs">Beoordeel de reactie van de EP-adviseur.</p>
           </div>
-          {(finding as any).concept_beoordeling && (
-            <div className="rounded border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900 flex items-start gap-3">
-              <CheckCircle2 className="h-5 w-5 text-emerald-700 mt-0.5 shrink-0" />
-              <div className="flex-1">
-                <p className="font-semibold">
-                  Concept opgeslagen —{" "}
-                  {((finding as any).concept_beoordeling as any).type === "akkoord"
-                    ? "Goedgekeurd"
-                    : ((finding as any).concept_beoordeling as any).type === "vervallen"
-                    ? "Afwijking vervalt (wordt 'Goed')"
-                    : "Niet akkoord (heropenen voor adviseur)"}
-                </p>
-                <p className="mt-1 text-xs">
-                  Nog niet verstuurd. Ga naar het projectoverzicht om alle beoordelingen in één keer te
-                  versturen, of pas hieronder je keuze aan.
-                </p>
-                {finding.project_id && (
-                  <Button
-                    variant="link"
-                    size="sm"
-                    className="h-auto p-0 mt-1 text-emerald-900 underline"
-                    onClick={() => navigate(`/project/${finding.project_id}`)}
-                  >
-                    Naar projectoverzicht →
-                  </Button>
-                )}
+          {(finding as any).concept_beoordeling && (() => {
+            const c = (finding as any).concept_beoordeling as { type: string; toelichting?: string | null };
+            const isAuto =
+              c.type === "akkoord" &&
+              (c.toelichting ?? "").startsWith("Automatisch akkoord");
+            const titel =
+              c.type === "akkoord"
+                ? "Goedgekeurd"
+                : c.type === "vervallen"
+                ? "Afwijking vervalt (wordt 'Goed')"
+                : "Niet akkoord (heropenen voor adviseur)";
+            const gevolg =
+              c.type === "akkoord"
+                ? "De afwijking blijft staan en telt mee in het rapport en de EP2-beoordeling."
+                : c.type === "vervallen"
+                ? "De afwijking wordt 'Goed' en telt niet meer mee in het rapport, de EP2-beoordeling en de foutenanalyse."
+                : "De bevinding gaat terug naar de EP-adviseur voor een nieuwe reactie.";
+            return (
+              <div className="rounded border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900 flex items-start gap-3">
+                <CheckCircle2 className="h-5 w-5 text-emerald-700 mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <p className="font-semibold">Concept opgeslagen — {titel}</p>
+                  <p className="mt-1 text-xs">{gevolg}</p>
+                  {isAuto && (
+                    <p className="mt-1 text-xs italic">
+                      Automatisch ingevuld omdat de EP-adviseur de afwijking heeft geaccepteerd. Je kunt
+                      dit hieronder aanpassen.
+                    </p>
+                  )}
+                  <p className="mt-1 text-xs">
+                    Nog niet verstuurd. Ga naar het projectoverzicht om alle beoordelingen in één keer te
+                    versturen, of pas hieronder je keuze aan.
+                  </p>
+                  {finding.project_id && (
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0 mt-1 text-emerald-900 underline"
+                      onClick={() => navigate(`/project/${finding.project_id}`)}
+                    >
+                      Naar projectoverzicht →
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {modus === "keuze" && (() => {
             const concept = (finding as any).concept_beoordeling as { type: string } | null;
@@ -417,13 +435,19 @@ export default function FindingBeoordeling() {
             return (
               <div className="flex flex-wrap gap-2">
                 <Button
-                  onClick={akkoord}
-                  disabled={loading || isAkkoord}
+                  onClick={() => {
+                    if (isAkkoord) {
+                      const t = (concept as any)?.toelichting ?? "";
+                      setAkkoordToelichting(t.startsWith("Automatisch akkoord") ? "" : t);
+                    }
+                    setModus("akkoord");
+                  }}
+                  disabled={loading}
                   variant={isAkkoord ? "secondary" : "default"}
                   className="gap-1.5"
                 >
                   <CheckCircle2 className="h-4 w-4" />
-                  {isAkkoord ? "Goedgekeurd (concept)" : "Reactie goedkeuren"}
+                  {isAkkoord ? "Wijzig: goedkeuren" : "Reactie goedkeuren"}
                 </Button>
                 <Button
                   variant={isVervallen ? "secondary" : "outline"}
@@ -454,6 +478,41 @@ export default function FindingBeoordeling() {
               </div>
             );
           })()}
+
+          {modus === "akkoord" && (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Je keurt de reactie van de EP-adviseur goed. De afwijking blijft staan en telt mee in het
+                rapport, de EP2-beoordeling en de foutenanalyse. Vind je dat het géén afwijking is, kies
+                dan "Afwijking vervalt".
+              </p>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Toelichting (optioneel)</label>
+                <Textarea
+                  value={akkoordToelichting}
+                  onChange={(e) => setAkkoordToelichting(e.target.value)}
+                  placeholder="Bijvoorbeeld: akkoord met de reactie, afwijking blijft geregistreerd."
+                  rows={3}
+                  className="text-sm"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={akkoord} disabled={loading} className="gap-1.5">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Reactie goedkeuren
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setModus("keuze");
+                    setAkkoordToelichting("");
+                  }}
+                >
+                  Annuleren
+                </Button>
+              </div>
+            </div>
+          )}
 
           {modus === "vervallen" && (
             <div className="space-y-3">
