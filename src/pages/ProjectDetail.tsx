@@ -55,6 +55,8 @@ export default function ProjectDetail() {
   const { user, hasRole } = useAuth();
   const { settings: appSettings } = useAppSettings();
   const [project, setProject] = useState<Project | null>(null);
+  const [loadError, setLoadError] = useState(false);
+
   const { isAdviseurVanProject } = useProjectRole(id);
   const [findings, setFindings] = useState<Finding[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -180,10 +182,17 @@ export default function ProjectDetail() {
   }, [uitdraai?.id, uitdraai?.status]);
 
   const loadProject = async () => {
-    const { data } = await supabase.from("projects").select("*").eq("id", id!).single();
+    const { data, error } = await supabase.from("projects").select("*").eq("id", id!).maybeSingle();
+    if (error || !data) {
+      setLoadError(true);
+      setProject(null);
+      return null;
+    }
+    setLoadError(false);
     setProject(data);
     return data;
   };
+
 
   const autoSetStatus = async (currentStatus: string) => {
     if ((hasRole("tekenaar") || hasRole("auditor")) && currentStatus === "nog_niet_begonnen") {
