@@ -1292,6 +1292,7 @@ export default function ProjectDetail() {
       <Herafmelding
         projectId={project.id}
         projectStatus={project.status}
+        dropboxLink={(project as any).dropbox_link}
         onChanged={() => {
           loadProject();
           loadFindings();
