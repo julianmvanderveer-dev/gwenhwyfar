@@ -291,7 +291,7 @@ export function useBatchVersturen(
             // worden afgemeld: EP-adviseur levert een nieuw label aan.
             await supabase
               .from("projects")
-              .update({ status: "wacht_op_herafmelding" as any })
+              .update({ status: "wacht_op_herafmelding" as any, gearchiveerd_op: null })
               .eq("id", project.id);
 
             supabase.functions
