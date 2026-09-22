@@ -55,6 +55,8 @@ export default function ProjectDetail() {
   const { user, hasRole } = useAuth();
   const { settings: appSettings } = useAppSettings();
   const [project, setProject] = useState<Project | null>(null);
+  const [loadError, setLoadError] = useState(false);
+
   const { isAdviseurVanProject } = useProjectRole(id);
   const [findings, setFindings] = useState<Finding[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -180,10 +182,17 @@ export default function ProjectDetail() {
   }, [uitdraai?.id, uitdraai?.status]);
 
   const loadProject = async () => {
-    const { data } = await supabase.from("projects").select("*").eq("id", id!).single();
+    const { data, error } = await supabase.from("projects").select("*").eq("id", id!).maybeSingle();
+    if (error || !data) {
+      setLoadError(true);
+      setProject(null);
+      return null;
+    }
+    setLoadError(false);
     setProject(data);
     return data;
   };
+
 
   const autoSetStatus = async (currentStatus: string) => {
     if ((hasRole("tekenaar") || hasRole("auditor")) && currentStatus === "nog_niet_begonnen") {
@@ -690,6 +699,17 @@ export default function ProjectDetail() {
       });
     }
   }, [autoEp2, ep2ManualOverride, project, saveEp2Field]);
+
+  if (loadError)
+    return (
+      <div className="p-6 space-y-3">
+        <h1 className="text-lg font-semibold">Geen toegang tot dit project</h1>
+        <p className="text-muted-foreground">
+          Dit project bestaat niet of u heeft er geen toegang toe. Neem contact op met BengCert als dit onjuist is.
+        </p>
+        <Button variant="outline" onClick={() => navigate("/inbox")}>Terug naar overzicht</Button>
+      </div>
+    );
 
   if (!project) return <div className="p-6 text-muted-foreground">Laden...</div>;
 
