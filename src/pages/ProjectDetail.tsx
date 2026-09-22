@@ -700,6 +700,17 @@ export default function ProjectDetail() {
     }
   }, [autoEp2, ep2ManualOverride, project, saveEp2Field]);
 
+  if (loadError)
+    return (
+      <div className="p-6 space-y-3">
+        <h1 className="text-lg font-semibold">Geen toegang tot dit project</h1>
+        <p className="text-muted-foreground">
+          Dit project bestaat niet of u heeft er geen toegang toe. Neem contact op met BengCert als dit onjuist is.
+        </p>
+        <Button variant="outline" onClick={() => navigate("/inbox")}>Terug naar overzicht</Button>
+      </div>
+    );
+
   if (!project) return <div className="p-6 text-muted-foreground">Laden...</div>;
 
   // Build merged rows per onderdeel
