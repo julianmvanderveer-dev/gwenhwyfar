@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { AppSettingsProvider } from "@/hooks/useAppSettings";
 import Login from "./pages/Login";
@@ -22,15 +22,23 @@ const queryClient = new QueryClient();
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const location = useLocation();
   if (loading) return <div className="p-4">Laden...</div>;
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) {
+    const from = `${location.pathname}${location.search}${location.hash}`;
+    return <Navigate to="/login" replace state={{ from }} />;
+  }
   return <>{children}</>;
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const location = useLocation();
   if (loading) return <div className="p-4">Laden...</div>;
-  if (user) return <Navigate to="/inbox" replace />;
+  if (user) {
+    const from = (location.state as { from?: string } | null)?.from ?? "/inbox";
+    return <Navigate to={from} replace />;
+  }
   return <>{children}</>;
 }
 

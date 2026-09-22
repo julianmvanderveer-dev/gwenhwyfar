@@ -34,6 +34,10 @@ const HerafmeldingVereistEmail = ({ adviseurNaam, projectnaam, projectId }: Prop
         <Section style={{ textAlign: 'center' as const, margin: '28px 0' }}>
           <Button style={button} href={auditUrl}>Nieuw label uploaden</Button>
         </Section>
+        <Text style={fallbackText}>
+          Werkt de knop niet? Kopieer dan deze link naar uw browser:<br />
+          <a href={auditUrl} style={fallbackLink}>{auditUrl}</a>
+        </Text>
         <Text style={footer}>Met vriendelijke groet,<br />Het {SITE_NAME} Team</Text>
       </Container>
     </Body>
@@ -54,3 +58,5 @@ const h1 = { fontSize: '22px', fontWeight: 'bold' as const, color: '#1e3a5f', ma
 const text = { fontSize: '14px', color: '#333333', lineHeight: '1.6', margin: '0 0 16px' }
 const button = { backgroundColor: '#5AAF2D', color: '#ffffff', fontSize: '14px', fontWeight: 'bold' as const, borderRadius: '8px', padding: '12px 24px', textDecoration: 'none' }
 const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
+const fallbackText = { fontSize: '12px', color: '#666666', lineHeight: '1.6', margin: '0 0 16px', wordBreak: 'break-all' as const }
+const fallbackLink = { color: '#1e3a5f', textDecoration: 'underline' }
