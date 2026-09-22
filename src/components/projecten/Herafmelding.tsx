@@ -22,10 +22,11 @@ type Herafmelding = {
 type Props = {
   projectId: string;
   projectStatus: string;
+  dropboxLink?: string | null;
   onChanged?: () => void;
 };
 
-export default function Herafmelding({ projectId, projectStatus, onChanged }: Props) {
+export default function Herafmelding({ projectId, projectStatus, dropboxLink, onChanged }: Props) {
   const { user } = useAuth();
   const { isAdviseurVanProject, magAuditorActiesDoen } = useProjectRole(projectId);
   const [items, setItems] = useState<Herafmelding[]>([]);
