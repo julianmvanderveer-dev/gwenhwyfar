@@ -50,7 +50,7 @@ export default function Login() {
       if (error) {
         toast({ title: "Fout", description: error.message, variant: "destructive" });
       } else {
-        navigate("/inbox");
+        navigate(redirectTo, { replace: true });
       }
     }
     setLoading(false);
