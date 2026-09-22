@@ -1,0 +1,19 @@
+CREATE OR REPLACE FUNCTION public.link_user_to_adviseur()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  UPDATE public.adviseurs SET user_id = NEW.id
+  WHERE lower(email) = lower(NEW.email) AND user_id IS NULL;
+
+  IF EXISTS (SELECT 1 FROM public.adviseurs WHERE user_id = NEW.id) THEN
+    INSERT INTO public.user_roles (user_id, role)
+    VALUES (NEW.id, 'ep_adviseur')
+    ON CONFLICT (user_id, role) DO NOTHING;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
