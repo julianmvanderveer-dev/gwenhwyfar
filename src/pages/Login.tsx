@@ -15,6 +15,8 @@ export default function Login() {
   const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTo = (location.state as { from?: string } | null)?.from ?? "/inbox";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
