@@ -33,8 +33,12 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const location = useLocation();
   if (loading) return <div className="p-4">Laden...</div>;
-  if (user) return <Navigate to="/inbox" replace />;
+  if (user) {
+    const from = (location.state as { from?: string } | null)?.from ?? "/inbox";
+    return <Navigate to={from} replace />;
+  }
   return <>{children}</>;
 }
 
