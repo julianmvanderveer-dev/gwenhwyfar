@@ -583,6 +583,9 @@ export default function ProjectDetail() {
     }
 
     const hasNietGoed = nietGoedFindings.length > 0;
+    const isKritiek = String(project?.ep2_beoordeling ?? "").toLowerCase() === "kt";
+
+    let notifyType: string;
 
     if (hasNietGoed) {
       await supabase.from("projects").update({
@@ -593,18 +596,32 @@ export default function ProjectDetail() {
         reminder_overdue_2w_sent: false,
         reminder_overdue_3w_sent: false,
       }).eq("id", id!);
+      notifyType = "audit_afgerond";
       toast({ title: "Audit afgerond", description: "Status naar 'Wacht op reactie'. Reactietermijn: 2 weken." });
+    } else if (isKritiek) {
+      // Bij een kritieke tekortkoming moet het project altijd opnieuw worden
+      // afgemeld voordat het definitief mag worden gearchiveerd.
+      await supabase.from("projects").update({
+        status: "wacht_op_herafmelding" as any,
+        gearchiveerd_op: null,
+      }).eq("id", id!);
+      notifyType = "herafmelding_vereist";
+      toast({
+        title: "Nieuwe afmelding vereist",
+        description: "De audit is kritiek (KT). De EP-adviseur moet een nieuw label aanleveren.",
+      });
     } else {
       await supabase.from("projects").update({
         status: "afgerond" as any,
         gearchiveerd_op: new Date().toISOString(),
       }).eq("id", id!);
+      notifyType = "audit_volledig_afgerond";
       toast({ title: "Audit afgerond", description: "Geen afwijkingen, status naar 'Afgerond'" });
     }
 
     supabase.functions.invoke("notify-adviseur", {
       body: {
-        type: hasNietGoed ? "audit_afgerond" : "audit_volledig_afgerond",
+        type: notifyType,
         project_id: id,
       },
     }).then(({ error }) => {
@@ -803,6 +820,30 @@ export default function ProjectDetail() {
       setEp2Bezig(false);
       return;
     }
+
+    // Wordt een (al afgeronde) audit alsnog kritiek, dan moet het project uit het
+    // archief en opnieuw worden afgemeld door de EP-adviseur.
+    let herafmeldingGestart = false;
+    if (
+      ep2PendingStatus.toLowerCase() === "kt" &&
+      ["afgerond", "gesloten"].includes(String(project?.status ?? ""))
+    ) {
+      const { error: statusErr } = await supabase
+        .from("projects")
+        .update({ status: "wacht_op_herafmelding" as any, gearchiveerd_op: null })
+        .eq("id", id);
+      if (!statusErr) {
+        herafmeldingGestart = true;
+        supabase.functions
+          .invoke("notify-adviseur", {
+            body: { type: "herafmelding_vereist", project_id: id },
+          })
+          .then(({ error }) => {
+            if (error) console.error("Notificatie herafmelding fout:", error);
+          });
+      }
+    }
+
     setEp2Beoordeling(ep2PendingStatus);
     setEp2ManualOverride(true);
     setEp2DialogOpen(false);
@@ -811,7 +852,12 @@ export default function ProjectDetail() {
     setEp2Reden("");
     await loadProject();
     await loadEp2History();
-    toast({ title: "EP2-status bijgewerkt", description: "Wijziging en toelichting zijn vastgelegd." });
+    toast({
+      title: herafmeldingGestart ? "Nieuwe afmelding vereist" : "EP2-status bijgewerkt",
+      description: herafmeldingGestart
+        ? "De audit is kritiek (KT): het project is uit het archief gehaald en de EP-adviseur moet een nieuw label aanleveren."
+        : "Wijziging en toelichting zijn vastgelegd.",
+    });
   };
 
   const canEditFindingByDeel = (deel: number) => {
@@ -1246,6 +1292,7 @@ export default function ProjectDetail() {
       <Herafmelding
         projectId={project.id}
         projectStatus={project.status}
+        dropboxLink={(project as any).dropbox_link}
         onChanged={() => {
           loadProject();
           loadFindings();
