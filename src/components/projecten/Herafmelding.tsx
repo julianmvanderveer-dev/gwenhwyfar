@@ -171,6 +171,29 @@ export default function Herafmelding({ projectId, projectStatus, dropboxLink, on
         </div>
       </div>
 
+      <div className="text-xs rounded-md border border-amber-200 bg-amber-50 p-3 space-y-1">
+        <p className="font-medium text-amber-900">
+          Lever het nieuwe afmeldingsbewijs op twee plaatsen aan:
+        </p>
+        <p className="text-amber-800">
+          1. Hier op bengaudit.nl als PDF. 2. In de Dropbox-map van dit project.
+        </p>
+        {dropboxLink && (
+          <a
+            href={dropboxLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 underline text-amber-900"
+          >
+            Dropbox-map van dit project openen
+          </a>
+        )}
+        <p className="text-amber-800">
+          Het project wordt pas definitief gearchiveerd nadat de auditor het nieuwe label heeft
+          gecontroleerd en goedgekeurd.
+        </p>
+      </div>
+
       {items.length > 0 && (
         <ul className="space-y-2 text-sm">
           {items.map((it) => (
