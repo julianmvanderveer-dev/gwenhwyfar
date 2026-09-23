@@ -13,16 +13,25 @@ interface Rij {
   aantal: number;
   totaal_afwijkingen: number;
   aantal_projecten: number;
+  gemiddeld_bij_anderen?: number | null;
 }
 
-export default function MijnFoutenTop() {
+interface Props {
+  jaar?: string | null;
+  showJaarFilter?: boolean;
+}
+
+export default function MijnFoutenTop({ jaar: jaarProp, showJaarFilter = true }: Props = {}) {
   const [rows, setRows] = useState<Rij[]>([]);
   const [jaren, setJaren] = useState<string[]>([]);
-  const [jaar, setJaar] = useState<string>(ALLE);
+  const [eigenJaar, setEigenJaar] = useState<string>(ALLE);
   const [limit, setLimit] = useState(5);
   const [loading, setLoading] = useState(true);
 
+  const jaar = showJaarFilter ? eigenJaar : jaarProp ?? ALLE;
+
   useEffect(() => {
+    if (!showJaarFilter) return;
     (async () => {
       const { data } = await supabase.from("projects").select("auditjaar, datum_aangemaakt");
       const set = new Set<string>();
@@ -32,7 +41,7 @@ export default function MijnFoutenTop() {
       });
       setJaren(Array.from(set).sort().reverse());
     })();
-  }, []);
+  }, [showJaarFilter]);
 
   useEffect(() => {
     let active = true;
