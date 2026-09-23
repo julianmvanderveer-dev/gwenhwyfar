@@ -24,6 +24,7 @@ type Row = {
   adviseur_id: string | null;
   adviseur_naam: string;
   adviseur_nummer: number | null;
+  auditjaar: string | null;
 };
 
 const ALLE = "__alle__";
@@ -42,6 +43,7 @@ export default function FoutenAnalyse() {
   const [soort, setSoort] = useState<string>(ALLE);
   const [onderdeel, setOnderdeel] = useState<string>(ALLE);
   const [adviseurFilter, setAdviseurFilter] = useState<string>(ALLE);
+  const [auditjaarFilter, setAuditjaarFilter] = useState<string>(ALLE);
 
   useEffect(() => {
     let active = true;
@@ -216,6 +218,7 @@ export default function FoutenAnalyse() {
     setSoort(ALLE);
     setOnderdeel(ALLE);
     setAdviseurFilter(ALLE);
+    setAuditjaarFilter(ALLE);
   };
 
   const exportCsv = () => {
@@ -226,6 +229,7 @@ export default function FoutenAnalyse() {
       Project: r.projectnaam,
       Audit_categorie: r.audit_categorie ?? "",
       Audit_soort: r.audit_soort ?? "",
+      Auditjaar: r.auditjaar ?? "",
       Onderdeel: r.onderdeel,
       Controlepunt: r.controlepunt,
       Aard_afwijking: (r.toelichting ?? "").replace(/\s+/g, " ").trim(),
@@ -241,6 +245,7 @@ export default function FoutenAnalyse() {
       s === "dossieraudit" ? "Dossieraudit" : s === "projectaudit" ? "Projectaudit" : s ?? "—";
 
     const filterBits: string[] = [];
+    if (auditjaarFilter !== ALLE) filterBits.push(`auditjaar: ${auditjaarFilter}`);
     if (van) filterBits.push(`vanaf ${van}`);
     if (tot) filterBits.push(`t/m ${tot}`);
     if (categorie !== ALLE) filterBits.push(`categorie: ${categorie}`);
@@ -402,6 +407,16 @@ export default function FoutenAnalyse() {
       {/* Filters */}
       <div className="rounded-lg border bg-card p-4 space-y-3">
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div>
+            <Label className="text-xs">Auditjaar</Label>
+            <Select value={auditjaarFilter} onValueChange={setAuditjaarFilter}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALLE}>Alle</SelectItem>
+                {auditjaren.map((j) => <SelectItem key={j} value={j}>{j}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
           <div>
             <Label className="text-xs">Periode van</Label>
             <Input type="date" value={van} onChange={(e) => setVan(e.target.value)} className="h-9" />
