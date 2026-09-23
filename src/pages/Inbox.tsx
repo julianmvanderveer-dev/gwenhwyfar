@@ -377,7 +377,7 @@ export default function Inbox() {
     window.open(data.signedUrl, "_blank");
   };
 
-  const beheerContent = (
+  const beheerOverzicht = (
     <>
       {/* Search */}
       <div className="relative max-w-md">
@@ -475,10 +475,40 @@ export default function Inbox() {
           isAfgerondView
         />
       </div>
-
-      <ExportFilter projects={projects} />
     </>
   );
+
+  const beheerContent = (
+    <Tabs defaultValue="overzicht" className="space-y-4">
+      <TabsList>
+        <TabsTrigger value="overzicht" className="gap-1.5">
+          <FolderKanban className="h-3.5 w-3.5" /> Overzicht
+        </TabsTrigger>
+        <TabsTrigger value="toewijzingen" className="gap-1.5">
+          <ArrowRightLeft className="h-3.5 w-3.5" /> Toewijzingen
+        </TabsTrigger>
+        <TabsTrigger value="exports" className="gap-1.5">
+          <FileDown className="h-3.5 w-3.5" /> Exports
+        </TabsTrigger>
+        <TabsTrigger value="foutenanalyse" className="gap-1.5">
+          <AlertTriangle className="h-3.5 w-3.5" /> Foutenanalyse
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="overzicht" className="space-y-6">{beheerOverzicht}</TabsContent>
+      <TabsContent value="toewijzingen" className="space-y-4">
+        <ToewijzingenBeheer />
+      </TabsContent>
+      <TabsContent value="exports" className="space-y-4">
+        <AlleProjectenExport />
+        <ProjectenExport />
+        <BulkPdfExport />
+      </TabsContent>
+      <TabsContent value="foutenanalyse" className="space-y-4">
+        <FoutenAnalyse />
+      </TabsContent>
+    </Tabs>
+  );
+
 
   const adviseurContent = (
     <Tabs key={navState.tab ?? "projecten"} defaultValue={navState.tab === "overzicht" ? "overzicht" : "projecten"} className="space-y-4">
