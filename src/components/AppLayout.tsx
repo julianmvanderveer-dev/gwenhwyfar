@@ -54,6 +54,31 @@ export default function AppLayout() {
           <AppLogo variant="light" size={28} />
         </Link>
 
+        {roleGroups.length > 1 && (
+          <div className="flex items-center gap-1 rounded-md bg-white/10 p-0.5 mr-2">
+            {roleGroups.map((g) => (
+              <button
+                key={g}
+                type="button"
+                onClick={() => setActiveGroup(g)}
+                className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
+                  activeGroup === g
+                    ? "bg-white text-[hsl(220,42%,20%)]"
+                    : "text-white/70 hover:text-white"
+                }`}
+              >
+                {g === "medewerker"
+                  ? hasRole("auditor")
+                    ? "Auditor"
+                    : "Tekenaar"
+                  : g === "beheer"
+                  ? "Beheer"
+                  : "EP-adviseur"}
+              </button>
+            ))}
+          </div>
+        )}
+
         <Link
           to="/inbox"
           className="font-medium hover:text-primary transition-colors"
@@ -61,7 +86,7 @@ export default function AppLayout() {
           Projecten
         </Link>
 
-        {hasRole("beheer") && (
+        {actsAs("beheer") && (
           <Link
             to="/beheer"
             className="font-medium hover:text-primary transition-colors"
@@ -69,7 +94,7 @@ export default function AppLayout() {
             Beheer
           </Link>
         )}
-        {hasRole("beheer") && (
+        {actsAs("beheer") && (
           <Link
             to="/checklist-beheer"
             className="font-medium hover:text-primary transition-colors"
