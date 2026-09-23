@@ -16,6 +16,7 @@ import { EPU_B_CHECKLIST } from "@/data/epub-checklist";
 import { EPU_D_CHECKLIST } from "@/data/epud-checklist";
 import { format } from "date-fns";
 import { nl } from "date-fns/locale";
+import { huidigAuditjaar, auditjaarOpties } from "@/lib/auditjaar";
 
 type Adviseur = { id: string; nummer: number; naam: string; email: string | null; actief: boolean };
 type ToewijsbaarPersoon = { id: string; naam: string; email: string; roles: Enums<"app_role">[]; auditCategorieen: Enums<"audit_categorie">[] };
@@ -32,6 +33,7 @@ export default function ProjectAanmaken() {
   const [prioriteit, setPrioriteit] = useState(false);
   const [isOmgevingsvergunning, setIsOmgevingsvergunning] = useState(false);
   const [dropboxLink, setDropboxLink] = useState("");
+  const [auditjaar, setAuditjaar] = useState(huidigAuditjaar());
   const [adviseurs, setAdviseurs] = useState<Adviseur[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -105,6 +107,7 @@ export default function ProjectAanmaken() {
       adviseur_id: adviseurId || null,
       audit_categorie: auditCategorie,
       audit_soort: auditSoort,
+      auditjaar,
       toelatingsaudit,
       prioriteit,
       is_omgevingsvergunning: isOmgevingsvergunning,
@@ -236,6 +239,14 @@ export default function ProjectAanmaken() {
             <option value="EPU-D">EPU-D</option>
             <option value="MWA-B">MWA-B</option>
             <option value="MWA-U">MWA-U</option>
+          </select>
+        </div>
+        <div>
+          <Label>Auditjaar <span className="italic font-normal text-sm text-muted-foreground">(1 juli t/m 30 juni)</span></Label>
+          <select className="border rounded px-2 py-1 w-full text-sm" value={auditjaar} onChange={(e) => setAuditjaar(e.target.value)}>
+            {auditjaarOpties().map((j) => (
+              <option key={j} value={j}>{j}</option>
+            ))}
           </select>
         </div>
         <div>

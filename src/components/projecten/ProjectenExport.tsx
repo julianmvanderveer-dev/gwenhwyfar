@@ -7,6 +7,7 @@ import { Download, CalendarDays } from "lucide-react";
 import { downloadCsv } from "@/lib/csv";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { auditjaarVanDatum } from "@/lib/auditjaar";
 
 interface Project {
   projectnaam: string;
@@ -18,6 +19,7 @@ interface Project {
   datum_aangemaakt: string;
   reactie_deadline: string | null;
   gearchiveerd_op: string | null;
+  auditjaar: string | null;
   adviseurs?: { naam: string | null; email: string | null } | null;
 }
 
@@ -67,15 +69,12 @@ export default function ProjectenExport() {
   const [vanDatum, setVanDatum] = useState("");
   const [totDatum, setTotDatum] = useState("");
 
-  const currentYear = new Date().getFullYear();
-  const years = [currentYear, currentYear - 1, currentYear - 2];
-
   useEffect(() => {
     (async () => {
       const { data, error } = await supabase
         .from("projects")
         .select(
-          "projectnaam, status, audit_categorie, audit_soort, prioriteit, toelatingsaudit, datum_aangemaakt, reactie_deadline, gearchiveerd_op, adviseurs:adviseur_id(naam, email)"
+          "projectnaam, status, audit_categorie, audit_soort, prioriteit, toelatingsaudit, datum_aangemaakt, reactie_deadline, gearchiveerd_op, auditjaar, adviseurs:adviseur_id(naam, email)"
         )
         .order("datum_aangemaakt", { ascending: false });
       if (error) {
@@ -87,11 +86,18 @@ export default function ProjectenExport() {
     })();
   }, []);
 
+  const jaarVan = (p: Project) => p.auditjaar ?? auditjaarVanDatum(p.datum_aangemaakt);
+
+  const auditjaren = useMemo(
+    () => Array.from(new Set(projects.map(jaarVan))).sort().reverse(),
+    [projects]
+  );
+
   const filterByDatum = (p: Project, veld: DatumVeld) => {
+    if (jaarFilter !== "alle" && jaarVan(p) !== jaarFilter) return false;
     const raw = p[veld];
     const ref = raw ? new Date(raw) : null;
-    if (!ref) return jaarFilter === "alle" && !vanDatum && !totDatum;
-    if (jaarFilter !== "alle" && String(ref.getFullYear()) !== jaarFilter) return false;
+    if (!ref) return !vanDatum && !totDatum;
     if (vanDatum && ref < new Date(vanDatum)) return false;
     if (totDatum && ref > new Date(totDatum + "T23:59:59")) return false;
     return true;
@@ -112,6 +118,7 @@ export default function ProjectenExport() {
         Status: STATUS_LABELS[p.status] ?? p.status,
         Categorie: p.audit_categorie,
         Soort: p.audit_soort,
+        Auditjaar: jaarVan(p),
         Prioriteit: p.prioriteit ? "Ja" : "Nee",
         Toelatingsaudit: p.toelatingsaudit ? "Ja" : "Nee",
         "EP-adviseur": p.adviseurs?.naam ?? "",
@@ -139,18 +146,18 @@ export default function ProjectenExport() {
       </CardHeader>
       <CardContent className="p-4 pt-0 space-y-4">
         <p className="text-xs text-muted-foreground">
-          Download een CSV per projectfase. Filters gelden voor alle groepen (jaar/datum wordt per groep
-          toegepast op het relevante datumveld).
+          Download een CSV per projectfase. Filters gelden voor alle groepen (auditjaar loopt van 1 juli
+          t/m 30 juni; de datums worden per groep toegepast op het relevante datumveld).
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <Select value={jaarFilter} onValueChange={setJaarFilter}>
             <SelectTrigger className="h-8 text-xs">
-              <SelectValue placeholder="Jaar" />
+              <SelectValue placeholder="Auditjaar" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="alle">Alle jaren</SelectItem>
-              {years.map((y) => (
-                <SelectItem key={y} value={String(y)}>
+              <SelectItem value="alle">Alle auditjaren</SelectItem>
+              {auditjaren.map((y) => (
+                <SelectItem key={y} value={y}>
                   {y}
                 </SelectItem>
               ))}

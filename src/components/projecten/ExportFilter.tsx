@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Download, CalendarDays } from "lucide-react";
 import { downloadCsv } from "@/lib/csv";
 import { toast } from "@/hooks/use-toast";
+import { auditjaarVanDatum } from "@/lib/auditjaar";
 
 interface ExportFilterProps {
   projects: Array<{
@@ -17,6 +18,7 @@ interface ExportFilterProps {
     toelatingsaudit: boolean;
     datum_aangemaakt: string;
     reactie_deadline: string | null;
+    auditjaar?: string | null;
     adviseurs?: { naam: string } | null;
   }>;
 }
@@ -26,13 +28,18 @@ export default function ExportFilter({ projects }: ExportFilterProps) {
   const [vanDatum, setVanDatum] = useState("");
   const [totDatum, setTotDatum] = useState("");
 
-  const currentYear = new Date().getFullYear();
-  const years = [currentYear, currentYear - 1, currentYear - 2];
+  const jaarVan = (p: ExportFilterProps["projects"][number]) =>
+    p.auditjaar ?? auditjaarVanDatum(p.datum_aangemaakt);
+
+  const auditjaren = useMemo(
+    () => Array.from(new Set(projects.map(jaarVan))).sort().reverse(),
+    [projects]
+  );
 
   const exportProjecten = useMemo(() => {
     return projects.filter((p) => {
       const d = new Date(p.datum_aangemaakt);
-      if (jaarFilter !== "alle" && String(d.getFullYear()) !== jaarFilter) return false;
+      if (jaarFilter !== "alle" && jaarVan(p) !== jaarFilter) return false;
       if (vanDatum && d < new Date(vanDatum)) return false;
       if (totDatum && d > new Date(totDatum)) return false;
       return true;
@@ -45,6 +52,7 @@ export default function ExportFilter({ projects }: ExportFilterProps) {
       Status: p.status,
       Categorie: p.audit_categorie,
       Soort: p.audit_soort,
+      Auditjaar: jaarVan(p),
       Prioriteit: p.prioriteit ? "Ja" : "Nee",
       Toelatingsaudit: p.toelatingsaudit ? "Ja" : "Nee",
       Adviseur: p.adviseurs?.naam ?? "",
@@ -68,12 +76,12 @@ export default function ExportFilter({ projects }: ExportFilterProps) {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <Select value={jaarFilter} onValueChange={setJaarFilter}>
             <SelectTrigger className="h-8 text-xs">
-              <SelectValue placeholder="Jaar" />
+              <SelectValue placeholder="Auditjaar" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="alle">Alle jaren</SelectItem>
-              {years.map((y) => (
-                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+              <SelectItem value="alle">Alle auditjaren</SelectItem>
+              {auditjaren.map((y) => (
+                <SelectItem key={y} value={y}>{y}</SelectItem>
               ))}
             </SelectContent>
           </Select>

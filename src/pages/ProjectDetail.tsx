@@ -30,6 +30,7 @@ import Herafmelding from "@/components/projecten/Herafmelding";
 import BatchVersturen from "@/components/projecten/BatchVersturen";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { useProjectRole } from "@/hooks/useProjectRole";
+import { auditjaarVanDatum, auditjaarOptiesMet } from "@/lib/auditjaar";
 
 type Project = Tables<"projects">;
 type Finding = Tables<"findings">;
@@ -1047,6 +1048,37 @@ export default function ProjectDetail() {
               </>
             )}
           </p>
+          {/* Auditjaar (1 juli t/m 30 juni) */}
+          <div className="mt-1 flex items-center gap-2 text-xs">
+            <span className="text-muted-foreground">Auditjaar:</span>
+            {hasRole("beheer") || hasRole("auditor") ? (
+              <select
+                className="h-7 rounded-md border border-input bg-background px-2 text-xs"
+                value={(project as any).auditjaar ?? auditjaarVanDatum(project.datum_aangemaakt)}
+                onChange={async (e) => {
+                  const value = e.target.value;
+                  const { error } = await supabase.from("projects").update({ auditjaar: value } as any).eq("id", id!);
+                  if (error) {
+                    toast({ title: "Opslaan mislukt", description: error.message, variant: "destructive" });
+                    return;
+                  }
+                  setProject({ ...(project as any), auditjaar: value } as any);
+                  toast({ title: `Auditjaar gewijzigd naar ${value}` });
+                }}
+              >
+                {auditjaarOptiesMet([
+                  (project as any).auditjaar,
+                  auditjaarVanDatum(project.datum_aangemaakt),
+                ]).map((j) => (
+                  <option key={j} value={j}>{j}</option>
+                ))}
+              </select>
+            ) : (
+              <span className="font-medium">
+                {(project as any).auditjaar ?? auditjaarVanDatum(project.datum_aangemaakt)}
+              </span>
+            )}
+          </div>
           {/* Dropbox-link dossier */}
           <div className="mt-1 flex items-center gap-2 text-xs">
             {editingDropbox && (hasRole("beheer") || hasRole("tekenaar") || hasRole("auditor")) ? (

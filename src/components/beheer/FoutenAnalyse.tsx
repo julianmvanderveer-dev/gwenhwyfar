@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { downloadCsv } from "@/lib/csv";
+import { auditjaarVanDatum } from "@/lib/auditjaar";
 import { AlertTriangle, Download, FileText, TrendingUp, Users as UsersIcon } from "lucide-react";
 
 type Row = {
@@ -24,6 +25,7 @@ type Row = {
   adviseur_id: string | null;
   adviseur_naam: string;
   adviseur_nummer: number | null;
+  auditjaar: string | null;
 };
 
 const ALLE = "__alle__";
@@ -42,6 +44,7 @@ export default function FoutenAnalyse() {
   const [soort, setSoort] = useState<string>(ALLE);
   const [onderdeel, setOnderdeel] = useState<string>(ALLE);
   const [adviseurFilter, setAdviseurFilter] = useState<string>(ALLE);
+  const [auditjaarFilter, setAuditjaarFilter] = useState<string>(ALLE);
 
   useEffect(() => {
     let active = true;
@@ -52,7 +55,7 @@ export default function FoutenAnalyse() {
         .select(
           `id, controlepunt, onderdeel, toelichting, type_afwijking, goedgekeurd_op, created_at,
            concept_reactie, status, beoordeling,
-           project:projects!inner(id, projectnaam, audit_categorie, audit_soort, adviseur_id,
+           project:projects!inner(id, projectnaam, audit_categorie, audit_soort, auditjaar, datum_aangemaakt, adviseur_id,
              adviseur:adviseurs(id, naam, nummer))`,
         )
         .eq("beoordeling", "niet_goed")
@@ -85,6 +88,7 @@ export default function FoutenAnalyse() {
           adviseur_id: f.project?.adviseur?.id ?? null,
           adviseur_naam: f.project?.adviseur?.naam ?? "— onbekend —",
           adviseur_nummer: f.project?.adviseur?.nummer ?? null,
+          auditjaar: f.project?.auditjaar ?? (f.project?.datum_aangemaakt ? auditjaarVanDatum(f.project.datum_aangemaakt) : null),
         }));
       setRows(mapped);
       setLoading(false);
@@ -103,9 +107,15 @@ export default function FoutenAnalyse() {
       if (soort !== ALLE && r.audit_soort !== soort) return false;
       if (onderdeel !== ALLE && r.onderdeel !== onderdeel) return false;
       if (adviseurFilter !== ALLE && r.adviseur_id !== adviseurFilter) return false;
+      if (auditjaarFilter !== ALLE && r.auditjaar !== auditjaarFilter) return false;
       return true;
     });
-  }, [rows, van, tot, categorie, soort, onderdeel, adviseurFilter]);
+  }, [rows, van, tot, categorie, soort, onderdeel, adviseurFilter, auditjaarFilter]);
+
+  const auditjaren = useMemo(
+    () => (Array.from(new Set(rows.map((r) => r.auditjaar).filter(Boolean))) as string[]).sort().reverse(),
+    [rows],
+  );
 
   const categorieen = useMemo(
     () => Array.from(new Set(rows.map((r) => r.audit_categorie).filter(Boolean))) as string[],
@@ -216,6 +226,7 @@ export default function FoutenAnalyse() {
     setSoort(ALLE);
     setOnderdeel(ALLE);
     setAdviseurFilter(ALLE);
+    setAuditjaarFilter(ALLE);
   };
 
   const exportCsv = () => {
@@ -226,6 +237,7 @@ export default function FoutenAnalyse() {
       Project: r.projectnaam,
       Audit_categorie: r.audit_categorie ?? "",
       Audit_soort: r.audit_soort ?? "",
+      Auditjaar: r.auditjaar ?? "",
       Onderdeel: r.onderdeel,
       Controlepunt: r.controlepunt,
       Aard_afwijking: (r.toelichting ?? "").replace(/\s+/g, " ").trim(),
@@ -241,6 +253,7 @@ export default function FoutenAnalyse() {
       s === "dossieraudit" ? "Dossieraudit" : s === "projectaudit" ? "Projectaudit" : s ?? "—";
 
     const filterBits: string[] = [];
+    if (auditjaarFilter !== ALLE) filterBits.push(`auditjaar: ${auditjaarFilter}`);
     if (van) filterBits.push(`vanaf ${van}`);
     if (tot) filterBits.push(`t/m ${tot}`);
     if (categorie !== ALLE) filterBits.push(`categorie: ${categorie}`);
@@ -402,6 +415,16 @@ export default function FoutenAnalyse() {
       {/* Filters */}
       <div className="rounded-lg border bg-card p-4 space-y-3">
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div>
+            <Label className="text-xs">Auditjaar</Label>
+            <Select value={auditjaarFilter} onValueChange={setAuditjaarFilter}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALLE}>Alle</SelectItem>
+                {auditjaren.map((j) => <SelectItem key={j} value={j}>{j}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
           <div>
             <Label className="text-xs">Periode van</Label>
             <Input type="date" value={van} onChange={(e) => setVan(e.target.value)} className="h-9" />

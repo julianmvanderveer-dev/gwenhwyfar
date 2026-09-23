@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Archive, ChevronRight, ExternalLink, Search } from "lucide-react";
+import { auditjaarVanDatum } from "@/lib/auditjaar";
 
 interface AfgerondProject {
   id: string;
@@ -17,6 +18,7 @@ interface AfgerondProject {
   ep2_beoordeling: string | null;
   gearchiveerd_op: string | null;
   datum_aangemaakt: string;
+  auditjaar: string | null;
   dropbox_link: string | null;
   adviseurs: { naam: string } | null;
 }
@@ -31,7 +33,7 @@ export default function AfgerondeAudits() {
     (async () => {
       const { data } = await supabase
         .from("projects")
-        .select("id, projectnaam, audit_categorie, audit_soort, status, ep2_beoordeling, gearchiveerd_op, datum_aangemaakt, dropbox_link, adviseurs(naam)")
+        .select("id, projectnaam, audit_categorie, audit_soort, status, ep2_beoordeling, gearchiveerd_op, datum_aangemaakt, auditjaar, dropbox_link, adviseurs(naam)")
         .in("status", ["afgerond", "gesloten"] as any)
         .order("gearchiveerd_op", { ascending: false, nullsFirst: false });
       setProjecten((data as any as AfgerondProject[]) ?? []);
@@ -42,8 +44,7 @@ export default function AfgerondeAudits() {
   const jaren = useMemo(() => {
     const set = new Set<string>();
     projecten.forEach((p) => {
-      const d = p.gearchiveerd_op ?? p.datum_aangemaakt;
-      if (d) set.add(new Date(d).getFullYear().toString());
+      set.add(p.auditjaar ?? auditjaarVanDatum(p.datum_aangemaakt));
     });
     return Array.from(set).sort().reverse();
   }, [projecten]);
@@ -52,8 +53,8 @@ export default function AfgerondeAudits() {
     const needle = zoek.trim().toLowerCase();
     return projecten.filter((p) => {
       if (jaar !== "alle") {
-        const d = p.gearchiveerd_op ?? p.datum_aangemaakt;
-        if (!d || new Date(d).getFullYear().toString() !== jaar) return false;
+        const aj = p.auditjaar ?? auditjaarVanDatum(p.datum_aangemaakt);
+        if (aj !== jaar) return false;
       }
       if (needle) {
         const hay = [p.projectnaam, p.adviseurs?.naam].filter(Boolean).join(" ").toLowerCase();

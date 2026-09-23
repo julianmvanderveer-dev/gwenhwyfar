@@ -618,6 +618,7 @@ export type Database = {
           adviseur_id: string | null
           audit_categorie: Database["public"]["Enums"]["audit_categorie"]
           audit_soort: Database["public"]["Enums"]["audit_soort"]
+          auditjaar: string | null
           datum_aangemaakt: string
           dropbox_link: string | null
           ep2_beoordeling: string | null
@@ -644,6 +645,7 @@ export type Database = {
           adviseur_id?: string | null
           audit_categorie?: Database["public"]["Enums"]["audit_categorie"]
           audit_soort?: Database["public"]["Enums"]["audit_soort"]
+          auditjaar?: string | null
           datum_aangemaakt?: string
           dropbox_link?: string | null
           ep2_beoordeling?: string | null
@@ -670,6 +672,7 @@ export type Database = {
           adviseur_id?: string | null
           audit_categorie?: Database["public"]["Enums"]["audit_categorie"]
           audit_soort?: Database["public"]["Enums"]["audit_soort"]
+          auditjaar?: string | null
           datum_aangemaakt?: string
           dropbox_link?: string | null
           ep2_beoordeling?: string | null
