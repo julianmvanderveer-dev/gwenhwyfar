@@ -669,7 +669,11 @@ export default function ProjectDetail() {
       (f) => f.beoordeling === "niet_goed" && !(f as any).afwijking_kleiner_1pct
     ).length;
     const alleGoed = findings.length === 0 || findings.every(
-      (f) => f.beoordeling === "goed" || f.beoordeling === "opmerking" || !f.beoordeling
+      (f) =>
+        f.beoordeling === "goed" ||
+        f.beoordeling === "opmerking" ||
+        f.beoordeling === "nvt" ||
+        !f.beoordeling
     );
 
     let result = "goed";
