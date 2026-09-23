@@ -1,9 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
-import { ArrowRightLeft, RotateCcw, Check, X } from "lucide-react";
+import { ArrowRightLeft, RotateCcw, Check, X, Search } from "lucide-react";
+import { statusBadge } from "@/lib/badges";
 import type { Tables } from "@/integrations/supabase/types";
 
 type ToewijzingProject = Tables<"projects"> & {
@@ -18,10 +22,13 @@ export default function ToewijzingenBeheer() {
   >([]);
   const [hertoewijzingProjectId, setHertoewijzingProjectId] = useState<string | null>(null);
   const [hertoewijzingAan, setHertoewijzingAan] = useState("");
+  const [zoekterm, setZoekterm] = useState("");
+  const [toonAfgerond, setToonAfgerond] = useState(false);
 
   useEffect(() => {
     loadToewijzingen();
   }, []);
+
 
   const loadToewijzingen = async () => {
     const { data: projectData } = await supabase
