@@ -9,6 +9,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { faseConfig, type FaseKey } from "./faseConfig";
+import { StatusPill } from "@/lib/badges";
 
 export interface ToewijsbarePersoon {
   id: string;
