@@ -39,6 +39,9 @@ const Email = ({ adviseurNaam, projectnaam, projectId }: Props) => {
           Werkt de knop niet? Kopieer dan deze link naar uw browser:<br />
           <a href={auditUrl} style={fallbackLink}>{auditUrl}</a>
         </Text>
+        <Text style={contactText}>
+          Lukt het inloggen niet of heeft u vragen over deze audit? Neem dan contact op met BengCert via <a href="mailto:info@bengcert.nl" style={fallbackLink}>info@bengcert.nl</a>.
+        </Text>
         <Text style={footer}>Met vriendelijke groet,<br />Het {SITE_NAME} Team</Text>
       </Container>
     </Body>
@@ -61,3 +64,4 @@ const button = { backgroundColor: '#5AAF2D', color: '#ffffff', fontSize: '14px',
 const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
 const fallbackText = { fontSize: '12px', color: '#666666', lineHeight: '1.6', margin: '0 0 16px', wordBreak: 'break-all' as const }
 const fallbackLink = { color: '#1e3a5f', textDecoration: 'underline' }
+const contactText = { fontSize: '12px', color: '#666666', lineHeight: '1.6', margin: '16px 0 0' }
