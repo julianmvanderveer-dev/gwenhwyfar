@@ -81,10 +81,21 @@ export default function AppLayout() {
 
         <Link
           to="/inbox"
+          state={{ tab: "projecten" }}
           className="font-medium hover:text-primary transition-colors"
         >
           Projecten
         </Link>
+
+        {actsAs("ep_adviseur") && (
+          <Link
+            to="/inbox"
+            state={{ tab: "overzicht" }}
+            className="font-medium hover:text-primary transition-colors"
+          >
+            Overzicht
+          </Link>
+        )}
 
         {actsAs("beheer") && (
           <Link
