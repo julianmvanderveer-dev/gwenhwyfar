@@ -271,9 +271,10 @@ export default function FaseTabel({
                       {showSubstatus && (
                         <td className="px-4 py-2.5">
                           {p._fase ? (
-                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${substatusBadgeClass(p._fase)}`}>
-                              {faseConfig[p._fase].titel}
-                            </span>
+                            <StatusPill
+                              label={substatusLabel[p._fase] ?? faseConfig[p._fase].titel}
+                              tone={substatusTone[p._fase] ?? "gray"}
+                            />
                           ) : "—"}
                         </td>
                       )}
