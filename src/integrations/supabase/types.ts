@@ -829,12 +829,27 @@ export type Database = {
           onderdeel: string
         }[]
       }
+      get_mijn_benchmark: {
+        Args: { _auditjaar?: string }
+        Returns: {
+          aantal_adviseurs: number
+          bench_gem_per_project: number
+          bench_pct_schoon: number
+          bench_top25_gem_per_project: number
+          mijn_afwijkingen: number
+          mijn_gem_per_project: number
+          mijn_pct_schoon: number
+          mijn_percentiel: number
+          mijn_projecten: number
+        }[]
+      }
       get_mijn_fouten_top: {
         Args: { _auditjaar?: string; _limit?: number }
         Returns: {
           aantal: number
           aantal_projecten: number
           controlepunt: string
+          gemiddeld_bij_anderen: number
           onderdeel: string
           totaal_afwijkingen: number
         }[]

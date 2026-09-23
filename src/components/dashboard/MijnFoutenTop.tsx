@@ -13,16 +13,25 @@ interface Rij {
   aantal: number;
   totaal_afwijkingen: number;
   aantal_projecten: number;
+  gemiddeld_bij_anderen?: number | null;
 }
 
-export default function MijnFoutenTop() {
+interface Props {
+  jaar?: string | null;
+  showJaarFilter?: boolean;
+}
+
+export default function MijnFoutenTop({ jaar: jaarProp, showJaarFilter = true }: Props = {}) {
   const [rows, setRows] = useState<Rij[]>([]);
   const [jaren, setJaren] = useState<string[]>([]);
-  const [jaar, setJaar] = useState<string>(ALLE);
+  const [eigenJaar, setEigenJaar] = useState<string>(ALLE);
   const [limit, setLimit] = useState(5);
   const [loading, setLoading] = useState(true);
 
+  const jaar = showJaarFilter ? eigenJaar : jaarProp ?? ALLE;
+
   useEffect(() => {
+    if (!showJaarFilter) return;
     (async () => {
       const { data } = await supabase.from("projects").select("auditjaar, datum_aangemaakt");
       const set = new Set<string>();
@@ -32,7 +41,7 @@ export default function MijnFoutenTop() {
       });
       setJaren(Array.from(set).sort().reverse());
     })();
-  }, []);
+  }, [showJaarFilter]);
 
   useEffect(() => {
     let active = true;
@@ -62,19 +71,21 @@ export default function MijnFoutenTop() {
           Mijn meest voorkomende aandachtspunten
         </h2>
         <div className="ml-auto flex items-center gap-2">
-          <Select value={jaar} onValueChange={setJaar}>
-            <SelectTrigger className="w-[170px] h-8 text-xs">
-              <SelectValue placeholder="Alle auditjaren" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALLE}>Alle auditjaren</SelectItem>
-              {jaren.map((j) => (
-                <SelectItem key={j} value={j}>
-                  {j}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {showJaarFilter && (
+            <Select value={eigenJaar} onValueChange={setEigenJaar}>
+              <SelectTrigger className="w-[170px] h-8 text-xs">
+                <SelectValue placeholder="Alle auditjaren" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALLE}>Alle auditjaren</SelectItem>
+                {jaren.map((j) => (
+                  <SelectItem key={j} value={j}>
+                    {j}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <Button
             size="sm"
             variant="outline"
@@ -107,6 +118,9 @@ export default function MijnFoutenTop() {
                 <th className="text-right py-1.5 text-xs uppercase tracking-wider text-muted-foreground font-semibold">
                   Aantal
                 </th>
+                <th className="text-right py-1.5 text-xs uppercase tracking-wider text-muted-foreground font-semibold whitespace-nowrap">
+                  Gem. anderen
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -115,6 +129,9 @@ export default function MijnFoutenTop() {
                   <td className="py-1.5 text-muted-foreground">{r.onderdeel}</td>
                   <td className="py-1.5">{r.controlepunt}</td>
                   <td className="py-1.5 text-right font-semibold">{r.aantal}×</td>
+                  <td className="py-1.5 text-right text-muted-foreground">
+                    {r.gemiddeld_bij_anderen != null ? `${r.gemiddeld_bij_anderen}×` : "–"}
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import { orderedFases, faseConfig, getProjectFase, type FaseKey, bezigFases } from "@/components/projecten/faseConfig";
 import AdviseurSectie from "@/components/dashboard/AdviseurSectie";
-import MijnFoutenTop from "@/components/dashboard/MijnFoutenTop";
+import AdviseurOverzicht from "@/components/dashboard/AdviseurOverzicht";
 import FaseTabel, { type ToewijsbarePersoon, type ProjectRow } from "@/components/projecten/FaseTabel";
 import ExportFilter from "@/components/projecten/ExportFilter";
 import MedewerkerDashboard from "@/components/dashboard/MedewerkerDashboard";
@@ -458,9 +458,13 @@ export default function Inbox() {
   );
 
   const adviseurContent = (
-    <div className="space-y-4">
-      <MijnFoutenTop />
-      <AdviseurSectie
+    <Tabs defaultValue="projecten" className="space-y-4">
+      <TabsList>
+        <TabsTrigger value="projecten">Projecten</TabsTrigger>
+        <TabsTrigger value="overzicht">Overzicht</TabsTrigger>
+      </TabsList>
+      <TabsContent value="projecten" className="space-y-4">
+        <AdviseurSectie
         filteredAdviseurFindings={filteredAdviseurFindings}
         adviseurFilterProject={adviseurFilterProject}
         setAdviseurFilterProject={setAdviseurFilterProject}
@@ -470,9 +474,13 @@ export default function Inbox() {
         adviseurStatusBadge={adviseurStatusBadge}
         handleDownload={handleDownload}
         adviseurProjecten={adviseurProjecten}
-        onAdviseurDataChanged={loadAdviseurData}
-      />
-    </div>
+          onAdviseurDataChanged={loadAdviseurData}
+        />
+      </TabsContent>
+      <TabsContent value="overzicht">
+        <AdviseurOverzicht />
+      </TabsContent>
+    </Tabs>
   );
 
   const medewerkerContent = <MedewerkerDashboard />;
