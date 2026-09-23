@@ -417,7 +417,7 @@ export default function FindingReactie() {
           })()}
 
           {modus === "akkoord" && (
-            <div className="space-y-3">
+            <div className="space-y-3" onPaste={(e) => handlePasteImage(e, setBestand)}>
               <p className="text-sm font-medium">
                 {(finding as any).upload_vereist
                   ? "Toelichting bij het aangeleverde document (optioneel)"
@@ -490,7 +490,7 @@ export default function FindingReactie() {
           )}
 
           {modus === "niet_akkoord" && (
-            <div className="space-y-3">
+            <div className="space-y-3" onPaste={(e) => handlePasteImage(e, setBestand)}>
               <p className="text-sm font-medium">Reactie (verplicht)</p>
               <div className="flex items-start gap-1">
                 <Textarea
@@ -582,7 +582,7 @@ export default function FindingReactie() {
             )}
           </div>
           {aanvullenOpen && (
-            <div className="space-y-2 pt-1">
+            <div className="space-y-2 pt-1" onPaste={(e) => handlePasteImage(e, setAanvullingBestand)}>
               <div className="flex items-start gap-1">
                 <Textarea
                   value={aanvullingTekst}
