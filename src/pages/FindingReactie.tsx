@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -87,6 +87,52 @@ export default function FindingReactie() {
     }
     setBestand(file);
   };
+
+  // Screenshot plakken (Ctrl+V) als bijlage
+  const handlePasteImage = useCallback(
+    (e: React.ClipboardEvent, setter: (f: File | null) => void) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith("image/")) {
+          const blob = item.getAsFile();
+          if (!blob) return;
+          if (blob.size > MAX_FILE_SIZE) {
+            toast({ title: "Screenshot te groot", description: "Maximaal 10 MB toegestaan.", variant: "destructive" });
+            return;
+          }
+          const d = new Date();
+          const pad = (n: number) => String(n).padStart(2, "0");
+          const ext = blob.type.split("/")[1] || "png";
+          const naam = `screenshot-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.${ext}`;
+          setter(new File([blob], naam, { type: blob.type || "image/png" }));
+          toast({ title: "Screenshot toegevoegd", description: `${naam} wordt als bijlage meegestuurd.` });
+          e.preventDefault();
+          return;
+        }
+      }
+    },
+    []
+  );
+
+  const bestandPreview = useMemo(
+    () => (bestand?.type.startsWith("image/") ? URL.createObjectURL(bestand) : null),
+    [bestand]
+  );
+  const aanvullingPreview = useMemo(
+    () => (aanvullingBestand?.type.startsWith("image/") ? URL.createObjectURL(aanvullingBestand) : null),
+    [aanvullingBestand]
+  );
+  useEffect(() => {
+    return () => {
+      if (bestandPreview) URL.revokeObjectURL(bestandPreview);
+    };
+  }, [bestandPreview]);
+  useEffect(() => {
+    return () => {
+      if (aanvullingPreview) URL.revokeObjectURL(aanvullingPreview);
+    };
+  }, [aanvullingPreview]);
 
   const uploadFile = async (): Promise<string | null> => {
     if (!bestand || !id) return null;
@@ -371,7 +417,7 @@ export default function FindingReactie() {
           })()}
 
           {modus === "akkoord" && (
-            <div className="space-y-3">
+            <div className="space-y-3" onPaste={(e) => handlePasteImage(e, setBestand)}>
               <p className="text-sm font-medium">
                 {(finding as any).upload_vereist
                   ? "Toelichting bij het aangeleverde document (optioneel)"
@@ -406,6 +452,12 @@ export default function FindingReactie() {
                     <Upload className="h-4 w-4" /> Document bijvoegen
                   </Button>
                   <span className="text-xs text-muted-foreground ml-2">Max 10 MB — verplicht</span>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    U kunt ook een screenshot plakken (Ctrl+V) in dit vlak.
+                  </p>
+                  {bestandPreview && (
+                    <img src={bestandPreview} alt="Screenshot bijlage" className="mt-2 h-20 rounded border object-contain" />
+                  )}
                   {bestand && (
                     <div className="flex items-center gap-1 mt-1 text-sm text-muted-foreground">
                       <FileText className="h-3.5 w-3.5" />
@@ -444,7 +496,7 @@ export default function FindingReactie() {
           )}
 
           {modus === "niet_akkoord" && (
-            <div className="space-y-3">
+            <div className="space-y-3" onPaste={(e) => handlePasteImage(e, setBestand)}>
               <p className="text-sm font-medium">Reactie (verplicht)</p>
               <div className="flex items-start gap-1">
                 <Textarea
@@ -485,6 +537,12 @@ export default function FindingReactie() {
                   <Upload className="h-4 w-4" /> Document bijvoegen
                 </Button>
                 <span className="text-xs text-muted-foreground ml-2">Max 10 MB</span>
+                <p className="text-xs text-muted-foreground mt-1">
+                  U kunt ook een screenshot plakken (Ctrl+V) in dit vlak.
+                </p>
+                {bestandPreview && (
+                  <img src={bestandPreview} alt="Screenshot bijlage" className="mt-2 h-20 rounded border object-contain" />
+                )}
                 {bestand && (
                   <div className="flex items-center gap-1 mt-1 text-sm text-muted-foreground">
                     <FileText className="h-3.5 w-3.5" />
@@ -536,7 +594,7 @@ export default function FindingReactie() {
             )}
           </div>
           {aanvullenOpen && (
-            <div className="space-y-2 pt-1">
+            <div className="space-y-2 pt-1" onPaste={(e) => handlePasteImage(e, setAanvullingBestand)}>
               <div className="flex items-start gap-1">
                 <Textarea
                   value={aanvullingTekst}
@@ -574,6 +632,12 @@ export default function FindingReactie() {
                   <Upload className="h-4 w-4" /> Document bijvoegen
                 </Button>
                 <span className="text-xs text-muted-foreground ml-2">Max 10 MB</span>
+                <p className="text-xs text-muted-foreground mt-1">
+                  U kunt ook een screenshot plakken (Ctrl+V) in dit vlak.
+                </p>
+                {aanvullingPreview && (
+                  <img src={aanvullingPreview} alt="Screenshot bijlage" className="mt-2 h-20 rounded border object-contain" />
+                )}
                 {aanvullingBestand && (
                   <div className="flex items-center gap-1 mt-1 text-sm text-muted-foreground">
                     <FileText className="h-3.5 w-3.5" />
