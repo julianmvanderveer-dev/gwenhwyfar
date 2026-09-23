@@ -76,12 +76,12 @@ export default function ExportFilter({ projects }: ExportFilterProps) {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <Select value={jaarFilter} onValueChange={setJaarFilter}>
             <SelectTrigger className="h-8 text-xs">
-              <SelectValue placeholder="Jaar" />
+              <SelectValue placeholder="Auditjaar" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="alle">Alle jaren</SelectItem>
-              {years.map((y) => (
-                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+              <SelectItem value="alle">Alle auditjaren</SelectItem>
+              {auditjaren.map((y) => (
+                <SelectItem key={y} value={y}>{y}</SelectItem>
               ))}
             </SelectContent>
           </Select>
