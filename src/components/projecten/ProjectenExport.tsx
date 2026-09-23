@@ -118,6 +118,7 @@ export default function ProjectenExport() {
         Status: STATUS_LABELS[p.status] ?? p.status,
         Categorie: p.audit_categorie,
         Soort: p.audit_soort,
+        Auditjaar: jaarVan(p),
         Prioriteit: p.prioriteit ? "Ja" : "Nee",
         Toelatingsaudit: p.toelatingsaudit ? "Ja" : "Nee",
         "EP-adviseur": p.adviseurs?.naam ?? "",
@@ -145,18 +146,18 @@ export default function ProjectenExport() {
       </CardHeader>
       <CardContent className="p-4 pt-0 space-y-4">
         <p className="text-xs text-muted-foreground">
-          Download een CSV per projectfase. Filters gelden voor alle groepen (jaar/datum wordt per groep
-          toegepast op het relevante datumveld).
+          Download een CSV per projectfase. Filters gelden voor alle groepen (auditjaar loopt van 1 juli
+          t/m 30 juni; de datums worden per groep toegepast op het relevante datumveld).
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <Select value={jaarFilter} onValueChange={setJaarFilter}>
             <SelectTrigger className="h-8 text-xs">
-              <SelectValue placeholder="Jaar" />
+              <SelectValue placeholder="Auditjaar" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="alle">Alle jaren</SelectItem>
-              {years.map((y) => (
-                <SelectItem key={y} value={String(y)}>
+              <SelectItem value="alle">Alle auditjaren</SelectItem>
+              {auditjaren.map((y) => (
+                <SelectItem key={y} value={y}>
                   {y}
                 </SelectItem>
               ))}
