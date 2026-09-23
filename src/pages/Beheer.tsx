@@ -990,6 +990,7 @@ export default function Beheer() {
         </TabsContent>
 
         <TabsContent value="exports" className="space-y-4">
+          <AlleProjectenExport />
           <ProjectenExport />
           <BulkPdfExport />
         </TabsContent>
