@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
 export default function AppLayout() {
-  const { user, roles, signOut, hasRole } = useAuth();
+  const { user, roles, signOut, hasRole, actsAs, roleGroups, activeGroup, setActiveGroup } = useAuth();
   const navigate = useNavigate();
   const [pwOpen, setPwOpen] = useState(false);
   const [pw, setPw] = useState("");
