@@ -322,19 +322,15 @@ export default function Inbox() {
 
   const adviseurStatusBadge = (status: string, hasConcept = false) => {
     if (status === "open" && hasConcept) {
-      return (
-        <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-          Concept opgeslagen
-        </span>
-      );
+      return <StatusPill label="Concept opgeslagen" tone="blue" />;
     }
-    const map: Record<string, { label: string; className: string }> = {
-      open: { label: "Open", className: "bg-orange-100 text-orange-700" },
-      reactie_ontvangen: { label: "Reactie ingediend", className: "bg-blue-100 text-blue-700" },
-      reactie_goedgekeurd: { label: "Reactie goedgekeurd", className: "bg-green-100 text-green-700" },
+    const map: Record<string, { label: string; tone: "orange" | "blue" | "green" }> = {
+      open: { label: "Open", tone: "orange" },
+      reactie_ontvangen: { label: "Reactie ingediend", tone: "blue" },
+      reactie_goedgekeurd: { label: "Reactie goedgekeurd", tone: "green" },
     };
-    const s = map[status] ?? { label: status, className: "bg-muted text-muted-foreground" };
-    return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${s.className}`}>{s.label}</span>;
+    const s = map[status];
+    return s ? <StatusPill label={s.label} tone={s.tone} /> : <StatusPill label={status} />;
   };
 
   const adviseurProjectNames = useMemo(() => {
