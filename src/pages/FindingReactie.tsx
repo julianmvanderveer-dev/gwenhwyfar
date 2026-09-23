@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -87,6 +87,52 @@ export default function FindingReactie() {
     }
     setBestand(file);
   };
+
+  // Screenshot plakken (Ctrl+V) als bijlage
+  const handlePasteImage = useCallback(
+    (e: React.ClipboardEvent, setter: (f: File | null) => void) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith("image/")) {
+          const blob = item.getAsFile();
+          if (!blob) return;
+          if (blob.size > MAX_FILE_SIZE) {
+            toast({ title: "Screenshot te groot", description: "Maximaal 10 MB toegestaan.", variant: "destructive" });
+            return;
+          }
+          const d = new Date();
+          const pad = (n: number) => String(n).padStart(2, "0");
+          const ext = blob.type.split("/")[1] || "png";
+          const naam = `screenshot-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.${ext}`;
+          setter(new File([blob], naam, { type: blob.type || "image/png" }));
+          toast({ title: "Screenshot toegevoegd", description: `${naam} wordt als bijlage meegestuurd.` });
+          e.preventDefault();
+          return;
+        }
+      }
+    },
+    []
+  );
+
+  const bestandPreview = useMemo(
+    () => (bestand?.type.startsWith("image/") ? URL.createObjectURL(bestand) : null),
+    [bestand]
+  );
+  const aanvullingPreview = useMemo(
+    () => (aanvullingBestand?.type.startsWith("image/") ? URL.createObjectURL(aanvullingBestand) : null),
+    [aanvullingBestand]
+  );
+  useEffect(() => {
+    return () => {
+      if (bestandPreview) URL.revokeObjectURL(bestandPreview);
+    };
+  }, [bestandPreview]);
+  useEffect(() => {
+    return () => {
+      if (aanvullingPreview) URL.revokeObjectURL(aanvullingPreview);
+    };
+  }, [aanvullingPreview]);
 
   const uploadFile = async (): Promise<string | null> => {
     if (!bestand || !id) return null;
