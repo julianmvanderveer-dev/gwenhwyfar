@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
  * gewoon bij elkaar.
  */
 export function useProjectRole(projectId: string | null | undefined) {
-  const { user, hasRole } = useAuth();
+  const { user, actsAs } = useAuth();
   const [adviseurUserId, setAdviseurUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
