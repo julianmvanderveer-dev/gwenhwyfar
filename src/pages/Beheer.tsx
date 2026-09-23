@@ -505,8 +505,6 @@ export default function Beheer() {
             EP-adviseurs
           </TabsTrigger>
           <TabsTrigger value="feedback" className="gap-1.5">
-
-          <TabsTrigger value="feedback" className="gap-1.5">
             <MessageSquare className="h-3.5 w-3.5" />
             Feedback
             {feedbackItems.length > 0 && (
