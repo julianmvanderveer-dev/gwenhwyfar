@@ -235,13 +235,21 @@ export function buildAuditReportHtml({ project, findings, adviseurNaam, adviseur
 
       return `
       <h3 style="margin:20px 0 6px;font-size:13px;font-weight:600;color:#1B2A4A;border-bottom:1px solid #1B2A4A;padding-bottom:4px;">${onderdeel}</h3>
-      <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px;">
+      <table style="width:100%;table-layout:fixed;border-collapse:collapse;font-size:12px;margin-bottom:14px;">
+        <colgroup>
+          <col style="width:8%;" />
+          <col style="${hasUitdraai ? "width:42%;" : "width:56%;"}" />
+          ${hasUitdraai ? `<col style="width:14%;" />` : ""}
+          <col style="width:6%;" />
+          <col style="width:15%;" />
+          <col style="width:15%;" />
+        </colgroup>
         <thead>
           <tr style="background:#1B2A4A;color:#fff;">
             <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Code</th>
             <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Controlepunt</th>
             ${uitdraaiHeader}
-            <th style="padding:8px 10px;text-align:center;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;width:50px;">Deel</th>
+            <th style="padding:8px 10px;text-align:center;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Deel</th>
             <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Beoordeling</th>
             <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Status</th>
           </tr>
@@ -249,6 +257,7 @@ export function buildAuditReportHtml({ project, findings, adviseurNaam, adviseur
         <tbody>${rowsHtml}</tbody>
       </table>
     `;
+
     })
     .join("");
 
