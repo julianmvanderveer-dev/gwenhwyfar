@@ -50,6 +50,15 @@ type Uitdraai = {
   created_at: string;
 };
 
+/** Statussen waarin de EP2-beoordeling vaststaat: niet meer automatisch overschrijven,
+ *  wijzigen kan alleen met verplichte toelichting (audit-trail). */
+const EP2_VASTGEZET_STATUSSEN = [
+  "afgerond",
+  "gesloten",
+  "wacht_op_reactie",
+  "wacht_op_herafmelding",
+];
+
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
