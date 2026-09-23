@@ -8,6 +8,13 @@
       "when": 1790077731528,
       "tag": "0000_case_insensitive_adviseur_link",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790156785790,
+      "tag": "0001_add_auditjaar_to_projects",
+      "breakpoints": true
     }
   ]
 }
