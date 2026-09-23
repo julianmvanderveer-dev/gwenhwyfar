@@ -9,11 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { downloadCsv } from "@/lib/csv";
 import type { Tables, Enums } from "@/integrations/supabase/types";
-import { Download, Plus, Pencil, Check, X, Trash2, Settings, Users, Eye, EyeOff, ArrowRightLeft, RotateCcw, MessageSquare, Upload, Image, Mail, Send, FileDown, AlertTriangle } from "lucide-react";
-import ProjectenExport from "@/components/projecten/ProjectenExport";
-import AlleProjectenExport from "@/components/projecten/AlleProjectenExport";
-import BulkPdfExport from "@/components/projecten/BulkPdfExport";
-import FoutenAnalyse from "@/components/beheer/FoutenAnalyse";
+import { Download, Plus, Pencil, Check, X, Trash2, Settings, Users, Eye, EyeOff, RotateCcw, MessageSquare, Upload, Image, Mail, Send } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -35,10 +31,6 @@ const ROLE_LABELS: Record<Enums<"app_role">, string> = {
   ep_adviseur: "EP-adviseur",
 };
 
-type ToewijzingProject = Tables<"projects"> & {
-  adviseurs: { naam: string } | null;
-  toegewezen_profiel: { naam: string } | null;
-};
 
 export default function Beheer() {
   const { hasRole, user } = useAuth();
@@ -56,11 +48,6 @@ export default function Beheer() {
   const [submittingMember, setSubmittingMember] = useState(false);
   const [inviteMode, setInviteMode] = useState(true);
 
-  // Toewijzingen state
-  const [toewijzingProjecten, setToewijzingProjecten] = useState<ToewijzingProject[]>([]);
-  const [toewijsbarePersonen, setToewijsbarePersonen] = useState<{ id: string; naam: string; roles: string[]; auditCategorieen: string[] }[]>([]);
-  const [hertoewijzingProjectId, setHertoewijzingProjectId] = useState<string | null>(null);
-  const [hertoewijzingAan, setHertoewijzingAan] = useState("");
 
   // Unconfirmed users state
   const [unconfirmedIds, setUnconfirmedIds] = useState<Set<string>>(new Set());
@@ -79,7 +66,6 @@ export default function Beheer() {
   useEffect(() => {
     loadUsers();
     loadAdviseurs();
-    loadToewijzingen();
     loadFeedback();
     loadUnconfirmedUsers();
   }, []);
