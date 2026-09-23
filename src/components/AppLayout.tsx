@@ -102,7 +102,7 @@ export default function AppLayout() {
             to="/beheer"
             className="font-medium hover:text-primary transition-colors"
           >
-            Beheer
+            Instellingen
           </Link>
         )}
         {actsAs("beheer") && (
