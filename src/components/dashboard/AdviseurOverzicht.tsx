@@ -126,7 +126,7 @@ export default function AdviseurOverzicht() {
 
   const exportAfwijkingen = async () => {
     setExportLoading(true);
-    const { data, error } = await supabase.rpc("get_mijn_afwijkingen", {
+    const { data, error } = await supabase.rpc("get_mijn_afwijkingen" as any, {
       _auditjaar: jaar === ALLE ? null : jaar,
     });
     setExportLoading(false);
