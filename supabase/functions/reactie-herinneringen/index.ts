@@ -15,8 +15,8 @@ type Tier = {
   match: (effectiveOverdueMs: number) => boolean;
 };
 
-const CC_STANDAARD = "julian@borgch.nl";
-const CC_EINDWAARSCHUWING = "julian@borgch.nl, info@bengcert.nl";
+const CC_STANDAARD = ["julian@borgch.nl"];
+const CC_EINDWAARSCHUWING = ["julian@borgch.nl", "info@bengcert.nl"];
 
 // Volgorde: zwaarste eerst, max 1 mail per project per cyclus
 const TIERS: Tier[] = [
