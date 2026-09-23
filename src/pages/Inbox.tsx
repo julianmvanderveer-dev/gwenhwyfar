@@ -238,6 +238,13 @@ export default function Inbox() {
       toewijzing: "specifiek" as any,
     }).eq("id", projectId);
 
+    // Openstaande bevindingen meeverhuizen naar de nieuwe behandelaar
+    await supabase
+      .from("findings")
+      .update({ toegewezen_beoordelaar: nieuweUserId })
+      .eq("project_id", projectId)
+      .in("status", ["open", "reactie_ontvangen"] as any);
+
     const notificaties = [];
     if (oudeUserId && oudeUserId !== nieuweUserId) {
       notificaties.push({ user_id: oudeUserId, bericht: `Project "${project.projectnaam}" is aan je ontnomen en hertoegewezen.` });
