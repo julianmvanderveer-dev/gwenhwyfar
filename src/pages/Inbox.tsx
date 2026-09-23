@@ -13,6 +13,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { orderedFases, faseConfig, getProjectFase, type FaseKey, bezigFases } from "@/components/projecten/faseConfig";
 import AdviseurSectie from "@/components/dashboard/AdviseurSectie";
 import AdviseurOverzicht from "@/components/dashboard/AdviseurOverzicht";
+import NieuwOverzichtMelding from "@/components/dashboard/NieuwOverzichtMelding";
 import FaseTabel, { type ToewijsbarePersoon, type ProjectRow } from "@/components/projecten/FaseTabel";
 import ExportFilter from "@/components/projecten/ExportFilter";
 import MedewerkerDashboard from "@/components/dashboard/MedewerkerDashboard";
@@ -459,6 +460,7 @@ export default function Inbox() {
 
   const adviseurContent = (
     <Tabs key={navState.tab ?? "projecten"} defaultValue={navState.tab === "overzicht" ? "overzicht" : "projecten"} className="space-y-4">
+      <NieuwOverzichtMelding />
       <TabsList>
         <TabsTrigger value="projecten">Projecten</TabsTrigger>
         <TabsTrigger value="overzicht">Overzicht</TabsTrigger>
