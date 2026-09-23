@@ -457,18 +457,21 @@ export default function Inbox() {
   );
 
   const adviseurContent = (
-    <AdviseurSectie
-      filteredAdviseurFindings={filteredAdviseurFindings}
-      adviseurFilterProject={adviseurFilterProject}
-      setAdviseurFilterProject={setAdviseurFilterProject}
-      adviseurFilterStatus={adviseurFilterStatus}
-      setAdviseurFilterStatus={setAdviseurFilterStatus}
-      adviseurProjectNames={adviseurProjectNames}
-      adviseurStatusBadge={adviseurStatusBadge}
-      handleDownload={handleDownload}
-      adviseurProjecten={adviseurProjecten}
-      onAdviseurDataChanged={loadAdviseurData}
-    />
+    <div className="space-y-4">
+      <MijnFoutenTop />
+      <AdviseurSectie
+        filteredAdviseurFindings={filteredAdviseurFindings}
+        adviseurFilterProject={adviseurFilterProject}
+        setAdviseurFilterProject={setAdviseurFilterProject}
+        adviseurFilterStatus={adviseurFilterStatus}
+        setAdviseurFilterStatus={setAdviseurFilterStatus}
+        adviseurProjectNames={adviseurProjectNames}
+        adviseurStatusBadge={adviseurStatusBadge}
+        handleDownload={handleDownload}
+        adviseurProjecten={adviseurProjecten}
+        onAdviseurDataChanged={loadAdviseurData}
+      />
+    </div>
   );
 
   const medewerkerContent = <MedewerkerDashboard />;
