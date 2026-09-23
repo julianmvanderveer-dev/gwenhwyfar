@@ -56,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeGroup, setActiveGroupState] = useState<RoleGroup | null>(null);
 
   const fetchRoles = async (userId: string) => {
     const { data } = await supabase
