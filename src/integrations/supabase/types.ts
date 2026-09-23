@@ -829,6 +829,19 @@ export type Database = {
           onderdeel: string
         }[]
       }
+      get_mijn_afwijkingen: {
+        Args: { _auditjaar?: string }
+        Returns: {
+          auditjaar: string
+          auditor_naam: string
+          controlepunt: string
+          datum: string
+          onderdeel: string
+          projectnaam: string
+          status: string
+          toelichting: string
+        }[]
+      }
       get_mijn_benchmark: {
         Args: { _auditjaar?: string }
         Returns: {
