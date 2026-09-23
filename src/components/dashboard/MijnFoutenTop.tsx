@@ -71,19 +71,21 @@ export default function MijnFoutenTop({ jaar: jaarProp, showJaarFilter = true }:
           Mijn meest voorkomende aandachtspunten
         </h2>
         <div className="ml-auto flex items-center gap-2">
-          <Select value={jaar} onValueChange={setJaar}>
-            <SelectTrigger className="w-[170px] h-8 text-xs">
-              <SelectValue placeholder="Alle auditjaren" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ALLE}>Alle auditjaren</SelectItem>
-              {jaren.map((j) => (
-                <SelectItem key={j} value={j}>
-                  {j}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {showJaarFilter && (
+            <Select value={eigenJaar} onValueChange={setEigenJaar}>
+              <SelectTrigger className="w-[170px] h-8 text-xs">
+                <SelectValue placeholder="Alle auditjaren" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALLE}>Alle auditjaren</SelectItem>
+                {jaren.map((j) => (
+                  <SelectItem key={j} value={j}>
+                    {j}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <Button
             size="sm"
             variant="outline"
