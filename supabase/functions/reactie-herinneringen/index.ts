@@ -9,7 +9,7 @@ const corsHeaders = {
 type Tier = {
   flag: "reminder_overdue_3w_sent" | "reminder_overdue_2w_sent" | "reminder_overdue_1w_sent" | "reminder_pre_sent";
   template: string;
-  cc: string;
+  cc: string[];
   // effectiveOverdueMs: verstreken tijd sinds deadline minus vakantieperiodes
   // (negatief wanneer de deadline nog niet bereikt is)
   match: (effectiveOverdueMs: number) => boolean;
