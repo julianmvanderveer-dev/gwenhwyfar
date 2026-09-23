@@ -36,6 +36,9 @@ const Email = ({ adviseurNaam, projectnaam, projectId }: Props) => {
           Werkt de knop niet? Kopieer dan deze link naar uw browser:<br />
           <a href={auditUrl} style={fallbackLink}>{auditUrl}</a>
         </Text>
+        <Text style={contactText}>
+          Lukt het inloggen niet of heeft u vragen over deze audit? Neem dan contact op met BengCert via <a href="mailto:info@bengcert.nl" style={fallbackLink}>info@bengcert.nl</a>.
+        </Text>
         <Text style={footer}>Met vriendelijke groet,<br />Het {SITE_NAME} Team</Text>
       </Container>
     </Body>
