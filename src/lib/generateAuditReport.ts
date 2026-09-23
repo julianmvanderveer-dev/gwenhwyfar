@@ -1,4 +1,5 @@
 import type { Tables } from "@/integrations/supabase/types";
+import { reportLogoHtml } from "@/lib/reportLogo";
 
 type Project = Tables<"projects">;
 type Finding = Tables<"findings">;
@@ -48,12 +49,6 @@ const projectStatusLabel: Record<string, string> = {
   gesloten: "Gesloten",
 };
 
-const BENGCERT_LOGO_SVG = `
-<svg width="140" height="40" viewBox="0 0 140 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M6,18 L14,26 L30,8" fill="none" stroke="#4a9e24" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M14,18 L22,26 L38,8" fill="none" stroke="#5AAF2D" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="46" y="27" font-family="'Poppins', system-ui, -apple-system, sans-serif" font-weight="700" font-size="18" fill="#28235D" letter-spacing="0.5">bengcert</text>
-</svg>`.trim();
 
 const ep2Label = (v: string | null | undefined): string => {
   if (!v) return "—";
@@ -197,9 +192,7 @@ export function buildAuditReportHtml({ project, findings, adviseurNaam, adviseur
       Geen afwijkingen — alle 'niet goed'-bevindingen zijn inhoudelijk weerlegd.
     </div>`;
 
-  const logoHtml = logoUrl
-    ? `<img src="${escapeHtml(logoUrl)}" alt="BengCert" style="height:40px;width:auto;display:block;" />`
-    : BENGCERT_LOGO_SVG;
+  const logoHtml = reportLogoHtml(logoUrl, 46);
 
   const uitdraaiHeader = hasUitdraai
     ? `<th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Uitdraai</th>`
@@ -277,13 +270,15 @@ export function buildAuditReportHtml({ project, findings, adviseurNaam, adviseur
   <!-- Header -->
   <table style="width:100%;border-collapse:collapse;border-bottom:2px solid #1B2A4A;margin-bottom:20px;">
     <tr>
-      <td style="padding:0 0 14px 0;vertical-align:middle;width:160px;">${logoHtml}</td>
-      <td style="padding:0 0 14px 16px;vertical-align:middle;">
+      <td style="padding:0 0 14px 0;vertical-align:middle;">
         <h1 style="margin:0;font-size:20px;color:#1B2A4A;font-weight:700;">Auditrapport</h1>
         <p style="margin:2px 0 0;font-size:13px;color:#6b7280;">${escapeHtml(project.projectnaam)}</p>
       </td>
-      <td style="padding:0 0 14px 0;vertical-align:middle;text-align:right;font-size:12px;color:#6b7280;white-space:nowrap;">
+      <td style="padding:0 0 14px 12px;vertical-align:middle;text-align:right;font-size:12px;color:#6b7280;white-space:nowrap;">
         Rapportdatum: <strong style="color:#1f2937;">${datum}</strong>
+      </td>
+      <td style="padding:0 0 14px 16px;vertical-align:middle;text-align:right;width:70px;">
+        <div style="display:inline-block;">${logoHtml}</div>
       </td>
     </tr>
   </table>
