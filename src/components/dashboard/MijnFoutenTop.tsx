@@ -118,6 +118,9 @@ export default function MijnFoutenTop({ jaar: jaarProp, showJaarFilter = true }:
                 <th className="text-right py-1.5 text-xs uppercase tracking-wider text-muted-foreground font-semibold">
                   Aantal
                 </th>
+                <th className="text-right py-1.5 text-xs uppercase tracking-wider text-muted-foreground font-semibold whitespace-nowrap">
+                  Gem. anderen
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -126,6 +129,9 @@ export default function MijnFoutenTop({ jaar: jaarProp, showJaarFilter = true }:
                   <td className="py-1.5 text-muted-foreground">{r.onderdeel}</td>
                   <td className="py-1.5">{r.controlepunt}</td>
                   <td className="py-1.5 text-right font-semibold">{r.aantal}×</td>
+                  <td className="py-1.5 text-right text-muted-foreground">
+                    {r.gemiddeld_bij_anderen != null ? `${r.gemiddeld_bij_anderen}×` : "–"}
+                  </td>
                 </tr>
               ))}
             </tbody>
