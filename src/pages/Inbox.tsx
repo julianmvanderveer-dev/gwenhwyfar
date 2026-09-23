@@ -126,7 +126,22 @@ export default function Inbox() {
         .select("*")
         .eq("toegewezen_beoordelaar", user!.id)
         .eq("status", "reactie_ontvangen");
-      setFindings(findingData ?? []);
+
+      // Functiescheiding: eigen projecten als EP-adviseur nooit tonen om te beoordelen
+      const { data: eigenAdviseur } = await supabase
+        .from("adviseurs")
+        .select("id")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      let eigenProjectIds: string[] = [];
+      if (eigenAdviseur) {
+        const { data: eigenProjecten } = await supabase
+          .from("projects")
+          .select("id")
+          .eq("adviseur_id", eigenAdviseur.id);
+        eigenProjectIds = (eigenProjecten ?? []).map((p) => p.id);
+      }
+      setFindings((findingData ?? []).filter((f) => !eigenProjectIds.includes(f.project_id)));
     }
   };
 
