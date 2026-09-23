@@ -21,15 +21,15 @@ const GRADIENTS = `
 
 /** Staand logo (vinkje boven de naam) — klein, voor rechtsboven op een PDF. */
 export function bengcertLogoSvg(height = 48): string {
-  const width = Math.round((height * 300) / 220);
-  return `<svg width="${width}" height="${height}" viewBox="0 0 300 220" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+  const width = Math.round((height * 430) / 220);
+  return `<svg width="${width}" height="${height}" viewBox="0 0 430 220" xmlns="http://www.w3.org/2000/svg" style="display:block;">
   ${GRADIENTS}
-  <g transform="translate(90,0)">
+  <g transform="translate(155,0)">
     ${chevron(26, "url(#rbc-blue)")}
     ${chevron(13, "url(#rbc-green)")}
     ${chevron(0, "url(#rbc-yellow)")}
   </g>
-  <text x="150" y="212" text-anchor="middle" font-family="'Poppins', Helvetica, Arial, sans-serif" font-weight="700" font-size="76" fill="#28235D" letter-spacing="-1">bengcert</text>
+  <text x="215" y="212" text-anchor="middle" font-family="'Poppins', Helvetica, Arial, sans-serif" font-weight="700" font-size="76" fill="#28235D" letter-spacing="-1">bengcert</text>
 </svg>`;
 }
 

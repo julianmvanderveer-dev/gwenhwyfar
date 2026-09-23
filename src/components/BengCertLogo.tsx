@@ -55,7 +55,7 @@ export default function BengCertLogo({
   const fontFamily = "'Poppins', system-ui, -apple-system, sans-serif";
 
   if (layout === "stacked") {
-    const vbW = 300;
+    const vbW = 430;
     const vbH = 220;
     return (
       <svg
@@ -86,7 +86,7 @@ export default function BengCertLogo({
     );
   }
 
-  const vbW = 470;
+  const vbW = 520;
   const vbH = MARK_H;
   return (
     <svg
