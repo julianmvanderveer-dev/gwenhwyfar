@@ -651,7 +651,18 @@ export default function ProjectDetail() {
       } else {
         update[field] = value ? parseFloat(value) : null;
       }
-      await supabase.from("projects").update(update).eq("id", id);
+      const { error } = await supabase.from("projects").update(update).eq("id", id);
+      if (error) {
+        toast({
+          title: "Opslaan mislukt",
+          description: "De EP2-gegevens konden niet worden opgeslagen.",
+          variant: "destructive",
+        });
+        return;
+      }
+      // Houd de lokale projectgegevens actueel, zodat o.a. de knop "Audit afronden"
+      // direct beschikbaar is zonder het project opnieuw te openen.
+      setProject((prev: any) => (prev ? { ...prev, ...update } : prev));
     },
     [id]
   );
