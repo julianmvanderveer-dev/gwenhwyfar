@@ -474,9 +474,13 @@ export default function Inbox() {
         adviseurStatusBadge={adviseurStatusBadge}
         handleDownload={handleDownload}
         adviseurProjecten={adviseurProjecten}
-        onAdviseurDataChanged={loadAdviseurData}
-      />
-    </div>
+          onAdviseurDataChanged={loadAdviseurData}
+        />
+      </TabsContent>
+      <TabsContent value="overzicht">
+        <AdviseurOverzicht />
+      </TabsContent>
+    </Tabs>
   );
 
   const medewerkerContent = <MedewerkerDashboard />;
