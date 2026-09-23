@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isInVakantie, vakantieMsTussen } from "../_shared/vakantieperiodes.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,32 +9,50 @@ const corsHeaders = {
 type Tier = {
   flag: "reminder_overdue_3w_sent" | "reminder_overdue_2w_sent" | "reminder_overdue_1w_sent" | "reminder_pre_sent";
   template: string;
-  match: (deadline: Date, now: Date) => boolean;
+  cc: string;
+  // effectiveOverdueMs: verstreken tijd sinds deadline minus vakantieperiodes
+  // (negatief wanneer de deadline nog niet bereikt is)
+  match: (effectiveOverdueMs: number) => boolean;
 };
+
+const CC_STANDAARD = "julian@borgch.nl";
+const CC_EINDWAARSCHUWING = "julian@borgch.nl, info@bengcert.nl";
 
 // Volgorde: zwaarste eerst, max 1 mail per project per cyclus
 const TIERS: Tier[] = [
   {
     flag: "reminder_overdue_3w_sent",
     template: "reactie-herinnering-eindwaarschuwing",
-    match: (d, n) => n.getTime() >= d.getTime() + 21 * 86400000,
+    cc: CC_EINDWAARSCHUWING,
+    match: (ms) => ms >= 21 * 86400000,
   },
   {
     flag: "reminder_overdue_2w_sent",
     template: "reactie-herinnering-waarschuwing",
-    match: (d, n) => n.getTime() >= d.getTime() + 14 * 86400000,
+    cc: CC_STANDAARD,
+    match: (ms) => ms >= 14 * 86400000,
   },
   {
     flag: "reminder_overdue_1w_sent",
     template: "reactie-herinnering-overdue",
-    match: (d, n) => n.getTime() >= d.getTime() + 7 * 86400000,
+    cc: CC_STANDAARD,
+    match: (ms) => ms >= 7 * 86400000,
   },
   {
     flag: "reminder_pre_sent",
     template: "reactie-herinnering-pre",
-    match: (d, n) => n.getTime() < d.getTime() && d.getTime() - n.getTime() <= 24 * 3600000,
+    cc: CC_STANDAARD,
+    match: (ms) => ms < 0 && ms >= -24 * 3600000,
   },
 ];
+
+/** Verstreken tijd sinds de deadline, exclusief bouwvak- en kerstvakantie. */
+function effectieveOverdueMs(deadline: Date, now: Date): number {
+  if (now.getTime() >= deadline.getTime()) {
+    return now.getTime() - deadline.getTime() - vakantieMsTussen(deadline, now);
+  }
+  return -(deadline.getTime() - now.getTime() - vakantieMsTussen(now, deadline));
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
