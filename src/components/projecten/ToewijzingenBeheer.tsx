@@ -258,6 +258,3 @@ export default function ToewijzingenBeheer() {
   );
 }
 
-    </div>
-  );
-}
