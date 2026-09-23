@@ -706,8 +706,8 @@ export default function ProjectDetail() {
 
   // Auto-fill EP2 beoordeling tenzij handmatig overschreven
   useEffect(() => {
-    // Zodra project afgerond/gesloten is, nooit meer overschrijven met auto-berekening.
-    if (project && (project.status === "afgerond" || project.status === "gesloten")) return;
+    // Zodra de audit inhoudelijk vaststaat, nooit meer overschrijven met auto-berekening.
+    if (project && EP2_VASTGEZET_STATUSSEN.includes(project.status as string)) return;
     if (!ep2ManualOverride) {
       setEp2Beoordeling((prev) => {
         if (prev !== autoEp2 && project) {
