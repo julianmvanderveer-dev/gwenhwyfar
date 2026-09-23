@@ -3,7 +3,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { auditjaarVanDatum } from "@/lib/auditjaar";
 import MijnFoutenTop from "./MijnFoutenTop";
-import { BarChart3, Info } from "lucide-react";
+import { BarChart3, Info, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { downloadCsv } from "@/lib/csv";
+import { toast } from "@/hooks/use-toast";
+
+interface AfwijkingRij {
+  projectnaam: string;
+  auditjaar: string;
+  onderdeel: string;
+  controlepunt: string;
+  toelichting: string | null;
+  auditor_naam: string | null;
+  status: string;
+  datum: string;
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  reactie_goedgekeurd: "Reactie goedgekeurd",
+  gesloten: "Gesloten",
+};
 
 const ALLE = "alle";
 
@@ -103,6 +122,38 @@ export default function AdviseurOverzicht() {
 
   const heeftBenchmark = !!bench && bench.bench_gem_per_project !== null;
 
+  const [exportLoading, setExportLoading] = useState(false);
+
+  const exportAfwijkingen = async () => {
+    setExportLoading(true);
+    const { data, error } = await supabase.rpc("get_mijn_afwijkingen" as any, {
+      _auditjaar: jaar === ALLE ? null : jaar,
+    });
+    setExportLoading(false);
+    if (error) {
+      toast({ title: "Export mislukt", description: error.message, variant: "destructive" });
+      return;
+    }
+    const rijen = (data as unknown as AfwijkingRij[]) ?? [];
+    if (rijen.length === 0) {
+      toast({ title: "Geen afwijkingen gevonden voor deze selectie" });
+      return;
+    }
+    downloadCsv(
+      rijen.map((r) => ({
+        Project: r.projectnaam,
+        Auditjaar: r.auditjaar,
+        Onderdeel: r.onderdeel,
+        Controlepunt: r.controlepunt,
+        "Toelichting auditor": r.toelichting ?? "",
+        Auditor: r.auditor_naam ?? "",
+        Status: STATUS_LABELS[r.status] ?? r.status,
+        Datum: new Date(r.datum).toLocaleDateString("nl-NL"),
+      })),
+      `mijn-afwijkingen-${jaar === ALLE ? "alle" : jaar}.csv`
+    );
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -110,7 +161,17 @@ export default function AdviseurOverzicht() {
           <BarChart3 className="h-4 w-4 text-primary" />
           Mijn resultaten
         </h2>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 text-xs"
+            onClick={exportAfwijkingen}
+            disabled={exportLoading}
+          >
+            <Download className="h-3.5 w-3.5 mr-1.5" />
+            {exportLoading ? "Exporteren…" : "Download alle afwijkingen (CSV)"}
+          </Button>
           <Select value={jaar} onValueChange={setJaar}>
             <SelectTrigger className="w-[170px] h-8 text-xs">
               <SelectValue placeholder="Alle auditjaren" />

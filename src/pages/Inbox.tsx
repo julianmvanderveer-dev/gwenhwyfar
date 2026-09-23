@@ -458,7 +458,7 @@ export default function Inbox() {
   );
 
   const adviseurContent = (
-    <Tabs defaultValue="projecten" className="space-y-4">
+    <Tabs key={navState.tab ?? "projecten"} defaultValue={navState.tab === "overzicht" ? "overzicht" : "projecten"} className="space-y-4">
       <TabsList>
         <TabsTrigger value="projecten">Projecten</TabsTrigger>
         <TabsTrigger value="overzicht">Overzicht</TabsTrigger>
@@ -500,7 +500,9 @@ export default function Inbox() {
             <LayoutDashboard className="h-5 w-5 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight">Projecten</h1>
+            <h1 className="text-xl font-bold tracking-tight">
+              {actieveWeergave === "ep_adviseur" && navState.tab === "overzicht" ? "Overzicht" : "Projecten"}
+            </h1>
             <p className="text-xs text-muted-foreground">
               {actieveWeergave === "beheer" ? `${totalVisible} actieve projecten · ` : ""}
               {actieveLabel}
