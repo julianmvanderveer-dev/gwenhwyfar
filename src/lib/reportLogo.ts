@@ -3,7 +3,7 @@
  * Inline (geen externe URL) zodat het altijd meeprint.
  */
 function chevron(dy: number, fill: string) {
-  return `<path d="M8,${34 + dy} L52,${78 + dy} L112,${18 + dy}" fill="none" stroke="${fill}" stroke-width="26" stroke-linecap="butt" stroke-linejoin="miter"/>`;
+  return `<path d="M6,${40 + dy} L44,${78 + dy} L112,${12 + dy}" fill="none" stroke="${fill}" stroke-width="24" stroke-linecap="butt" stroke-linejoin="miter"/>`;
 }
 
 const GRADIENTS = `
@@ -25,8 +25,8 @@ export function bengcertLogoSvg(height = 48): string {
   return `<svg width="${width}" height="${height}" viewBox="0 0 430 330" xmlns="http://www.w3.org/2000/svg" style="display:block;">
   ${GRADIENTS}
   <g transform="translate(107,0) scale(1.8)">
-    ${chevron(26, "url(#rbc-blue)")}
-    ${chevron(13, "url(#rbc-green)")}
+    ${chevron(32, "url(#rbc-blue)")}
+    ${chevron(16, "url(#rbc-green)")}
     ${chevron(0, "url(#rbc-yellow)")}
   </g>
   <text x="215" y="322" text-anchor="middle" font-family="'Poppins', Helvetica, Arial, sans-serif" font-weight="700" font-size="86" fill="#28235D" letter-spacing="-1">bengcert</text>

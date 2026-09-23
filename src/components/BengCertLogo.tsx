@@ -12,10 +12,10 @@ const MARK_H = 124;
 function Chevron({ dy, fill }: { dy: number; fill: string }) {
   return (
     <path
-      d={`M8,${34 + dy} L52,${78 + dy} L112,${18 + dy}`}
+      d={`M6,${40 + dy} L44,${78 + dy} L112,${12 + dy}`}
       fill="none"
       stroke={fill}
-      strokeWidth={26}
+      strokeWidth={24}
       strokeLinecap="butt"
       strokeLinejoin="miter"
     />
@@ -39,8 +39,8 @@ function Mark() {
           <stop offset="100%" stopColor="#FBE60F" />
         </linearGradient>
       </defs>
-      <Chevron dy={26} fill="url(#bc-blue)" />
-      <Chevron dy={13} fill="url(#bc-green)" />
+      <Chevron dy={32} fill="url(#bc-blue)" />
+      <Chevron dy={16} fill="url(#bc-green)" />
       <Chevron dy={0} fill="url(#bc-yellow)" />
     </g>
   );
