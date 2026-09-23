@@ -64,3 +64,4 @@ const button = { backgroundColor: '#5AAF2D', color: '#ffffff', fontSize: '14px',
 const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
 const fallbackText = { fontSize: '12px', color: '#666666', lineHeight: '1.6', margin: '0 0 16px', wordBreak: 'break-all' as const }
 const fallbackLink = { color: '#1e3a5f', textDecoration: 'underline' }
+const contactText = { fontSize: '12px', color: '#666666', lineHeight: '1.6', margin: '16px 0 0' }
