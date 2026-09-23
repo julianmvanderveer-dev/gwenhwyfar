@@ -53,7 +53,7 @@ type Uitdraai = {
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, hasRole } = useAuth();
+  const { user, actsAs: hasRole } = useAuth();
   const { settings: appSettings } = useAppSettings();
   const [project, setProject] = useState<Project | null>(null);
   const [loadError, setLoadError] = useState(false);

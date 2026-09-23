@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
  * gewoon bij elkaar.
  */
 export function useProjectRole(projectId: string | null | undefined) {
-  const { user, hasRole } = useAuth();
+  const { user, actsAs } = useAuth();
   const [adviseurUserId, setAdviseurUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -40,7 +40,7 @@ export function useProjectRole(projectId: string | null | undefined) {
 
   const isAdviseurVanProject = !!user && !!adviseurUserId && adviseurUserId === user.id;
   const magAuditorActiesDoen =
-    (hasRole("auditor") || hasRole("beheer")) && !isAdviseurVanProject;
+    (actsAs("auditor") || actsAs("beheer")) && !isAdviseurVanProject;
   const magAdviseurActiesDoen = isAdviseurVanProject;
 
   return { isAdviseurVanProject, magAuditorActiesDoen, magAdviseurActiesDoen, loading };

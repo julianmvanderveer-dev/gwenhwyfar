@@ -20,7 +20,7 @@ type Project = Tables<"projects"> & { adviseurs: { naam: string } | null; toegew
 type Finding = Tables<"findings"> & { projectnaam?: string; laatste_reactie?: string; laatste_bijlage?: string | null };
 
 export default function Inbox() {
-  const { user, roles, hasRole } = useAuth();
+  const { user, roles, hasRole, actsAs, activeGroup } = useAuth();
   const location = useLocation();
   const navState = (location.state ?? {}) as { view?: string; tab?: string };
   const [projects, setProjects] = useState<Project[]>([]);
@@ -476,7 +476,11 @@ export default function Inbox() {
 
   const medewerkerContent = <MedewerkerDashboard />;
 
-  const heeftTabbladen = beschikbareWeergaven.length > 1;
+  const actieveWeergave = activeGroup ?? beschikbareWeergaven[0]?.key ?? null;
+  const actieveLabel =
+    beschikbareWeergaven.find((v) =>
+      actieveWeergave === "medewerker" ? v.key === "medewerker" : v.key === actieveWeergave
+    )?.label ?? (roles.join(", ") || "geen rol");
 
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
@@ -488,11 +492,13 @@ export default function Inbox() {
           </div>
           <div>
             <h1 className="text-xl font-bold tracking-tight">Projecten</h1>
-            <p className="text-xs text-muted-foreground">{totalVisible} actieve projecten · {roles.join(", ") || "geen rol"}</p>
+            <p className="text-xs text-muted-foreground">
+              {actieveWeergave === "beheer" ? `${totalVisible} actieve projecten · ` : ""}
+              {actieveLabel}
+            </p>
           </div>
         </div>
-        {/* Nieuw project knop alleen als er geen tabbladen zijn (beheer-only) */}
-        {hasRole("beheer") && !heeftTabbladen && (
+        {actsAs("beheer") && (
           <Link to="/project/nieuw">
             <Button size="sm" className="shadow-sm">
               <Plus className="h-4 w-4 mr-1" /> Nieuw project
@@ -501,46 +507,9 @@ export default function Inbox() {
         )}
       </div>
 
-      {heeftTabbladen ? (
-        <Tabs defaultValue={navState.view && beschikbareWeergaven.some(v => v.key === navState.view) ? navState.view : beschikbareWeergaven[0].key} className="w-full">
-          <TabsList className="mb-4">
-            {beschikbareWeergaven.map(v => (
-              <TabsTrigger key={v.key} value={v.key}>{v.label}</TabsTrigger>
-            ))}
-          </TabsList>
-
-          {hasRole("beheer") && (
-            <TabsContent value="beheer" className="space-y-6">
-              <div className="flex justify-end">
-                <Link to="/project/nieuw">
-                  <Button size="sm" className="shadow-sm">
-                    <Plus className="h-4 w-4 mr-1" /> Nieuw project
-                  </Button>
-                </Link>
-              </div>
-              {beheerContent}
-            </TabsContent>
-          )}
-
-          {(hasRole("tekenaar") || hasRole("auditor")) && (
-            <TabsContent value="medewerker">
-              {medewerkerContent}
-            </TabsContent>
-          )}
-
-          {hasRole("ep_adviseur") && (
-            <TabsContent value="ep_adviseur">
-              {adviseurContent}
-            </TabsContent>
-          )}
-        </Tabs>
-      ) : (
-        <>
-          {hasRole("beheer") && beheerContent}
-          {!hasRole("beheer") && (hasRole("tekenaar") || hasRole("auditor")) && medewerkerContent}
-          {!hasRole("beheer") && !(hasRole("tekenaar") || hasRole("auditor")) && hasRole("ep_adviseur") && adviseurContent}
-        </>
-      )}
+      {actieveWeergave === "beheer" && hasRole("beheer") && beheerContent}
+      {actieveWeergave === "medewerker" && (hasRole("auditor") || hasRole("tekenaar")) && medewerkerContent}
+      {actieveWeergave === "ep_adviseur" && (hasRole("ep_adviseur") || isAdviseur) && adviseurContent}
 
       {projects.length === 0 && findings.length === 0 && adviseurFindings.length === 0 && (
         <p className="text-muted-foreground text-center py-12">Geen openstaande items.</p>
