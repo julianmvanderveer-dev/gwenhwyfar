@@ -280,7 +280,9 @@ export function buildAuditReportHtml({ project, findings, adviseurNaam, adviseur
     @media print { body { padding: 0; } }
     table { page-break-inside: auto; }
     tr { page-break-inside: avoid; }
+    td, th { word-wrap: break-word; overflow-wrap: break-word; vertical-align: top; }
     h1, h2, h3 { font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
   </style>
 </head>
 <body>
