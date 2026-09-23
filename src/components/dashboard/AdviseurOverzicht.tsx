@@ -3,7 +3,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { auditjaarVanDatum } from "@/lib/auditjaar";
 import MijnFoutenTop from "./MijnFoutenTop";
-import { BarChart3, Info } from "lucide-react";
+import { BarChart3, Info, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { downloadCsv } from "@/lib/csv";
+import { toast } from "@/hooks/use-toast";
+
+interface AfwijkingRij {
+  projectnaam: string;
+  auditjaar: string;
+  onderdeel: string;
+  controlepunt: string;
+  toelichting: string | null;
+  auditor_naam: string | null;
+  status: string;
+  datum: string;
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  reactie_goedgekeurd: "Reactie goedgekeurd",
+  gesloten: "Gesloten",
+};
 
 const ALLE = "alle";
 
