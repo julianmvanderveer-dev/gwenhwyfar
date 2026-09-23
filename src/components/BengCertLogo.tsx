@@ -55,8 +55,9 @@ export default function BengCertLogo({
   const fontFamily = "'Poppins', system-ui, -apple-system, sans-serif";
 
   if (layout === "stacked") {
+    const scale = 1.8;
     const vbW = 430;
-    const vbH = 220;
+    const vbH = 330;
     return (
       <svg
         width={(size * vbW) / vbH}
@@ -67,16 +68,16 @@ export default function BengCertLogo({
         role="img"
         aria-label="bengcert"
       >
-        <g transform={`translate(${(vbW - MARK_W) / 2}, 0)`}>
+        <g transform={`translate(${(vbW - MARK_W * scale) / 2}, 0) scale(${scale})`}>
           <Mark />
         </g>
         <text
           x={vbW / 2}
-          y={212}
+          y={322}
           textAnchor="middle"
           fontFamily={fontFamily}
           fontWeight={700}
-          fontSize={76}
+          fontSize={86}
           fill={textColor}
           letterSpacing="-1"
         >
@@ -86,7 +87,7 @@ export default function BengCertLogo({
     );
   }
 
-  const vbW = 520;
+  const vbW = 450;
   const vbH = MARK_H;
   return (
     <svg
@@ -100,11 +101,11 @@ export default function BengCertLogo({
     >
       <Mark />
       <text
-        x={140}
-        y={96}
+        x={136}
+        y={92}
         fontFamily={fontFamily}
         fontWeight={700}
-        fontSize={78}
+        fontSize={68}
         fill={textColor}
         letterSpacing="-1"
       >
