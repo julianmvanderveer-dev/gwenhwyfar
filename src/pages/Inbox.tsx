@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +30,7 @@ export default function Inbox() {
   const { user, roles, hasRole, actsAs, activeGroup } = useAuth();
   const location = useLocation();
   const navState = (location.state ?? {}) as { view?: string; tab?: string };
+  const [searchParams, setSearchParams] = useSearchParams();
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectFindings, setProjectFindings] = useState<Record<string, Finding[]>>({});
   const [findings, setFindings] = useState<Finding[]>([]);
