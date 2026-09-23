@@ -123,7 +123,37 @@ export default function ToewijzingenBeheer() {
     loadToewijzingen();
   };
 
+  const zichtbareProjecten = useMemo(() => {
+    const q = zoekterm.trim().toLowerCase();
+    return toewijzingProjecten.filter((p) => {
+      if (!toonAfgerond && p.status === "afgerond") return false;
+      if (!q) return true;
+      return (
+        p.projectnaam.toLowerCase().includes(q) ||
+        (p.toegewezen_profiel?.naam ?? "").toLowerCase().includes(q) ||
+        (p.adviseurs?.naam ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [toewijzingProjecten, zoekterm, toonAfgerond]);
+
   return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="relative w-72">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            className="pl-8 h-9"
+            placeholder="Zoek op project, behandelaar of adviseur"
+            value={zoekterm}
+            onChange={(e) => setZoekterm(e.target.value)}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch id="toon-afgerond" checked={toonAfgerond} onCheckedChange={setToonAfgerond} />
+          <Label htmlFor="toon-afgerond" className="text-xs text-muted-foreground">Afgeronde projecten tonen</Label>
+        </div>
+        <span className="text-xs text-muted-foreground ml-auto">{zichtbareProjecten.length} project(en)</span>
+      </div>
     <div className="border rounded-lg overflow-x-auto shadow-sm bg-card">
       <table className="w-full text-sm">
         <thead>
@@ -137,17 +167,18 @@ export default function ToewijzingenBeheer() {
           </tr>
         </thead>
         <tbody>
-          {toewijzingProjecten.map((p, i) => (
+          {zichtbareProjecten.map((p, i) => (
             <tr key={p.id} className={`border-b last:border-0 hover:bg-muted/50 transition-colors ${i % 2 === 0 ? "" : "bg-muted/20"}`}>
               <td className="px-4 py-2.5 font-medium">{p.projectnaam}</td>
-              <td className="px-4 py-2.5 text-muted-foreground">{p.status}</td>
+              <td className="px-4 py-2.5">{statusBadge(p.status)}</td>
               <td className="px-4 py-2.5">
-                {p.toewijzing === "specifiek" ? (
-                  <Badge variant="secondary" className="text-[10px]">Specifiek</Badge>
+                {p.toegewezen_aan ? (
+                  <Badge variant="secondary" className="text-[10px]">Toegewezen</Badge>
                 ) : (
-                  <Badge variant="outline" className="text-[10px]">Pool</Badge>
+                  <Badge variant="outline" className="text-[10px]">Wacht in pool</Badge>
                 )}
               </td>
+
               <td className="px-4 py-2.5">
                 {p.toegewezen_aan ? (
                   <span>{p.toegewezen_profiel?.naam ?? "Onbekend"}</span>
