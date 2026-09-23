@@ -22,6 +22,13 @@
       "when": 1790164763905,
       "tag": "0002_get_mijn_fouten_top",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790165046472,
+      "tag": "0003_adviseur_benchmark_en_fouten_gemiddelde",
+      "breakpoints": true
     }
   ]
 }
