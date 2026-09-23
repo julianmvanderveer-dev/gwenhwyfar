@@ -356,9 +356,14 @@ export default function FoutenAnalyse() {
 </style>
 </head>
 <body>
-  <h1>Foutenanalyse</h1>
-  <div class="meta">Gegenereerd op ${datumStr} · ${filtered.length} blijvende afwijking${filtered.length === 1 ? "" : "en"} in selectie</div>
-  <div class="meta"><strong>Filters:</strong> ${esc(filtersLine)}</div>
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
+    <div>
+      <h1>Foutenanalyse</h1>
+      <div class="meta">Gegenereerd op ${datumStr} · ${filtered.length} blijvende afwijking${filtered.length === 1 ? "" : "en"} in selectie</div>
+      <div class="meta"><strong>Filters:</strong> ${esc(filtersLine)}</div>
+    </div>
+    <div>${bengcertLogoSvg(44)}</div>
+  </div>
   <div class="intro">
     Blijvende afwijkingen zijn afgeronde bevindingen waarbij de EP-adviseur de afwijking heeft geaccepteerd
     (dus niet succesvol heeft weerlegd).
