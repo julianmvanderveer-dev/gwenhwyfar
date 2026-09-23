@@ -110,13 +110,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     setUser(null);
     setRoles([]);
+    setActiveGroupState(null);
+    try { localStorage.removeItem(STORAGE_KEY); } catch {}
   };
 
   const hasRole = (role: AppRole) => roles.includes(role);
   const hasAnyRole = (r: AppRole[]) => r.some((role) => roles.includes(role));
 
+  const order: RoleGroup[] = ["beheer", "medewerker", "ep_adviseur"];
+  const roleGroups = order.filter((g) =>
+    roles.some((r) => groupOfRole(r) === g)
+  );
+
+  useEffect(() => {
+    if (roleGroups.length === 0) {
+      setActiveGroupState(null);
+      return;
+    }
+    if (activeGroup && roleGroups.includes(activeGroup)) return;
+    let stored: RoleGroup | null = null;
+    try {
+      stored = localStorage.getItem(STORAGE_KEY) as RoleGroup | null;
+    } catch {}
+    setActiveGroupState(stored && roleGroups.includes(stored) ? stored : roleGroups[0]);
+  }, [roles.join(","), activeGroup]);
+
+  const setActiveGroup = (g: RoleGroup) => {
+    setActiveGroupState(g);
+    try { localStorage.setItem(STORAGE_KEY, g); } catch {}
+  };
+
+  const actsAs = (role: AppRole) => {
+    if (!roles.includes(role)) return false;
+    const g = groupOfRole(role);
+    if (!g) return true;
+    if (roleGroups.length <= 1) return true;
+    return activeGroup === g;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, roles, loading, signOut, hasRole, hasAnyRole }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        roles,
+        loading,
+        signOut,
+        hasRole,
+        hasAnyRole,
+        roleGroups,
+        activeGroup,
+        setActiveGroup,
+        actsAs,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
