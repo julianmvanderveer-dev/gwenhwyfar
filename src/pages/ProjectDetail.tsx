@@ -1587,6 +1587,11 @@ export default function ProjectDetail() {
                                     initialValue={f.toelichting}
                                     editable={editableNow}
                                     logCorrectie={inCorrectie}
+                                    onSaved={(fid, tekst) =>
+                                      setFindings((prev) =>
+                                        prev.map((x) => (x.id === fid ? { ...x, toelichting: tekst } : x))
+                                      )
+                                    }
                                   />
                                   {editableNow && f.beoordeling === "niet_goed" && (
                                     <div className="flex flex-wrap items-center gap-4 mt-2">
