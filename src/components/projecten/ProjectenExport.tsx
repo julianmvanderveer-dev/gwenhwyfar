@@ -69,15 +69,12 @@ export default function ProjectenExport() {
   const [vanDatum, setVanDatum] = useState("");
   const [totDatum, setTotDatum] = useState("");
 
-  const currentYear = new Date().getFullYear();
-  const years = [currentYear, currentYear - 1, currentYear - 2];
-
   useEffect(() => {
     (async () => {
       const { data, error } = await supabase
         .from("projects")
         .select(
-          "projectnaam, status, audit_categorie, audit_soort, prioriteit, toelatingsaudit, datum_aangemaakt, reactie_deadline, gearchiveerd_op, adviseurs:adviseur_id(naam, email)"
+          "projectnaam, status, audit_categorie, audit_soort, prioriteit, toelatingsaudit, datum_aangemaakt, reactie_deadline, gearchiveerd_op, auditjaar, adviseurs:adviseur_id(naam, email)"
         )
         .order("datum_aangemaakt", { ascending: false });
       if (error) {
@@ -89,11 +86,18 @@ export default function ProjectenExport() {
     })();
   }, []);
 
+  const jaarVan = (p: Project) => p.auditjaar ?? auditjaarVanDatum(p.datum_aangemaakt);
+
+  const auditjaren = useMemo(
+    () => Array.from(new Set(projects.map(jaarVan))).sort().reverse(),
+    [projects]
+  );
+
   const filterByDatum = (p: Project, veld: DatumVeld) => {
+    if (jaarFilter !== "alle" && jaarVan(p) !== jaarFilter) return false;
     const raw = p[veld];
     const ref = raw ? new Date(raw) : null;
-    if (!ref) return jaarFilter === "alle" && !vanDatum && !totDatum;
-    if (jaarFilter !== "alle" && String(ref.getFullYear()) !== jaarFilter) return false;
+    if (!ref) return !vanDatum && !totDatum;
     if (vanDatum && ref < new Date(vanDatum)) return false;
     if (totDatum && ref > new Date(totDatum + "T23:59:59")) return false;
     return true;
