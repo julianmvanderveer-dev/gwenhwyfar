@@ -9,6 +9,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { faseConfig, type FaseKey } from "./faseConfig";
+import { StatusPill } from "@/lib/badges";
 
 export interface ToewijsbarePersoon {
   id: string;
@@ -57,16 +58,24 @@ interface FaseTabelProps {
   isAfgerondView?: boolean;
 }
 
-function substatusBadgeClass(fase: FaseKey): string {
-  const map: Record<string, string> = {
-    deel1_bezig: "bg-blue-100 text-blue-700",
-    wacht_op_deel2: "bg-amber-100 text-amber-700",
-    deel2_bezig: "bg-indigo-100 text-indigo-700",
-    wacht_op_reactie_ep: "bg-orange-100 text-orange-700",
-    reactie_ontvangen: "bg-purple-100 text-purple-700",
-  };
-  return map[fase] ?? "bg-muted text-muted-foreground";
-}
+const substatusTone: Record<string, "blue" | "amber" | "indigo" | "orange" | "purple" | "gray"> = {
+  deel1_bezig: "blue",
+  wacht_op_deel2: "amber",
+  deel2_bezig: "indigo",
+  wacht_op_reactie_ep: "orange",
+  reactie_ontvangen: "purple",
+};
+
+const substatusLabel: Record<string, string> = {
+  deel1_bezig: "Deel 1 bezig",
+  wacht_op_deel2: "Wacht op deel 2",
+  deel2_bezig: "Deel 2 bezig",
+  wacht_op_reactie_ep: "Wacht op reactie",
+  reactie_ontvangen: "Reactie ontvangen",
+  wacht_op_herafmelding: "Wacht op nieuwe afmelding",
+  nieuw: "Nieuw",
+  afgerond: "Afgerond",
+};
 
 function formatDate(date: string) {
   return new Date(date).toLocaleDateString("nl-NL");
@@ -263,9 +272,10 @@ export default function FaseTabel({
                       {showSubstatus && (
                         <td className="px-4 py-2.5">
                           {p._fase ? (
-                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${substatusBadgeClass(p._fase)}`}>
-                              {faseConfig[p._fase].titel}
-                            </span>
+                            <StatusPill
+                              label={substatusLabel[p._fase] ?? faseConfig[p._fase].titel}
+                              tone={substatusTone[p._fase] ?? "gray"}
+                            />
                           ) : "—"}
                         </td>
                       )}
