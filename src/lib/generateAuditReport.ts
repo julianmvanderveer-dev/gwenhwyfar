@@ -1,4 +1,5 @@
 import type { Tables } from "@/integrations/supabase/types";
+import { reportLogoHtml } from "@/lib/reportLogo";
 
 type Project = Tables<"projects">;
 type Finding = Tables<"findings">;
@@ -191,9 +192,7 @@ export function buildAuditReportHtml({ project, findings, adviseurNaam, adviseur
       Geen afwijkingen — alle 'niet goed'-bevindingen zijn inhoudelijk weerlegd.
     </div>`;
 
-  const logoHtml = logoUrl
-    ? `<img src="${escapeHtml(logoUrl)}" alt="BengCert" style="height:40px;width:auto;display:block;" />`
-    : BENGCERT_LOGO_SVG;
+  const logoHtml = reportLogoHtml(logoUrl, 46);
 
   const uitdraaiHeader = hasUitdraai
     ? `<th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Uitdraai</th>`
@@ -271,13 +270,15 @@ export function buildAuditReportHtml({ project, findings, adviseurNaam, adviseur
   <!-- Header -->
   <table style="width:100%;border-collapse:collapse;border-bottom:2px solid #1B2A4A;margin-bottom:20px;">
     <tr>
-      <td style="padding:0 0 14px 0;vertical-align:middle;width:160px;">${logoHtml}</td>
-      <td style="padding:0 0 14px 16px;vertical-align:middle;">
+      <td style="padding:0 0 14px 0;vertical-align:middle;">
         <h1 style="margin:0;font-size:20px;color:#1B2A4A;font-weight:700;">Auditrapport</h1>
         <p style="margin:2px 0 0;font-size:13px;color:#6b7280;">${escapeHtml(project.projectnaam)}</p>
       </td>
-      <td style="padding:0 0 14px 0;vertical-align:middle;text-align:right;font-size:12px;color:#6b7280;white-space:nowrap;">
+      <td style="padding:0 0 14px 12px;vertical-align:middle;text-align:right;font-size:12px;color:#6b7280;white-space:nowrap;">
         Rapportdatum: <strong style="color:#1f2937;">${datum}</strong>
+      </td>
+      <td style="padding:0 0 14px 16px;vertical-align:middle;text-align:right;width:70px;">
+        <div style="display:inline-block;">${logoHtml}</div>
       </td>
     </tr>
   </table>

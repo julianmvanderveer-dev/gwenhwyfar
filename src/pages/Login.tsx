@@ -63,7 +63,7 @@ export default function Login() {
       <Card className="w-full max-w-md shadow-2xl border-0">
         <CardHeader className="text-center pb-2">
           <div className="flex items-center justify-center mb-4">
-            <AppLogo variant="dark" size={36} />
+            <AppLogo variant="dark" size={72} layout="stacked" />
           </div>
           <CardTitle className="text-xl">{title}</CardTitle>
         </CardHeader>
