@@ -54,7 +54,7 @@ export default function FoutenAnalyse() {
         .select(
           `id, controlepunt, onderdeel, toelichting, type_afwijking, goedgekeurd_op, created_at,
            concept_reactie, status, beoordeling,
-           project:projects!inner(id, projectnaam, audit_categorie, audit_soort, adviseur_id,
+           project:projects!inner(id, projectnaam, audit_categorie, audit_soort, auditjaar, datum_aangemaakt, adviseur_id,
              adviseur:adviseurs(id, naam, nummer))`,
         )
         .eq("beoordeling", "niet_goed")
@@ -87,6 +87,7 @@ export default function FoutenAnalyse() {
           adviseur_id: f.project?.adviseur?.id ?? null,
           adviseur_naam: f.project?.adviseur?.naam ?? "— onbekend —",
           adviseur_nummer: f.project?.adviseur?.nummer ?? null,
+          auditjaar: f.project?.auditjaar ?? (f.project?.datum_aangemaakt ? auditjaarVanDatum(f.project.datum_aangemaakt) : null),
         }));
       setRows(mapped);
       setLoading(false);
@@ -105,9 +106,15 @@ export default function FoutenAnalyse() {
       if (soort !== ALLE && r.audit_soort !== soort) return false;
       if (onderdeel !== ALLE && r.onderdeel !== onderdeel) return false;
       if (adviseurFilter !== ALLE && r.adviseur_id !== adviseurFilter) return false;
+      if (auditjaarFilter !== ALLE && r.auditjaar !== auditjaarFilter) return false;
       return true;
     });
-  }, [rows, van, tot, categorie, soort, onderdeel, adviseurFilter]);
+  }, [rows, van, tot, categorie, soort, onderdeel, adviseurFilter, auditjaarFilter]);
+
+  const auditjaren = useMemo(
+    () => (Array.from(new Set(rows.map((r) => r.auditjaar).filter(Boolean))) as string[]).sort().reverse(),
+    [rows],
+  );
 
   const categorieen = useMemo(
     () => Array.from(new Set(rows.map((r) => r.audit_categorie).filter(Boolean))) as string[],
