@@ -458,9 +458,13 @@ export default function Inbox() {
   );
 
   const adviseurContent = (
-    <div className="space-y-4">
-      <MijnFoutenTop />
-      <AdviseurSectie
+    <Tabs defaultValue="projecten" className="space-y-4">
+      <TabsList>
+        <TabsTrigger value="projecten">Projecten</TabsTrigger>
+        <TabsTrigger value="overzicht">Overzicht</TabsTrigger>
+      </TabsList>
+      <TabsContent value="projecten" className="space-y-4">
+        <AdviseurSectie
         filteredAdviseurFindings={filteredAdviseurFindings}
         adviseurFilterProject={adviseurFilterProject}
         setAdviseurFilterProject={setAdviseurFilterProject}
