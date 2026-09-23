@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +30,7 @@ export default function Inbox() {
   const { user, roles, hasRole, actsAs, activeGroup } = useAuth();
   const location = useLocation();
   const navState = (location.state ?? {}) as { view?: string; tab?: string };
+  const [searchParams, setSearchParams] = useSearchParams();
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectFindings, setProjectFindings] = useState<Record<string, Finding[]>>({});
   const [findings, setFindings] = useState<Finding[]>([]);
@@ -482,8 +483,16 @@ export default function Inbox() {
     </>
   );
 
+  const beheerTab = ["overzicht", "toewijzingen", "exports", "foutenanalyse"].includes(searchParams.get("tab") ?? "")
+    ? (searchParams.get("tab") as string)
+    : "overzicht";
+
   const beheerContent = (
-    <Tabs defaultValue="overzicht" className="space-y-4">
+    <Tabs
+      value={beheerTab}
+      onValueChange={(v) => setSearchParams(v === "overzicht" ? {} : { tab: v }, { replace: true })}
+      className="space-y-4"
+    >
       <TabsList>
         <TabsTrigger value="overzicht" className="gap-1.5">
           <FolderKanban className="h-3.5 w-3.5" /> Overzicht
@@ -503,6 +512,11 @@ export default function Inbox() {
         <ToewijzingenBeheer />
       </TabsContent>
       <TabsContent value="exports" className="space-y-4">
+        <p className="text-xs text-muted-foreground">
+          Drie soorten downloads: <strong>Alle projecten</strong> voor één CSV met eigen filters,
+          <strong> Per fase</strong> voor een lijst met kolommen die bij die fase horen, en
+          <strong> Bulk PDF</strong> voor de volledige auditformulieren als PDF in één ZIP-bestand.
+        </p>
         <AlleProjectenExport />
         <ProjectenExport />
         <BulkPdfExport />
@@ -512,6 +526,7 @@ export default function Inbox() {
       </TabsContent>
     </Tabs>
   );
+
 
 
   const adviseurContent = (

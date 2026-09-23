@@ -1,9 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
-import { ArrowRightLeft, RotateCcw, Check, X } from "lucide-react";
+import { ArrowRightLeft, RotateCcw, Check, X, Search } from "lucide-react";
+import { statusBadge } from "@/lib/badges";
 import type { Tables } from "@/integrations/supabase/types";
 
 type ToewijzingProject = Tables<"projects"> & {
@@ -18,10 +22,13 @@ export default function ToewijzingenBeheer() {
   >([]);
   const [hertoewijzingProjectId, setHertoewijzingProjectId] = useState<string | null>(null);
   const [hertoewijzingAan, setHertoewijzingAan] = useState("");
+  const [zoekterm, setZoekterm] = useState("");
+  const [toonAfgerond, setToonAfgerond] = useState(false);
 
   useEffect(() => {
     loadToewijzingen();
   }, []);
+
 
   const loadToewijzingen = async () => {
     const { data: projectData } = await supabase
@@ -116,7 +123,37 @@ export default function ToewijzingenBeheer() {
     loadToewijzingen();
   };
 
+  const zichtbareProjecten = useMemo(() => {
+    const q = zoekterm.trim().toLowerCase();
+    return toewijzingProjecten.filter((p) => {
+      if (!toonAfgerond && p.status === "afgerond") return false;
+      if (!q) return true;
+      return (
+        p.projectnaam.toLowerCase().includes(q) ||
+        (p.toegewezen_profiel?.naam ?? "").toLowerCase().includes(q) ||
+        (p.adviseurs?.naam ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [toewijzingProjecten, zoekterm, toonAfgerond]);
+
   return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="relative w-72">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            className="pl-8 h-9"
+            placeholder="Zoek op project, behandelaar of adviseur"
+            value={zoekterm}
+            onChange={(e) => setZoekterm(e.target.value)}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch id="toon-afgerond" checked={toonAfgerond} onCheckedChange={setToonAfgerond} />
+          <Label htmlFor="toon-afgerond" className="text-xs text-muted-foreground">Afgeronde projecten tonen</Label>
+        </div>
+        <span className="text-xs text-muted-foreground ml-auto">{zichtbareProjecten.length} project(en)</span>
+      </div>
     <div className="border rounded-lg overflow-x-auto shadow-sm bg-card">
       <table className="w-full text-sm">
         <thead>
@@ -130,17 +167,18 @@ export default function ToewijzingenBeheer() {
           </tr>
         </thead>
         <tbody>
-          {toewijzingProjecten.map((p, i) => (
+          {zichtbareProjecten.map((p, i) => (
             <tr key={p.id} className={`border-b last:border-0 hover:bg-muted/50 transition-colors ${i % 2 === 0 ? "" : "bg-muted/20"}`}>
               <td className="px-4 py-2.5 font-medium">{p.projectnaam}</td>
-              <td className="px-4 py-2.5 text-muted-foreground">{p.status}</td>
+              <td className="px-4 py-2.5">{statusBadge(p.status)}</td>
               <td className="px-4 py-2.5">
-                {p.toewijzing === "specifiek" ? (
-                  <Badge variant="secondary" className="text-[10px]">Specifiek</Badge>
+                {p.toegewezen_aan ? (
+                  <Badge variant="secondary" className="text-[10px]">Toegewezen</Badge>
                 ) : (
-                  <Badge variant="outline" className="text-[10px]">Pool</Badge>
+                  <Badge variant="outline" className="text-[10px]">Wacht in pool</Badge>
                 )}
               </td>
+
               <td className="px-4 py-2.5">
                 {p.toegewezen_aan ? (
                   <span>{p.toegewezen_profiel?.naam ?? "Onbekend"}</span>
@@ -191,6 +229,8 @@ export default function ToewijzingenBeheer() {
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
+                ) : p.status === "afgerond" ? (
+                  <span className="text-xs text-muted-foreground italic">Afgerond</span>
                 ) : (
                   <div className="flex gap-1">
                     <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => setHertoewijzingProjectId(p.id)}>
@@ -206,13 +246,15 @@ export default function ToewijzingenBeheer() {
               </td>
             </tr>
           ))}
-          {toewijzingProjecten.length === 0 && (
+          {zichtbareProjecten.length === 0 && (
             <tr>
-              <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">Geen actieve projecten.</td>
+              <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">Geen projecten gevonden.</td>
             </tr>
           )}
         </tbody>
       </table>
     </div>
+    </div>
   );
 }
+
