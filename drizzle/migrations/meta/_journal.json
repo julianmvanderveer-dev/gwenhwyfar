@@ -15,6 +15,13 @@
       "when": 1790156785790,
       "tag": "0001_add_auditjaar_to_projects",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790164763905,
+      "tag": "0002_get_mijn_fouten_top",
+      "breakpoints": true
     }
   ]
 }

@@ -829,6 +829,16 @@ export type Database = {
           onderdeel: string
         }[]
       }
+      get_mijn_fouten_top: {
+        Args: { _auditjaar?: string; _limit?: number }
+        Returns: {
+          aantal: number
+          aantal_projecten: number
+          controlepunt: string
+          onderdeel: string
+          totaal_afwijkingen: number
+        }[]
+      }
       has_any_role: {
         Args: { _roles: Database["public"]["Enums"]["app_role"][] }
         Returns: boolean
