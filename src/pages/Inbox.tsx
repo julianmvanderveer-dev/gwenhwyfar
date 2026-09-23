@@ -20,7 +20,7 @@ type Project = Tables<"projects"> & { adviseurs: { naam: string } | null; toegew
 type Finding = Tables<"findings"> & { projectnaam?: string; laatste_reactie?: string; laatste_bijlage?: string | null };
 
 export default function Inbox() {
-  const { user, roles, hasRole } = useAuth();
+  const { user, roles, hasRole, actsAs, activeGroup } = useAuth();
   const location = useLocation();
   const navState = (location.state ?? {}) as { view?: string; tab?: string };
   const [projects, setProjects] = useState<Project[]>([]);
