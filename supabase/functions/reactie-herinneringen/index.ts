@@ -67,6 +67,14 @@ Deno.serve(async (req) => {
 
     const now = new Date();
 
+    // Tijdens bouwvak- en kerstvakantie gaan er geen herinneringen uit
+    if (isInVakantie(now)) {
+      return new Response(JSON.stringify({ success: true, sent: 0, skipped: "vakantie" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Haal alle projecten op die wachten op een reactie en een deadline hebben
     const { data: projects, error: projErr } = await admin
       .from("projects")
