@@ -11,6 +11,7 @@ import { downloadCsv } from "@/lib/csv";
 import type { Tables, Enums } from "@/integrations/supabase/types";
 import { Download, Plus, Pencil, Check, X, Trash2, Settings, Users, Eye, EyeOff, ArrowRightLeft, RotateCcw, MessageSquare, Upload, Image, Mail, Send, FileDown, AlertTriangle } from "lucide-react";
 import ProjectenExport from "@/components/projecten/ProjectenExport";
+import AlleProjectenExport from "@/components/projecten/AlleProjectenExport";
 import BulkPdfExport from "@/components/projecten/BulkPdfExport";
 import FoutenAnalyse from "@/components/beheer/FoutenAnalyse";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -989,6 +990,7 @@ export default function Beheer() {
         </TabsContent>
 
         <TabsContent value="exports" className="space-y-4">
+          <AlleProjectenExport />
           <ProjectenExport />
           <BulkPdfExport />
         </TabsContent>

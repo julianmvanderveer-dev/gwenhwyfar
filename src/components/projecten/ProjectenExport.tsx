@@ -39,6 +39,7 @@ const STATUS_LABELS: Record<string, string> = {
   deel1_afgerond: "Deel 1 afgerond",
   deel2_bezig: "Deel 2 bezig",
   wacht_op_reactie: "Reactie EP-adviseur gevraagd",
+  wacht_op_herafmelding: "Wacht op nieuwe afmelding",
   afgerond: "Afgerond",
   gesloten: "Gesloten",
 };
@@ -54,6 +55,12 @@ const GROEPEN: Groep[] = [
     statussen: ["wacht_op_reactie"],
     datumVeld: "reactie_deadline",
     extraKolom: "reactie_deadline",
+  },
+  {
+    key: "wacht-op-herafmelding",
+    label: "Wacht op nieuwe afmelding",
+    statussen: ["wacht_op_herafmelding"],
+    datumVeld: "datum_aangemaakt",
   },
   { key: "afgerond", label: "Afgerond", statussen: ["afgerond", "gesloten"], datumVeld: "gearchiveerd_op" },
 ];
