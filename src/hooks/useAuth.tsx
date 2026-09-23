@@ -5,6 +5,17 @@ import type { Enums } from "@/integrations/supabase/types";
 
 type AppRole = Enums<"app_role">;
 
+/** Groepen waartussen een gebruiker met meerdere petten kan schakelen. */
+export type RoleGroup = "beheer" | "medewerker" | "ep_adviseur";
+
+export const roleGroupLabel: Record<RoleGroup, string> = {
+  beheer: "Beheer",
+  medewerker: "Auditor",
+  ep_adviseur: "EP-adviseur",
+};
+
+const STORAGE_KEY = "bengcert_active_role";
+
 interface AuthContextType {
   user: User | null;
   roles: AppRole[];
@@ -12,6 +23,13 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   hasRole: (role: AppRole) => boolean;
   hasAnyRole: (roles: AppRole[]) => boolean;
+  /** Beschikbare rolgroepen op basis van toegekende rollen. */
+  roleGroups: RoleGroup[];
+  /** De actieve pet; null zolang rollen nog laden. */
+  activeGroup: RoleGroup | null;
+  setActiveGroup: (g: RoleGroup) => void;
+  /** Heeft de gebruiker deze rol én staat de bijbehorende pet actief? */
+  actsAs: (role: AppRole) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -21,7 +39,18 @@ const AuthContext = createContext<AuthContextType>({
   signOut: async () => {},
   hasRole: () => false,
   hasAnyRole: () => false,
+  roleGroups: [],
+  activeGroup: null,
+  setActiveGroup: () => {},
+  actsAs: () => false,
 });
+
+const groupOfRole = (role: AppRole): RoleGroup | null => {
+  if (role === "beheer") return "beheer";
+  if (role === "auditor" || role === "tekenaar") return "medewerker";
+  if (role === "ep_adviseur") return "ep_adviseur";
+  return null;
+};
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
