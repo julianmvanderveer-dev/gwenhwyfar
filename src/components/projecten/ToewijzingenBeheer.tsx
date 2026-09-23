@@ -229,6 +229,8 @@ export default function ToewijzingenBeheer() {
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
+                ) : p.status === "afgerond" ? (
+                  <span className="text-xs text-muted-foreground italic">Afgerond</span>
                 ) : (
                   <div className="flex gap-1">
                     <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => setHertoewijzingProjectId(p.id)}>
@@ -244,13 +246,18 @@ export default function ToewijzingenBeheer() {
               </td>
             </tr>
           ))}
-          {toewijzingProjecten.length === 0 && (
+          {zichtbareProjecten.length === 0 && (
             <tr>
-              <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">Geen actieve projecten.</td>
+              <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">Geen projecten gevonden.</td>
             </tr>
           )}
         </tbody>
       </table>
+    </div>
+    </div>
+  );
+}
+
     </div>
   );
 }
