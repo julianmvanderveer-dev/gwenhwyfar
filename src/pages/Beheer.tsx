@@ -490,7 +490,7 @@ export default function Beheer() {
           <Settings className="h-5 w-5 text-primary-foreground" />
         </div>
         <div>
-          <h1 className="text-xl font-bold tracking-tight">Beheer</h1>
+          <h1 className="text-xl font-bold tracking-tight">Instellingen</h1>
           <p className="text-xs text-muted-foreground">Team- en adviseurbeheer</p>
         </div>
       </div>
