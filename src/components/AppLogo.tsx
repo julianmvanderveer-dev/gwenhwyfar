@@ -4,9 +4,10 @@ import BengCertLogo from "@/components/BengCertLogo";
 interface Props {
   variant?: "light" | "dark";
   size?: number;
+  layout?: "inline" | "stacked";
 }
 
-export default function AppLogo({ variant = "dark", size = 32 }: Props) {
+export default function AppLogo({ variant = "dark", size = 32, layout = "inline" }: Props) {
   const { settings, loading } = useAppSettings();
 
   if (loading) {
@@ -39,5 +40,5 @@ export default function AppLogo({ variant = "dark", size = 32 }: Props) {
   }
 
   // Default: BengCert SVG logo
-  return <BengCertLogo variant={variant} size={size} />;
+  return <BengCertLogo variant={variant} size={size} layout={layout} />;
 }

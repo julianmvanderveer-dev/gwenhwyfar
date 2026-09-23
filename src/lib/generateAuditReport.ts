@@ -48,12 +48,6 @@ const projectStatusLabel: Record<string, string> = {
   gesloten: "Gesloten",
 };
 
-const BENGCERT_LOGO_SVG = `
-<svg width="140" height="40" viewBox="0 0 140 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <path d="M6,18 L14,26 L30,8" fill="none" stroke="#4a9e24" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M14,18 L22,26 L38,8" fill="none" stroke="#5AAF2D" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="46" y="27" font-family="'Poppins', system-ui, -apple-system, sans-serif" font-weight="700" font-size="18" fill="#28235D" letter-spacing="0.5">bengcert</text>
-</svg>`.trim();
 
 const ep2Label = (v: string | null | undefined): string => {
   if (!v) return "—";
