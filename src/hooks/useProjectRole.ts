@@ -40,7 +40,7 @@ export function useProjectRole(projectId: string | null | undefined) {
 
   const isAdviseurVanProject = !!user && !!adviseurUserId && adviseurUserId === user.id;
   const magAuditorActiesDoen =
-    (hasRole("auditor") || hasRole("beheer")) && !isAdviseurVanProject;
+    (actsAs("auditor") || actsAs("beheer")) && !isAdviseurVanProject;
   const magAdviseurActiesDoen = isAdviseurVanProject;
 
   return { isAdviseurVanProject, magAuditorActiesDoen, magAdviseurActiesDoen, loading };
