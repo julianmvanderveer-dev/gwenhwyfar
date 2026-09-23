@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import { orderedFases, faseConfig, getProjectFase, type FaseKey, bezigFases } from "@/components/projecten/faseConfig";
 import AdviseurSectie from "@/components/dashboard/AdviseurSectie";
+import MijnFoutenTop from "@/components/dashboard/MijnFoutenTop";
 import FaseTabel, { type ToewijsbarePersoon, type ProjectRow } from "@/components/projecten/FaseTabel";
 import ExportFilter from "@/components/projecten/ExportFilter";
 import MedewerkerDashboard from "@/components/dashboard/MedewerkerDashboard";
