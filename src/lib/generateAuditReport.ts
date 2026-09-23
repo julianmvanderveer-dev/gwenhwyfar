@@ -174,16 +174,24 @@ export function buildAuditReportHtml({ project, findings, adviseurNaam, adviseur
         Afwijkingen (${afwijkingen.length})
       </h2>
       <p style="margin:0 0 10px;font-size:12px;color:#7f1d1d;">${subLabel}</p>
-      <table style="width:100%;border-collapse:collapse;font-size:12px;background:#fff;">
+      <table style="width:100%;table-layout:fixed;border-collapse:collapse;font-size:12px;background:#fff;">
+        <colgroup>
+          <col style="width:8%;" />
+          <col style="width:18%;" />
+          <col style="width:27%;" />
+          <col style="width:29%;" />
+          <col style="width:18%;" />
+        </colgroup>
         <thead>
           <tr style="background:#1B2A4A;color:#fff;">
-            <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;width:80px;">Code</th>
+            <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Code</th>
             <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Onderdeel</th>
             <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Controlepunt</th>
             <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Toelichting</th>
-            <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;width:180px;">Afhandeling</th>
+            <th style="padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;">Afhandeling</th>
           </tr>
         </thead>
+
         <tbody>${afwijkingRows}</tbody>
       </table>
     </div>`
