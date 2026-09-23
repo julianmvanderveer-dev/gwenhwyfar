@@ -773,7 +773,7 @@ export default function ProjectDetail() {
     (project.status === "nog_niet_begonnen" || project.status === "deel1_bezig" || project.status === "deel1_afgerond");
 
   // Na afronden mag de auditor de EP2-status nog corrigeren (met verplichte reden + audit-trail).
-  const isProjectAfgerond = project.status === "afgerond" || project.status === "gesloten" || project.status === "wacht_op_reactie";
+  const isProjectAfgerond = EP2_VASTGEZET_STATUSSEN.includes(project.status as string);
   const canEditEp2Post = hasRole("auditor") && !isAdviseurVanProject && isProjectAfgerond;
 
   const handleEp2Change = (newValue: string) => {
