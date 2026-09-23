@@ -30,6 +30,7 @@ import Herafmelding from "@/components/projecten/Herafmelding";
 import BatchVersturen from "@/components/projecten/BatchVersturen";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { useProjectRole } from "@/hooks/useProjectRole";
+import { auditjaarVanDatum, auditjaarOptiesMet } from "@/lib/auditjaar";
 
 type Project = Tables<"projects">;
 type Finding = Tables<"findings">;
