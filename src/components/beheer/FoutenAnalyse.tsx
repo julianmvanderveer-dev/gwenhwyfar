@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { downloadCsv } from "@/lib/csv";
+import { auditjaarVanDatum } from "@/lib/auditjaar";
 import { AlertTriangle, Download, FileText, TrendingUp, Users as UsersIcon } from "lucide-react";
 
 type Row = {

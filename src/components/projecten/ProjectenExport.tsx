@@ -7,6 +7,7 @@ import { Download, CalendarDays } from "lucide-react";
 import { downloadCsv } from "@/lib/csv";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { auditjaarVanDatum } from "@/lib/auditjaar";
 
 interface Project {
   projectnaam: string;
@@ -18,6 +19,7 @@ interface Project {
   datum_aangemaakt: string;
   reactie_deadline: string | null;
   gearchiveerd_op: string | null;
+  auditjaar: string | null;
   adviseurs?: { naam: string | null; email: string | null } | null;
 }
 
