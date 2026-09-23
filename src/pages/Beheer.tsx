@@ -251,6 +251,13 @@ export default function Beheer() {
       toewijzing: "specifiek" as any,
     }).eq("id", projectId);
 
+    // Openstaande bevindingen meeverhuizen naar de nieuwe behandelaar
+    await supabase
+      .from("findings")
+      .update({ toegewezen_beoordelaar: nieuweUserId })
+      .eq("project_id", projectId)
+      .in("status", ["open", "reactie_ontvangen"] as any);
+
     // Notificaties
     const notificaties = [];
     if (oudeUserId && oudeUserId !== nieuweUserId) {
