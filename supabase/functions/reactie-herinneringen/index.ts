@@ -9,14 +9,14 @@ const corsHeaders = {
 type Tier = {
   flag: "reminder_overdue_3w_sent" | "reminder_overdue_2w_sent" | "reminder_overdue_1w_sent" | "reminder_pre_sent";
   template: string;
-  cc: string;
+  cc: string[];
   // effectiveOverdueMs: verstreken tijd sinds deadline minus vakantieperiodes
   // (negatief wanneer de deadline nog niet bereikt is)
   match: (effectiveOverdueMs: number) => boolean;
 };
 
-const CC_STANDAARD = "julian@borgch.nl";
-const CC_EINDWAARSCHUWING = "julian@borgch.nl, info@bengcert.nl";
+const CC_STANDAARD = ["julian@borgch.nl"];
+const CC_EINDWAARSCHUWING = ["julian@borgch.nl", "info@bengcert.nl"];
 
 // Volgorde: zwaarste eerst, max 1 mail per project per cyclus
 const TIERS: Tier[] = [
