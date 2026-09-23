@@ -50,6 +50,15 @@ type Uitdraai = {
   created_at: string;
 };
 
+/** Statussen waarin de EP2-beoordeling vaststaat: niet meer automatisch overschrijven,
+ *  wijzigen kan alleen met verplichte toelichting (audit-trail). */
+const EP2_VASTGEZET_STATUSSEN = [
+  "afgerond",
+  "gesloten",
+  "wacht_op_reactie",
+  "wacht_op_herafmelding",
+];
+
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -706,8 +715,8 @@ export default function ProjectDetail() {
 
   // Auto-fill EP2 beoordeling tenzij handmatig overschreven
   useEffect(() => {
-    // Zodra project afgerond/gesloten is, nooit meer overschrijven met auto-berekening.
-    if (project && (project.status === "afgerond" || project.status === "gesloten")) return;
+    // Zodra de audit inhoudelijk vaststaat, nooit meer overschrijven met auto-berekening.
+    if (project && EP2_VASTGEZET_STATUSSEN.includes(project.status as string)) return;
     if (!ep2ManualOverride) {
       setEp2Beoordeling((prev) => {
         if (prev !== autoEp2 && project) {
@@ -773,7 +782,7 @@ export default function ProjectDetail() {
     (project.status === "nog_niet_begonnen" || project.status === "deel1_bezig" || project.status === "deel1_afgerond");
 
   // Na afronden mag de auditor de EP2-status nog corrigeren (met verplichte reden + audit-trail).
-  const isProjectAfgerond = project.status === "afgerond" || project.status === "gesloten" || project.status === "wacht_op_reactie";
+  const isProjectAfgerond = EP2_VASTGEZET_STATUSSEN.includes(project.status as string);
   const canEditEp2Post = hasRole("auditor") && !isAdviseurVanProject && isProjectAfgerond;
 
   const handleEp2Change = (newValue: string) => {
