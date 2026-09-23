@@ -404,7 +404,7 @@ export default function Beheer() {
           </TabsTrigger>
           <TabsTrigger value="instellingen" className="gap-1.5">
             <Image className="h-3.5 w-3.5" />
-            Instellingen
+            Huisstijl &amp; logo
           </TabsTrigger>
         </TabsList>
 
