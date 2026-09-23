@@ -452,6 +452,12 @@ export default function FindingReactie() {
                     <Upload className="h-4 w-4" /> Document bijvoegen
                   </Button>
                   <span className="text-xs text-muted-foreground ml-2">Max 10 MB — verplicht</span>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    U kunt ook een screenshot plakken (Ctrl+V) in dit vlak.
+                  </p>
+                  {bestandPreview && (
+                    <img src={bestandPreview} alt="Screenshot bijlage" className="mt-2 h-20 rounded border object-contain" />
+                  )}
                   {bestand && (
                     <div className="flex items-center gap-1 mt-1 text-sm text-muted-foreground">
                       <FileText className="h-3.5 w-3.5" />
@@ -531,6 +537,12 @@ export default function FindingReactie() {
                   <Upload className="h-4 w-4" /> Document bijvoegen
                 </Button>
                 <span className="text-xs text-muted-foreground ml-2">Max 10 MB</span>
+                <p className="text-xs text-muted-foreground mt-1">
+                  U kunt ook een screenshot plakken (Ctrl+V) in dit vlak.
+                </p>
+                {bestandPreview && (
+                  <img src={bestandPreview} alt="Screenshot bijlage" className="mt-2 h-20 rounded border object-contain" />
+                )}
                 {bestand && (
                   <div className="flex items-center gap-1 mt-1 text-sm text-muted-foreground">
                     <FileText className="h-3.5 w-3.5" />
@@ -620,6 +632,12 @@ export default function FindingReactie() {
                   <Upload className="h-4 w-4" /> Document bijvoegen
                 </Button>
                 <span className="text-xs text-muted-foreground ml-2">Max 10 MB</span>
+                <p className="text-xs text-muted-foreground mt-1">
+                  U kunt ook een screenshot plakken (Ctrl+V) in dit vlak.
+                </p>
+                {aanvullingPreview && (
+                  <img src={aanvullingPreview} alt="Screenshot bijlage" className="mt-2 h-20 rounded border object-contain" />
+                )}
                 {aanvullingBestand && (
                   <div className="flex items-center gap-1 mt-1 text-sm text-muted-foreground">
                     <FileText className="h-3.5 w-3.5" />
