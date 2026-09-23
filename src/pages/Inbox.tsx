@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, LayoutDashboard, FolderKanban, Clock3, CheckCircle2 } from "lucide-react";
+import { Plus, Search, LayoutDashboard, FolderKanban, Clock3, CheckCircle2, ArrowRightLeft, FileDown, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import { orderedFases, faseConfig, getProjectFase, type FaseKey, bezigFases } from "@/components/projecten/faseConfig";
@@ -15,7 +15,11 @@ import AdviseurSectie from "@/components/dashboard/AdviseurSectie";
 import AdviseurOverzicht from "@/components/dashboard/AdviseurOverzicht";
 import NieuwOverzichtMelding from "@/components/dashboard/NieuwOverzichtMelding";
 import FaseTabel, { type ToewijsbarePersoon, type ProjectRow } from "@/components/projecten/FaseTabel";
-import ExportFilter from "@/components/projecten/ExportFilter";
+import ToewijzingenBeheer from "@/components/projecten/ToewijzingenBeheer";
+import AlleProjectenExport from "@/components/projecten/AlleProjectenExport";
+import ProjectenExport from "@/components/projecten/ProjectenExport";
+import BulkPdfExport from "@/components/projecten/BulkPdfExport";
+import FoutenAnalyse from "@/components/beheer/FoutenAnalyse";
 import MedewerkerDashboard from "@/components/dashboard/MedewerkerDashboard";
 import { StatusPill } from "@/lib/badges";
 
@@ -377,7 +381,7 @@ export default function Inbox() {
     window.open(data.signedUrl, "_blank");
   };
 
-  const beheerContent = (
+  const beheerOverzicht = (
     <>
       {/* Search */}
       <div className="relative max-w-md">
@@ -475,10 +479,40 @@ export default function Inbox() {
           isAfgerondView
         />
       </div>
-
-      <ExportFilter projects={projects} />
     </>
   );
+
+  const beheerContent = (
+    <Tabs defaultValue="overzicht" className="space-y-4">
+      <TabsList>
+        <TabsTrigger value="overzicht" className="gap-1.5">
+          <FolderKanban className="h-3.5 w-3.5" /> Overzicht
+        </TabsTrigger>
+        <TabsTrigger value="toewijzingen" className="gap-1.5">
+          <ArrowRightLeft className="h-3.5 w-3.5" /> Toewijzingen
+        </TabsTrigger>
+        <TabsTrigger value="exports" className="gap-1.5">
+          <FileDown className="h-3.5 w-3.5" /> Exports
+        </TabsTrigger>
+        <TabsTrigger value="foutenanalyse" className="gap-1.5">
+          <AlertTriangle className="h-3.5 w-3.5" /> Foutenanalyse
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="overzicht" className="space-y-6">{beheerOverzicht}</TabsContent>
+      <TabsContent value="toewijzingen" className="space-y-4">
+        <ToewijzingenBeheer />
+      </TabsContent>
+      <TabsContent value="exports" className="space-y-4">
+        <AlleProjectenExport />
+        <ProjectenExport />
+        <BulkPdfExport />
+      </TabsContent>
+      <TabsContent value="foutenanalyse" className="space-y-4">
+        <FoutenAnalyse />
+      </TabsContent>
+    </Tabs>
+  );
+
 
   const adviseurContent = (
     <Tabs key={navState.tab ?? "projecten"} defaultValue={navState.tab === "overzicht" ? "overzicht" : "projecten"} className="space-y-4">
