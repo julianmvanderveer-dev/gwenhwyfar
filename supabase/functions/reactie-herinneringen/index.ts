@@ -109,11 +109,12 @@ Deno.serve(async (req) => {
       if (!count || count === 0) continue;
 
       const deadline = new Date(p.reactie_deadline as string);
+      const overdueMs = effectieveOverdueMs(deadline, now);
 
       // Bepaal hoogste tier waar (a) de tijd voorbij is en (b) de vlag nog niet gezet is
       let tier: Tier | null = null;
       for (const t of TIERS) {
-        if (!(p as any)[t.flag] && t.match(deadline, now)) {
+        if (!(p as any)[t.flag] && t.match(overdueMs)) {
           tier = t;
           break;
         }
