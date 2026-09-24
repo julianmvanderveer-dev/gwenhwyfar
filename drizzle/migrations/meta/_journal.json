@@ -36,6 +36,13 @@
       "when": 1790236393449,
       "tag": "0004_add_deel1_uitgevoerd_door",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790249923752,
+      "tag": "0005_adviseur_berichten",
+      "breakpoints": true
     }
   ]
 }
