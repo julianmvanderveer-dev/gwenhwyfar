@@ -83,6 +83,13 @@ export default function Herafmelding({ projectId, projectStatus, dropboxLink, on
       } as any);
       if (insErr) throw insErr;
 
+      // Stuur mail naar de toegewezen auditor (fouten blokkeren de upload niet)
+      supabase.functions.invoke("notify-auditor", {
+        body: { type: "herafmelding_ingediend", project_id: projectId, bestandsnaam: file.name },
+      }).then(({ error: mailErr }) => {
+        if (mailErr) console.error("Notificatie herafmelding fout:", mailErr);
+      });
+
       setToelichting("");
       toast({ title: "Nieuw label ingediend", description: "De auditor beoordeelt uw herafmelding." });
       await load();
