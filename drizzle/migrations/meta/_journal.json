@@ -43,6 +43,13 @@
       "when": 1790249923752,
       "tag": "0005_adviseur_berichten",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790249935636,
+      "tag": "0006_adviseur_berichten_storage",
+      "breakpoints": true
     }
   ]
 }
