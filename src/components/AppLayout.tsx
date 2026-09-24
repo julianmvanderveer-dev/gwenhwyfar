@@ -99,6 +99,21 @@ export default function AppLayout() {
           </Link>
         )}
 
+        {actsAs("ep_adviseur") && (
+          <Link
+            to="/inbox"
+            state={{ tab: "berichten" }}
+            className="font-medium hover:text-primary transition-colors flex items-center gap-1.5"
+          >
+            Berichten
+            {ongelezenBerichten.aantal > 0 && (
+              <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-accent text-accent-foreground text-[10px] font-bold leading-none">
+                {ongelezenBerichten.aantal}
+              </span>
+            )}
+          </Link>
+        )}
+
         {actsAs("beheer") && (
           <Link
             to="/beheer"
