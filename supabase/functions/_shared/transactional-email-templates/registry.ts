@@ -21,6 +21,7 @@ import { template as auditAfgerondAuditor } from './audit-afgerond-auditor.tsx'
 import { template as auditVolledigAfgerond } from './audit-volledig-afgerond.tsx'
 import { template as herafmeldingVereist } from './herafmelding-vereist.tsx'
 import { template as herafmeldingBeoordeeld } from './herafmelding-beoordeeld.tsx'
+import { template as feedbackOntvangen } from './feedback-ontvangen.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'audit-afgerond': auditAfgerond,
@@ -35,4 +36,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'audit-volledig-afgerond': auditVolledigAfgerond,
   'herafmelding-vereist': herafmeldingVereist,
   'herafmelding-beoordeeld': herafmeldingBeoordeeld,
+  'feedback-ontvangen': feedbackOntvangen,
 }
