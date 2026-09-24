@@ -534,10 +534,13 @@ export default function ProjectDetail() {
       toegewezen_aan: null,
       toegewezen_op: null,
       toewijzing: "pool",
-    }).eq("id", id!);
+      deel1_uitgevoerd_door: user?.id ?? null,
+      deel1_afgerond_op: new Date().toISOString(),
+    } as any).eq("id", id!);
     toast({ title: "Deel 1 afgerond", description: "Project is vrijgegeven naar de auditor-pool" });
     navigate("/inbox");
   };
+
 
   const auditAfronden = async () => {
     if (!hasRole("auditor") || isAdviseurVanProject) {
