@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { BarChart3, TrendingUp, Download, Info } from "lucide-react";
 
 const STORAGE_KEY = "bengaudit_overzicht_melding_gezien";
+const COUNT_KEY = "bengaudit_overzicht_melding_count";
+const MAX_TOON = 2;
 // Zichtbaar tot 23 november 2026 (2 maanden vanaf invoering)
 const TOON_TOT = new Date("2026-11-23T23:59:59");
 
@@ -13,7 +15,13 @@ export default function NieuwOverzichtMelding() {
   useEffect(() => {
     if (new Date() > TOON_TOT) return;
     try {
-      if (localStorage.getItem(STORAGE_KEY)) return;
+      let count = parseInt(localStorage.getItem(COUNT_KEY) ?? "", 10);
+      if (isNaN(count)) {
+        // Bestaande gebruikers die de pop-up al gezien hebben starten op 1
+        count = localStorage.getItem(STORAGE_KEY) ? 1 : 0;
+      }
+      if (count >= MAX_TOON) return;
+      localStorage.setItem(COUNT_KEY, String(count + 1));
     } catch {
       // localStorage niet beschikbaar; toon melding alsnog niet blokkerend
     }
