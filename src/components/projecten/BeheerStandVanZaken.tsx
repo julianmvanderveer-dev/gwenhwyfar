@@ -367,7 +367,22 @@ export default function BeheerStandVanZaken({ project, findings }: { project: Pr
                 )}
               </div>
             </div>
+            <div className="flex items-start gap-2">
+              <PencilRuler className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="text-muted-foreground">Deel 1 uitgevoerd door</div>
+                <div className="font-medium truncate">
+                  {deel1Naam ?? <span className="text-muted-foreground italic">Onbekend</span>}
+                  {(project as any).deel1_afgerond_op && (
+                    <span className="text-muted-foreground font-normal">
+                      {" "}· {formatDatumKort((project as any).deel1_afgerond_op)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
+
         </div>
 
         {/* Kolom 2: Tellers */}
