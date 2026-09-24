@@ -9,17 +9,28 @@ import { soortLabel, formatEvenement } from "./berichtSoorten";
 
 type Bericht = Tables<"adviseur_berichten">;
 
+async function eigenAdviseurId(userId: string) {
+  const { data } = await supabase.from("adviseurs").select("id").eq("user_id", userId).maybeSingle();
+  return data?.id ?? null;
+}
+
+// Alleen algemene berichten en berichten gericht aan de eigen adviseur
+function voorMij<T extends { adviseur_id: string | null }>(lijst: T[], adviseurId: string | null) {
+  return lijst.filter((x) => !x.adviseur_id || x.adviseur_id === adviseurId);
+}
+
 export function useOngelezenBerichten() {
   const { user } = useAuth();
   const [aantal, setAantal] = useState(0);
   const laad = async () => {
     if (!user) return;
-    const [{ data: b }, { data: g }] = await Promise.all([
-      supabase.from("adviseur_berichten").select("id").eq("actief", true),
+    const [{ data: b }, { data: g }, adviseurId] = await Promise.all([
+      supabase.from("adviseur_berichten").select("id, adviseur_id").eq("actief", true),
       supabase.from("adviseur_berichten_gelezen").select("bericht_id").eq("user_id", user.id),
+      eigenAdviseurId(user.id),
     ]);
     const gelezen = new Set((g ?? []).map((x) => x.bericht_id));
-    setAantal((b ?? []).filter((x) => !gelezen.has(x.id)).length);
+    setAantal(voorMij(b ?? [], adviseurId).filter((x) => !gelezen.has(x.id)).length);
   };
   useEffect(() => { laad(); }, [user?.id]);
   return { aantal, reset: () => setAantal(0) };
@@ -34,12 +45,13 @@ export default function AdviseurBerichten({ onGelezen }: { onGelezen?: () => voi
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const [{ data: b }, { data: g }] = await Promise.all([
+      const [{ data: b }, { data: g }, adviseurId] = await Promise.all([
         supabase.from("adviseur_berichten").select("*").eq("actief", true)
           .order("vastgepind", { ascending: false }).order("created_at", { ascending: false }),
         supabase.from("adviseur_berichten_gelezen").select("bericht_id").eq("user_id", user.id),
+        eigenAdviseurId(user.id),
       ]);
-      const lijst = b ?? [];
+      const lijst = voorMij(b ?? [], adviseurId);
       const gelezen = new Set((g ?? []).map((x) => x.bericht_id));
       const nieuw = lijst.filter((x) => !gelezen.has(x.id)).map((x) => x.id);
       setBerichten(lijst);
@@ -51,6 +63,7 @@ export default function AdviseurBerichten({ onGelezen }: { onGelezen?: () => voi
       }
     })();
   }, [user?.id]);
+
 
   const openBijlage = async (pad: string) => {
     const { data } = await supabase.storage.from("adviseur-berichten").createSignedUrl(pad, 3600);
