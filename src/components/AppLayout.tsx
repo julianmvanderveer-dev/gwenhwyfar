@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import NotificatieBel from "@/components/NotificatieBel";
 import FeedbackKnop from "@/components/FeedbackKnop";
 import AppLogo from "@/components/AppLogo";
+import { useOngelezenBerichten } from "@/components/berichten/AdviseurBerichten";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +15,7 @@ import { toast } from "@/hooks/use-toast";
 export default function AppLayout() {
   const { user, roles, signOut, hasRole, actsAs, roleGroups, activeGroup, setActiveGroup } = useAuth();
   const navigate = useNavigate();
+  const ongelezenBerichten = useOngelezenBerichten();
   const [pwOpen, setPwOpen] = useState(false);
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
@@ -94,6 +96,21 @@ export default function AppLayout() {
             className="font-medium hover:text-primary transition-colors"
           >
             Overzicht
+          </Link>
+        )}
+
+        {actsAs("ep_adviseur") && (
+          <Link
+            to="/inbox"
+            state={{ tab: "berichten" }}
+            className="font-medium hover:text-primary transition-colors flex items-center gap-1.5"
+          >
+            Berichten
+            {ongelezenBerichten.aantal > 0 && (
+              <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-accent text-accent-foreground text-[10px] font-bold leading-none">
+                {ongelezenBerichten.aantal}
+              </span>
+            )}
           </Link>
         )}
 
