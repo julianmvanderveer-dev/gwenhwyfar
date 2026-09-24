@@ -43,7 +43,7 @@ const STATUS_LABELS: Record<string, string> = {
   gesloten: "Gesloten",
 };
 
-const CATEGORIEEN = ["EPW-B", "EPW-D", "EPU-B", "EPU-D", "MWA-B", "MWA-U"];
+const CATEGORIEEN = ["EPW-B", "EPW-D", "EPU-B", "EPU-D", "MWA-W", "MWA-U"];
 
 function formatDate(d: string | null) {
   return d ? new Date(d).toLocaleDateString("nl-NL") : "";

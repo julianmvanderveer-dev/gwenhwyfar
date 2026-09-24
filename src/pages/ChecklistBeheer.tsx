@@ -93,7 +93,7 @@ export default function ChecklistBeheer() {
     const newCode = getNextSubcode(lastItem?.code || "1", categorie);
 
     const newRow: {
-      audit_categorie: "EPW-B" | "EPW-D" | "EPU-B" | "EPU-D" | "MWA-B" | "MWA-U";
+      audit_categorie: "EPW-B" | "EPW-D" | "EPU-B" | "EPU-D" | "MWA-W" | "MWA-U";
       code: string;
       onderdeel: string;
       controlepunt: string;
