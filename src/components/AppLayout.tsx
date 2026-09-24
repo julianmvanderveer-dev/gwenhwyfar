@@ -15,6 +15,7 @@ import { toast } from "@/hooks/use-toast";
 export default function AppLayout() {
   const { user, roles, signOut, hasRole, actsAs, roleGroups, activeGroup, setActiveGroup } = useAuth();
   const navigate = useNavigate();
+  const ongelezenBerichten = useOngelezenBerichten();
   const [pwOpen, setPwOpen] = useState(false);
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
