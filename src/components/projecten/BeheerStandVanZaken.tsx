@@ -56,7 +56,9 @@ export default function BeheerStandVanZaken({ project, findings }: { project: Pr
   const [activiteit, setActiviteit] = useState<ActiviteitRegel[]>([]);
   const [toegewezenNaam, setToegewezenNaam] = useState<string | null>(null);
   const [toegewezenRol, setToegewezenRol] = useState<string | null>(null);
+  const [deel1Naam, setDeel1Naam] = useState<string | null>(null);
   const [adviseurNaam, setAdviseurNaam] = useState<string | null>(null);
+
   const [adviseurLijst, setAdviseurLijst] = useState<{ id: string; nummer: number; naam: string }[]>([]);
   const [adviseurBewerken, setAdviseurBewerken] = useState(false);
   const [nieuweAdviseurId, setNieuweAdviseurId] = useState<string>("");
