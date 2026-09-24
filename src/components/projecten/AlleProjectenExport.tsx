@@ -143,6 +143,8 @@ export default function AlleProjectenExport() {
       "EP-adviseur": p.adviseurs?.naam ?? "",
       "E-mail adviseur": p.adviseurs?.email ?? "",
       Behandelaar: p.toegewezen_aan ? profielen.get(p.toegewezen_aan) ?? "" : "",
+      "Deel 1 uitgevoerd door": (p as any).deel1_uitgevoerd_door ? profielen.get((p as any).deel1_uitgevoerd_door) ?? "" : "",
+
       Prioriteit: p.prioriteit ? "Ja" : "Nee",
       Toelatingsaudit: p.toelatingsaudit ? "Ja" : "Nee",
       Omgevingsvergunning: p.is_omgevingsvergunning ? "Ja" : "Nee",
