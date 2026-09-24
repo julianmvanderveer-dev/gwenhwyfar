@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { type, project_id } = await req.json();
+    const { type, project_id, controlepunt, bestandsnaam } = await req.json();
 
     if (!type || !project_id) {
       return new Response(JSON.stringify({ error: "type and project_id required" }), {
@@ -58,8 +58,7 @@ Deno.serve(async (req) => {
       projectnaam: project.projectnaam,
     };
 
-    if (type === "reactie_ontvangen") {
-      templateName = "reactie-ontvangen-auditor";
+    const laadAdviseurNaam = async () => {
       if (project.adviseur_id) {
         const { data: adv } = await admin
           .from("adviseurs")
@@ -68,6 +67,19 @@ Deno.serve(async (req) => {
           .maybeSingle();
         if (adv?.naam) templateData.adviseurNaam = adv.naam;
       }
+    };
+
+    if (type === "reactie_ontvangen") {
+      templateName = "reactie-ontvangen-auditor";
+      await laadAdviseurNaam();
+    } else if (type === "aanvulling_ontvangen") {
+      templateName = "aanvulling-ontvangen-auditor";
+      await laadAdviseurNaam();
+      if (controlepunt) templateData.controlepunt = controlepunt;
+    } else if (type === "herafmelding_ingediend") {
+      templateName = "herafmelding-ingediend-auditor";
+      await laadAdviseurNaam();
+      if (bestandsnaam) templateData.bestandsnaam = bestandsnaam;
     } else if (type === "audit_afgerond") {
       templateName = "audit-afgerond-auditor";
     } else {
