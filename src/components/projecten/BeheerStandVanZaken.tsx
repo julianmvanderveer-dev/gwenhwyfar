@@ -138,6 +138,13 @@ export default function BeheerStandVanZaken({ project, findings }: { project: Pr
         setToegewezenNaam(null);
         setToegewezenRol(null);
       }
+      const deel1Id = (project as any).deel1_uitgevoerd_door ?? project.aangemaakt_door;
+      if (deel1Id) {
+        const { data } = await supabase.from("profiles").select("naam").eq("id", deel1Id).maybeSingle();
+        if (!cancelled) setDeel1Naam(data?.naam ?? null);
+      } else if (!cancelled) {
+        setDeel1Naam(null);
+      }
       if (project.adviseur_id) {
         const { data } = await supabase.from("adviseurs").select("naam").eq("id", project.adviseur_id).maybeSingle();
         if (!cancelled) setAdviseurNaam(data?.naam ?? null);
@@ -149,7 +156,8 @@ export default function BeheerStandVanZaken({ project, findings }: { project: Pr
     return () => {
       cancelled = true;
     };
-  }, [project.toegewezen_aan, project.adviseur_id]);
+  }, [project.toegewezen_aan, project.adviseur_id, (project as any).deel1_uitgevoerd_door, project.aangemaakt_door]);
+
 
   const reactiesTeBeoordelen = findings.filter((f) => f.status === "reactie_ontvangen").length;
   const conceptBeoordelingen = findings.filter(
