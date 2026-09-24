@@ -11,6 +11,7 @@ import { downloadCsv } from "@/lib/csv";
 import type { Tables, Enums } from "@/integrations/supabase/types";
 import { Download, Plus, Pencil, Check, X, Trash2, Settings, Users, Eye, EyeOff, RotateCcw, MessageSquare, Upload, Image, Mail, Send } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import BerichtenBeheer from "@/components/berichten/BerichtenBeheer";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
@@ -402,11 +403,19 @@ export default function Beheer() {
               <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0">{feedbackItems.length}</Badge>
             )}
           </TabsTrigger>
+          <TabsTrigger value="berichten" className="gap-1.5">
+            <Mail className="h-3.5 w-3.5" />
+            Berichten aan adviseurs
+          </TabsTrigger>
           <TabsTrigger value="instellingen" className="gap-1.5">
             <Image className="h-3.5 w-3.5" />
             Huisstijl &amp; logo
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="berichten" className="space-y-4">
+          <BerichtenBeheer />
+        </TabsContent>
 
         {/* TAB: Projectteam */}
         <TabsContent value="team" className="space-y-4">
