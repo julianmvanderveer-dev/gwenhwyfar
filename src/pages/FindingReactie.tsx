@@ -281,6 +281,16 @@ export default function FindingReactie() {
         bijlage_pad: bijlagePad,
       });
       if (error) throw error;
+      // Stuur mail naar de toegewezen auditor (fouten blokkeren het opslaan niet)
+      supabase.functions.invoke("notify-auditor", {
+        body: {
+          type: "aanvulling_ontvangen",
+          project_id: finding.project_id,
+          controlepunt: finding.controlepunt,
+        },
+      }).then(({ error: mailErr }) => {
+        if (mailErr) console.error("Notificatie aanvulling fout:", mailErr);
+      });
       toast({ title: "Aanvulling toegevoegd", description: "Je aanvulling is opgenomen in de audit trail." });
       setAanvullingTekst("");
       setAanvullingBestand(null);
