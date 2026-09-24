@@ -17,7 +17,6 @@ import NieuwOverzichtMelding from "@/components/dashboard/NieuwOverzichtMelding"
 import FaseTabel, { type ToewijsbarePersoon, type ProjectRow } from "@/components/projecten/FaseTabel";
 import ToewijzingenBeheer from "@/components/projecten/ToewijzingenBeheer";
 import AlleProjectenExport from "@/components/projecten/AlleProjectenExport";
-import ProjectenExport from "@/components/projecten/ProjectenExport";
 import BulkPdfExport from "@/components/projecten/BulkPdfExport";
 import FoutenAnalyse from "@/components/beheer/FoutenAnalyse";
 import MedewerkerDashboard from "@/components/dashboard/MedewerkerDashboard";
@@ -513,12 +512,10 @@ export default function Inbox() {
       </TabsContent>
       <TabsContent value="exports" className="space-y-4">
         <p className="text-xs text-muted-foreground">
-          Drie soorten downloads: <strong>Alle projecten</strong> voor één CSV met eigen filters,
-          <strong> Per fase</strong> voor een lijst met kolommen die bij die fase horen, en
+          Twee soorten downloads: <strong>Alle projecten</strong> voor één CSV met eigen filters, en
           <strong> Bulk PDF</strong> voor de volledige auditformulieren als PDF in één ZIP-bestand.
         </p>
         <AlleProjectenExport />
-        <ProjectenExport />
         <BulkPdfExport />
       </TabsContent>
       <TabsContent value="foutenanalyse" className="space-y-4">
