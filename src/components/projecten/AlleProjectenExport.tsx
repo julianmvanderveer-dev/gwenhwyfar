@@ -71,7 +71,7 @@ export default function AlleProjectenExport() {
         supabase
           .from("projects")
           .select(
-            "id, projectnaam, status, audit_categorie, audit_soort, auditjaar, prioriteit, toelatingsaudit, is_omgevingsvergunning, ep2_startwaarde, ep2_eindwaarde, ep2_beoordeling, datum_aangemaakt, reactie_deadline, gearchiveerd_op, dropbox_link, adviseur_id, toegewezen_aan, adviseurs:adviseur_id(nummer, naam, email)"
+            "id, projectnaam, status, audit_categorie, audit_soort, auditjaar, prioriteit, toelatingsaudit, is_omgevingsvergunning, ep2_startwaarde, ep2_eindwaarde, ep2_beoordeling, datum_aangemaakt, reactie_deadline, gearchiveerd_op, dropbox_link, adviseur_id, toegewezen_aan, deel1_uitgevoerd_door, adviseurs:adviseur_id(nummer, naam, email)"
           )
           .order("datum_aangemaakt", { ascending: false }),
         supabase.from("profiles").select("id, naam"),
