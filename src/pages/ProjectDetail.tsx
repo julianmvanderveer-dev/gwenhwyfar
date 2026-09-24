@@ -428,7 +428,11 @@ export default function ProjectDetail() {
         update.status = "open";
       }
     }
-    await supabase.from("findings").update(update).eq("id", findingId);
+    setFindings((prev) => prev.map((f) => (f.id === findingId ? { ...f, ...update } : f)));
+    const { error } = await supabase.from("findings").update(update).eq("id", findingId);
+    if (error) {
+      toast({ title: "Niet opgeslagen", description: "De beoordeling kon niet worden opgeslagen. Probeer het opnieuw.", variant: "destructive" });
+    }
     loadFindings();
   };
 
@@ -456,7 +460,11 @@ export default function ProjectDetail() {
         if (huidig && !huidig.zichtbaar_voor_adviseur) {
           wisUpdate.status = "open";
         }
-        await supabase.from("findings").update(wisUpdate).eq("id", fId);
+        setFindings((prev) => prev.map((f) => (f.id === fId ? { ...f, ...wisUpdate } : f)));
+        const { error } = await supabase.from("findings").update(wisUpdate).eq("id", fId);
+        if (error) {
+          toast({ title: "Niet opgeslagen", description: "De wijziging kon niet worden opgeslagen. Probeer het opnieuw.", variant: "destructive" });
+        }
         loadFindings();
       } else {
         await updateBeoordeling(fId, beoordeling as Enums<"beoordeling_type">);
@@ -476,7 +484,13 @@ export default function ProjectDetail() {
     const huidig = findings.find((f) => f.id === findingId);
     const wasCorrectie = !!huidig && huidig.zichtbaar_voor_adviseur && huidig.status === "open";
     const oud = huidig?.type_afwijking ?? null;
-    await supabase.from("findings").update({ type_afwijking: type }).eq("id", findingId);
+    setFindings((prev) => prev.map((f) => (f.id === findingId ? { ...f, type_afwijking: type } : f)));
+    const { error } = await supabase.from("findings").update({ type_afwijking: type }).eq("id", findingId);
+    if (error) {
+      toast({ title: "Niet opgeslagen", description: "Het type afwijking kon niet worden opgeslagen. Probeer het opnieuw.", variant: "destructive" });
+      loadFindings();
+      return;
+    }
     if (wasCorrectie && oud !== type) {
       const labels: Record<string, string> = { kritiek: "Kritiek", niet_kritiek: "Niet kritiek" };
       await logCorrectie(findingId, `Type afwijking gewijzigd van "${oud ? (labels[oud] ?? oud) : "—"}" naar "${labels[type] ?? type}".`);
