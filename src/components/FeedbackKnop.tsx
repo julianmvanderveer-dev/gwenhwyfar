@@ -32,16 +32,24 @@ export default function FeedbackKnop() {
       return;
     }
     setSending(true);
-    const { error } = await supabase.from("feedback" as any).insert({
+    const { data: inserted, error } = await supabase.from("feedback" as any).insert({
       user_id: user.id,
       pagina: location.pathname,
       type,
       bericht: bericht.trim(),
-    } as any);
+    } as any).select("id").maybeSingle();
     setSending(false);
     if (error) {
       toast({ title: "Fout bij verzenden", description: error.message, variant: "destructive" });
       return;
+    }
+    // Stuur notificatiemail naar info@bengcert.nl (fouten blokkeren de feedback niet)
+    if ((inserted as any)?.id) {
+      supabase.functions
+        .invoke("notify-feedback", { body: { feedback_id: (inserted as any).id } })
+        .then(({ error: mailError }) => {
+          if (mailError) console.error("Feedbackmail verzenden mislukt:", mailError);
+        });
     }
     toast({ title: "Bedankt voor je feedback!" });
     setBericht("");
