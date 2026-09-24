@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
-import { UserCog, UserCheck, Clock, Activity, Trash2, Pencil, Check, X } from "lucide-react";
+import { UserCog, UserCheck, Clock, Activity, Trash2, Pencil, Check, X, PencilRuler } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
@@ -56,7 +56,9 @@ export default function BeheerStandVanZaken({ project, findings }: { project: Pr
   const [activiteit, setActiviteit] = useState<ActiviteitRegel[]>([]);
   const [toegewezenNaam, setToegewezenNaam] = useState<string | null>(null);
   const [toegewezenRol, setToegewezenRol] = useState<string | null>(null);
+  const [deel1Naam, setDeel1Naam] = useState<string | null>(null);
   const [adviseurNaam, setAdviseurNaam] = useState<string | null>(null);
+
   const [adviseurLijst, setAdviseurLijst] = useState<{ id: string; nummer: number; naam: string }[]>([]);
   const [adviseurBewerken, setAdviseurBewerken] = useState(false);
   const [nieuweAdviseurId, setNieuweAdviseurId] = useState<string>("");
@@ -136,6 +138,13 @@ export default function BeheerStandVanZaken({ project, findings }: { project: Pr
         setToegewezenNaam(null);
         setToegewezenRol(null);
       }
+      const deel1Id = (project as any).deel1_uitgevoerd_door ?? project.aangemaakt_door;
+      if (deel1Id) {
+        const { data } = await supabase.from("profiles").select("naam").eq("id", deel1Id).maybeSingle();
+        if (!cancelled) setDeel1Naam(data?.naam ?? null);
+      } else if (!cancelled) {
+        setDeel1Naam(null);
+      }
       if (project.adviseur_id) {
         const { data } = await supabase.from("adviseurs").select("naam").eq("id", project.adviseur_id).maybeSingle();
         if (!cancelled) setAdviseurNaam(data?.naam ?? null);
@@ -147,7 +156,8 @@ export default function BeheerStandVanZaken({ project, findings }: { project: Pr
     return () => {
       cancelled = true;
     };
-  }, [project.toegewezen_aan, project.adviseur_id]);
+  }, [project.toegewezen_aan, project.adviseur_id, (project as any).deel1_uitgevoerd_door, project.aangemaakt_door]);
+
 
   const reactiesTeBeoordelen = findings.filter((f) => f.status === "reactie_ontvangen").length;
   const conceptBeoordelingen = findings.filter(
@@ -357,7 +367,22 @@ export default function BeheerStandVanZaken({ project, findings }: { project: Pr
                 )}
               </div>
             </div>
+            <div className="flex items-start gap-2">
+              <PencilRuler className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="text-muted-foreground">Deel 1 uitgevoerd door</div>
+                <div className="font-medium truncate">
+                  {deel1Naam ?? <span className="text-muted-foreground italic">Onbekend</span>}
+                  {(project as any).deel1_afgerond_op && (
+                    <span className="text-muted-foreground font-normal">
+                      {" "}· {formatDatumKort((project as any).deel1_afgerond_op)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
+
         </div>
 
         {/* Kolom 2: Tellers */}
