@@ -13,6 +13,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { orderedFases, faseConfig, getProjectFase, type FaseKey, bezigFases } from "@/components/projecten/faseConfig";
 import AdviseurSectie from "@/components/dashboard/AdviseurSectie";
 import AdviseurOverzicht from "@/components/dashboard/AdviseurOverzicht";
+import AdviseurBerichten, { useOngelezenBerichten } from "@/components/berichten/AdviseurBerichten";
 import NieuwOverzichtMelding from "@/components/dashboard/NieuwOverzichtMelding";
 import FaseTabel, { type ToewijsbarePersoon, type ProjectRow } from "@/components/projecten/FaseTabel";
 import ToewijzingenBeheer from "@/components/projecten/ToewijzingenBeheer";
@@ -28,6 +29,7 @@ type Finding = Tables<"findings"> & { projectnaam?: string; laatste_reactie?: st
 export default function Inbox() {
   const { user, roles, hasRole, actsAs, activeGroup } = useAuth();
   const location = useLocation();
+  const ongelezenBerichten = useOngelezenBerichten();
   const navState = (location.state ?? {}) as { view?: string; tab?: string };
   const [searchParams, setSearchParams] = useSearchParams();
   const [projects, setProjects] = useState<Project[]>([]);
@@ -527,11 +529,17 @@ export default function Inbox() {
 
 
   const adviseurContent = (
-    <Tabs key={navState.tab ?? "projecten"} defaultValue={navState.tab === "overzicht" ? "overzicht" : "projecten"} className="space-y-4">
+    <Tabs key={navState.tab ?? "projecten"} defaultValue={navState.tab === "overzicht" || navState.tab === "berichten" ? navState.tab : "projecten"} className="space-y-4">
       <NieuwOverzichtMelding />
       <TabsList>
         <TabsTrigger value="projecten">Projecten</TabsTrigger>
         <TabsTrigger value="overzicht">Overzicht</TabsTrigger>
+        <TabsTrigger value="berichten" className="gap-1.5">
+          Berichten
+          {ongelezenBerichten.aantal > 0 && (
+            <Badge className="ml-1 text-[10px] px-1.5 py-0 bg-accent text-accent-foreground">{ongelezenBerichten.aantal}</Badge>
+          )}
+        </TabsTrigger>
       </TabsList>
       <TabsContent value="projecten" className="space-y-4">
         <AdviseurSectie
@@ -549,6 +557,9 @@ export default function Inbox() {
       </TabsContent>
       <TabsContent value="overzicht">
         <AdviseurOverzicht />
+      </TabsContent>
+      <TabsContent value="berichten">
+        <AdviseurBerichten onGelezen={ongelezenBerichten.reset} />
       </TabsContent>
     </Tabs>
   );

@@ -14,6 +14,88 @@ export type Database = {
   }
   public: {
     Tables: {
+      adviseur_berichten: {
+        Row: {
+          aangemaakt_door: string | null
+          actief: boolean
+          adviseur_id: string | null
+          bijlage_naam: string | null
+          bijlage_pad: string | null
+          created_at: string
+          evenement_datum: string | null
+          evenement_locatie: string | null
+          id: string
+          inhoud: string
+          soort: string
+          titel: string
+          vastgepind: boolean
+        }
+        Insert: {
+          aangemaakt_door?: string | null
+          actief?: boolean
+          adviseur_id?: string | null
+          bijlage_naam?: string | null
+          bijlage_pad?: string | null
+          created_at?: string
+          evenement_datum?: string | null
+          evenement_locatie?: string | null
+          id?: string
+          inhoud?: string
+          soort?: string
+          titel: string
+          vastgepind?: boolean
+        }
+        Update: {
+          aangemaakt_door?: string | null
+          actief?: boolean
+          adviseur_id?: string | null
+          bijlage_naam?: string | null
+          bijlage_pad?: string | null
+          created_at?: string
+          evenement_datum?: string | null
+          evenement_locatie?: string | null
+          id?: string
+          inhoud?: string
+          soort?: string
+          titel?: string
+          vastgepind?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "adviseur_berichten_adviseur_id_fkey"
+            columns: ["adviseur_id"]
+            isOneToOne: false
+            referencedRelation: "adviseurs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      adviseur_berichten_gelezen: {
+        Row: {
+          bericht_id: string
+          gelezen_op: string
+          user_id: string
+        }
+        Insert: {
+          bericht_id: string
+          gelezen_op?: string
+          user_id: string
+        }
+        Update: {
+          bericht_id?: string
+          gelezen_op?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "adviseur_berichten_gelezen_bericht_id_fkey"
+            columns: ["bericht_id"]
+            isOneToOne: false
+            referencedRelation: "adviseur_berichten"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       adviseurs: {
         Row: {
           actief: boolean
