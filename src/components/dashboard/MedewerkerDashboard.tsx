@@ -332,7 +332,7 @@ export default function MedewerkerDashboard() {
                           <tbody>
                             {g.findings.map((f, i) => {
                               const c = f.concept_beoordeling;
-                              const conceptStatus = !c ? null : c.type === "akkoord" ? "akkoord" : "niet_akkoord";
+                              const conceptStatus = !c ? null : c.type === "akkoord" ? "akkoord" : c.type === "vervallen" ? "vervallen" : "niet_akkoord";
                               return (
                                 <tr key={f.id} className={`border-b last:border-0 ${i % 2 === 0 ? "bg-card" : "bg-background"}`}>
                                   <td className="px-4 py-2.5">
@@ -349,6 +349,10 @@ export default function MedewerkerDashboard() {
                                     {conceptStatus === "akkoord" ? (
                                       <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700">
                                         <CheckCircle2 className="h-3.5 w-3.5" /> Concept goedgekeurd
+                                      </span>
+                                    ) : conceptStatus === "vervallen" ? (
+                                      <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700">
+                                        <CheckCircle2 className="h-3.5 w-3.5" /> Concept afwijking vervalt
                                       </span>
                                     ) : conceptStatus === "niet_akkoord" ? (
                                       <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700">
