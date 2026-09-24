@@ -29,6 +29,13 @@
       "when": 1790165046472,
       "tag": "0003_adviseur_benchmark_en_fouten_gemiddelde",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790236393449,
+      "tag": "0004_add_deel1_uitgevoerd_door",
+      "breakpoints": true
     }
   ]
 }

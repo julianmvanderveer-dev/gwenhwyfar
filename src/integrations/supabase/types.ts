@@ -620,6 +620,8 @@ export type Database = {
           audit_soort: Database["public"]["Enums"]["audit_soort"]
           auditjaar: string | null
           datum_aangemaakt: string
+          deel1_afgerond_op: string | null
+          deel1_uitgevoerd_door: string | null
           dropbox_link: string | null
           ep2_beoordeling: string | null
           ep2_eindwaarde: number | null
@@ -647,6 +649,8 @@ export type Database = {
           audit_soort?: Database["public"]["Enums"]["audit_soort"]
           auditjaar?: string | null
           datum_aangemaakt?: string
+          deel1_afgerond_op?: string | null
+          deel1_uitgevoerd_door?: string | null
           dropbox_link?: string | null
           ep2_beoordeling?: string | null
           ep2_eindwaarde?: number | null
@@ -674,6 +678,8 @@ export type Database = {
           audit_soort?: Database["public"]["Enums"]["audit_soort"]
           auditjaar?: string | null
           datum_aangemaakt?: string
+          deel1_afgerond_op?: string | null
+          deel1_uitgevoerd_door?: string | null
           dropbox_link?: string | null
           ep2_beoordeling?: string | null
           ep2_eindwaarde?: number | null
@@ -700,6 +706,13 @@ export type Database = {
             columns: ["adviseur_id"]
             isOneToOne: false
             referencedRelation: "adviseurs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_deel1_uitgevoerd_door_fkey"
+            columns: ["deel1_uitgevoerd_door"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
