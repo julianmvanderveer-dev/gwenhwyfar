@@ -237,7 +237,7 @@ export default function ProjectAanmaken() {
             <option value="EPW-D">EPW-D</option>
             <option value="EPU-B">EPU-B</option>
             <option value="EPU-D">EPU-D</option>
-            <option value="MWA-B">MWA-B</option>
+            <option value="MWA-W">MWA-W</option>
             <option value="MWA-U">MWA-U</option>
           </select>
         </div>

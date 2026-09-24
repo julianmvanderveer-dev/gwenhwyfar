@@ -913,7 +913,7 @@ export type Database = {
     Enums: {
       afwijking_type: "kritiek" | "niet_kritiek"
       app_role: "beheer" | "tekenaar" | "auditor" | "ep_adviseur"
-      audit_categorie: "EPW-B" | "EPW-D" | "EPU-B" | "EPU-D" | "MWA-B" | "MWA-U"
+      audit_categorie: "EPW-B" | "EPW-D" | "EPU-B" | "EPU-D" | "MWA-W" | "MWA-U"
       audit_soort: "dossieraudit" | "projectaudit"
       beoordeling_type: "goed" | "niet_goed" | "opmerking" | "nvt"
       eigenaar_type: "tekenaar" | "auditor"
@@ -1064,7 +1064,7 @@ export const Constants = {
     Enums: {
       afwijking_type: ["kritiek", "niet_kritiek"],
       app_role: ["beheer", "tekenaar", "auditor", "ep_adviseur"],
-      audit_categorie: ["EPW-B", "EPW-D", "EPU-B", "EPU-D", "MWA-B", "MWA-U"],
+      audit_categorie: ["EPW-B", "EPW-D", "EPU-B", "EPU-D", "MWA-W", "MWA-U"],
       audit_soort: ["dossieraudit", "projectaudit"],
       beoordeling_type: ["goed", "niet_goed", "opmerking", "nvt"],
       eigenaar_type: ["tekenaar", "auditor"],
