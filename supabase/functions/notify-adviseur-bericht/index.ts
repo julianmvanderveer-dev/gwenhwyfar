@@ -40,27 +40,42 @@ Deno.serve(async (req) => {
     if (b.evenement_datum) evenementDelen.push(new Date(b.evenement_datum).toLocaleString("nl-NL", { timeZone: "Europe/Amsterdam", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }));
     if (b.evenement_locatie) evenementDelen.push(b.evenement_locatie);
 
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
     let verzonden = 0;
+    const mislukt: string[] = [];
     for (const a of ontvangers ?? []) {
       if (!a.email) continue;
-      const r = await fetch(`${url}/functions/v1/send-transactional-email`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-        body: JSON.stringify({
-          templateName: "bericht-van-bengcert",
-          recipientEmail: a.email,
-          idempotencyKey: `bericht-${b.id}-${a.id}`,
-          templateData: {
-            naam: a.naam, titel: b.titel, inhoud: b.inhoud,
-            soortLabel: SOORT[b.soort] ?? "Bericht",
-            evenement: evenementDelen.join(", ") || undefined,
-            url: "https://www.bengaudit.nl/inbox",
-          },
-        }),
+      const body = JSON.stringify({
+        templateName: "bericht-van-bengcert",
+        recipientEmail: a.email,
+        idempotencyKey: `bericht-${b.id}-${a.id}`,
+        templateData: {
+          naam: a.naam, titel: b.titel, inhoud: b.inhoud,
+          soortLabel: SOORT[b.soort] ?? "Bericht",
+          evenement: evenementDelen.join(", ") || undefined,
+          url: "https://www.bengaudit.nl/inbox",
+        },
       });
-      if (r.ok) verzonden++; else console.error("mail fout", a.email, await r.text());
+      let ok = false;
+      for (let poging = 0; poging < 5 && !ok; poging++) {
+        try {
+          const r = await fetch(`${url}/functions/v1/send-transactional-email`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+            body,
+          });
+          if (r.ok) ok = true;
+          else { console.error("mail fout", a.email, await r.text()); break; }
+        } catch (e: any) {
+          const wacht = typeof e?.retryAfterMs === "number" ? e.retryAfterMs + 250 : 3000;
+          console.warn("rate limit, wacht", wacht, "ms voor", a.email);
+          await sleep(wacht);
+        }
+      }
+      if (ok) verzonden++; else mislukt.push(a.email);
+      await sleep(300);
     }
-    return json({ success: true, verzonden });
+    return json({ success: true, verzonden, mislukt });
   } catch (e) {
     console.error(e);
     return json({ error: e instanceof Error ? e.message : "fout" }, 500);
