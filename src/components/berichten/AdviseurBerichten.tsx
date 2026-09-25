@@ -91,7 +91,7 @@ export default function AdviseurBerichten({ onGelezen }: { onGelezen?: () => voi
               <CalendarDays className="h-4 w-4" /> {formatEvenement(b.evenement_datum, b.evenement_locatie)}
             </p>
           )}
-          {b.inhoud && <p className="text-sm mt-2 whitespace-pre-wrap">{b.inhoud}</p>}
+          {b.inhoud && <p className="text-sm mt-2 whitespace-pre-wrap leading-relaxed [text-indent:0]">{b.inhoud}</p>}
           {b.bijlage_pad && (
             <Button variant="outline" size="sm" className="mt-3" onClick={() => openBijlage(b.bijlage_pad!)}>
               <Paperclip className="h-4 w-4 mr-1" /> {b.bijlage_naam ?? "Bijlage"}
