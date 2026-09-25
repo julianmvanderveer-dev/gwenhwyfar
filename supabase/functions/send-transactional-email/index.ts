@@ -45,7 +45,17 @@ Deno.serve(async (req) => {
       templateData = body.templateData
     }
     if (body.cc) {
-      cc = Array.isArray(body.cc) ? body.cc : [body.cc]
+      const raw = Array.isArray(body.cc) ? body.cc : [body.cc]
+      const emailRe = /^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/
+      cc = raw
+        .flatMap((v: unknown) => (typeof v === 'string' ? v.split(/[,;]/) : []))
+        .map((v: string) => v.trim())
+        .filter((v: string) => {
+          const ok = emailRe.test(v)
+          if (!ok && v) console.warn('Ongeldig cc-adres genegeerd', v)
+          return ok
+        })
+      if (cc.length === 0) cc = undefined
     }
   } catch {
     return new Response(
