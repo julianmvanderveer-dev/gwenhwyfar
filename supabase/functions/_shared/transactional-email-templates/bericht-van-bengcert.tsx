@@ -13,6 +13,15 @@ interface Props {
   url?: string
 }
 
+// Enters en opsommingen behouden: elke regel krijgt een eigen <br />, lege regels worden witruimte
+const regels = (tekst: string) =>
+  tekst.replace(/\r\n/g, '\n').split('\n').map((r, i) => (
+    <React.Fragment key={i}>
+      {i > 0 ? <br /> : null}
+      {r.trim() === '' ? '\u00A0' : r}
+    </React.Fragment>
+  ))
+
 const BerichtEmail = ({ naam, titel, inhoud, soortLabel, evenement, url }: Props) => (
   <Html lang="nl" dir="ltr">
     <Head />
@@ -23,7 +32,7 @@ const BerichtEmail = ({ naam, titel, inhoud, soortLabel, evenement, url }: Props
         <Heading style={h1}>{titel ?? 'Nieuw bericht van BengCert'}</Heading>
         <Text style={text}>Beste {naam ?? 'adviseur'},</Text>
         {evenement ? <Text style={text}><strong>Wanneer / waar:</strong> {evenement}</Text> : null}
-        <Text style={berichtStyle}>{inhoud ?? ''}</Text>
+        <Text style={berichtStyle}>{regels(inhoud ?? '')}</Text>
         {url ? <Button href={url} style={button}>Bekijk op het platform</Button> : null}
         {url ? <Text style={small}>Of open: {url}</Text> : null}
         <Text style={footer}>Met vriendelijke groet,<br />BengCert</Text>

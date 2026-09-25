@@ -136,7 +136,14 @@ export default function BerichtenBeheer() {
           </div>
           <div>
             <Label className="text-xs">Bericht</Label>
-            <Textarea rows={5} value={form.inhoud} onChange={(e) => setForm({ ...form, inhoud: e.target.value })} />
+            <Textarea rows={7} value={form.inhoud} onChange={(e) => setForm({ ...form, inhoud: e.target.value })} />
+            <p className="text-xs text-muted-foreground mt-1">Gebruik Enter voor een nieuwe regel. Opsommingen zoals 1) 2) 3) of streepjes blijven behouden in de mail.</p>
+            {form.inhoud.trim() && (
+              <div className="mt-2 border rounded-md bg-muted/40 p-3">
+                <p className="text-[11px] font-medium text-muted-foreground mb-1">Voorbeeld zoals de adviseur het ziet</p>
+                <p className="text-sm whitespace-pre-wrap leading-relaxed">{form.inhoud}</p>
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
