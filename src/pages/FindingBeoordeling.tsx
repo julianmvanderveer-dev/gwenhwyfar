@@ -433,15 +433,23 @@ export default function FindingBeoordeling() {
             const isNietAkkoord = concept?.type === "niet_akkoord";
             const isVervallen = concept?.type === "vervallen";
             return (
+              <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium mb-1 block">Toelichting (optioneel)</label>
+                <Textarea
+                  value={akkoordToelichting}
+                  onChange={(e) => setAkkoordToelichting(e.target.value)}
+                  placeholder="Optionele toelichting bij goedkeuren of laten vervallen"
+                  rows={2}
+                  className="text-sm"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Goedkeuren: de afwijking blijft staan. Afwijking vervalt: het punt wordt "Goed"; de oorspronkelijke classificatie blijft in de historie.
+                </p>
+              </div>
               <div className="flex flex-wrap gap-2">
                 <Button
-                  onClick={() => {
-                    if (isAkkoord) {
-                      const t = (concept as any)?.toelichting ?? "";
-                      setAkkoordToelichting(t.startsWith("Automatisch akkoord") ? "" : t);
-                    }
-                    setModus("akkoord");
-                  }}
+                  onClick={() => akkoord()}
                   disabled={loading}
                   variant={isAkkoord ? "secondary" : "default"}
                   className="gap-1.5"
@@ -452,10 +460,7 @@ export default function FindingBeoordeling() {
                 <Button
                   variant={isVervallen ? "secondary" : "outline"}
                   className="gap-1.5"
-                  onClick={() => {
-                    if (isVervallen) setVervallenToelichting((concept as any)?.toelichting ?? "");
-                    setModus("vervallen");
-                  }}
+                  onClick={() => afwijkingVervalt()}
                   disabled={loading}
                 >
                   <XCircle className="h-4 w-4" />
