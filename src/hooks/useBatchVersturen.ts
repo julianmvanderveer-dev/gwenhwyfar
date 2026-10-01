@@ -278,7 +278,6 @@ export function useBatchVersturen(
           const ontbrekend: string[] = [];
           if ((projMeta as any)?.ep2_startwaarde === null || (projMeta as any)?.ep2_startwaarde === undefined) ontbrekend.push("startwaarde");
           if ((projMeta as any)?.ep2_eindwaarde === null || (projMeta as any)?.ep2_eindwaarde === undefined) ontbrekend.push("eindwaarde");
-          if (!(projMeta as any)?.ep2_beoordeling) ontbrekend.push("beoordeling");
           if (ontbrekend.length > 0) {
             toast({
               title: "EP2 nog niet compleet",
@@ -288,8 +287,37 @@ export function useBatchVersturen(
             return;
           }
 
+          // EP2-beoordeling opnieuw berekenen op basis van de actuele EP2-waarden
+          // en het aantal resterende fouten (vervallen afwijkingen tellen niet meer mee).
+          const start = Number((projMeta as any).ep2_startwaarde);
+          const eind = Number((projMeta as any).ep2_eindwaarde);
+          const { data: alleFindings } = await supabase
+            .from("findings")
+            .select("beoordeling, afwijking_kleiner_1pct")
+            .eq("project_id", project.id);
+          const fs = alleFindings ?? [];
+          const relevant = fs.filter((f: any) => f.beoordeling === "niet_goed" && !f.afwijking_kleiner_1pct).length;
+          const nietGoed = fs.filter((f: any) => f.beoordeling === "niet_goed").length;
+          const abs = eind - start;
+          const pct = start !== 0 ? (abs / start) * 100 : 0;
+          let nieuw = "goed";
+          if ((eind > 125 && Math.abs(pct) > 8) || (eind <= 125 && Math.abs(abs) > 10) || relevant > 4) nieuw = "kt";
+          else if (nietGoed > 0) nieuw = "nkt";
 
-          const isKritiek = String((projMeta as any)?.ep2_beoordeling ?? "").toLowerCase() === "kt";
+          const oud = String((projMeta as any)?.ep2_beoordeling ?? "").toLowerCase() || null;
+          if (oud !== nieuw) {
+            await supabase.from("projects").update({ ep2_beoordeling: nieuw }).eq("id", project.id);
+            const { data: { user: u } } = await supabase.auth.getUser();
+            await supabase.from("ep2_status_history").insert({
+              project_id: project.id,
+              changed_by: u?.id ?? null,
+              oude_status: oud,
+              nieuwe_status: nieuw,
+              reden: `Automatisch herberekend bij versturen beoordelingen (${nietGoed} fout(en), afwijking ${abs.toFixed(1)} kWh/m²)`,
+            });
+          }
+
+          const isKritiek = nieuw === "kt";
 
           if (isKritiek) {
             // Bij een blijvende kritieke tekortkoming moet het project opnieuw
