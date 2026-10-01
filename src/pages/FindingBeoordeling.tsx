@@ -203,12 +203,11 @@ export default function FindingBeoordeling() {
       toast({ title: "Fout bij opslaan", description: error.message, variant: "destructive" });
     } else {
       toast({
-        title: "Concept opgeslagen — goedgekeurd",
+        title: "Reactie goedgekeurd — vastgelegd",
         description: "De afwijking blijft staan. Verstuur al je beoordelingen via het projectoverzicht.",
       });
-      loadFinding();
-      setModus("keuze");
       setAkkoordToelichting("");
+      navigate(`/project/${finding?.project_id}`);
     }
     setLoading(false);
   };
@@ -246,7 +245,7 @@ export default function FindingBeoordeling() {
     setLoading(true);
     const concept = {
       type: "vervallen",
-      toelichting: vervallenToelichting.trim() || null,
+      toelichting: (akkoordToelichting.trim() || vervallenToelichting.trim()) || null,
       opgeslagen_op: new Date().toISOString(),
     };
     const { error } = await supabase
@@ -257,12 +256,12 @@ export default function FindingBeoordeling() {
       toast({ title: "Fout bij opslaan", description: error.message, variant: "destructive" });
     } else {
       toast({
-        title: "Concept opgeslagen — afwijking vervalt",
-        description: "De bevinding wordt op 'Goed' gezet zodra je de beoordelingen verstuurt.",
+        title: "Afwijking vervalt — vastgelegd",
+        description: "Het punt wordt 'Goed' zodra je de beoordelingen verstuurt.",
       });
-      loadFinding();
-      setModus("keuze");
       setVervallenToelichting("");
+      setAkkoordToelichting("");
+      navigate(`/project/${finding?.project_id}`);
     }
     setLoading(false);
   };
@@ -480,6 +479,7 @@ export default function FindingBeoordeling() {
                 >
                   {isNietAkkoord ? "Wijzig: niet akkoord" : "Niet akkoord"}
                 </Button>
+              </div>
               </div>
             );
           })()}
