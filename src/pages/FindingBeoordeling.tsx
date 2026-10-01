@@ -203,12 +203,11 @@ export default function FindingBeoordeling() {
       toast({ title: "Fout bij opslaan", description: error.message, variant: "destructive" });
     } else {
       toast({
-        title: "Concept opgeslagen — goedgekeurd",
+        title: "Reactie goedgekeurd — vastgelegd",
         description: "De afwijking blijft staan. Verstuur al je beoordelingen via het projectoverzicht.",
       });
-      loadFinding();
-      setModus("keuze");
       setAkkoordToelichting("");
+      navigate(`/project/${finding?.project_id}`);
     }
     setLoading(false);
   };
@@ -246,7 +245,7 @@ export default function FindingBeoordeling() {
     setLoading(true);
     const concept = {
       type: "vervallen",
-      toelichting: vervallenToelichting.trim() || null,
+      toelichting: (akkoordToelichting.trim() || vervallenToelichting.trim()) || null,
       opgeslagen_op: new Date().toISOString(),
     };
     const { error } = await supabase
@@ -257,12 +256,12 @@ export default function FindingBeoordeling() {
       toast({ title: "Fout bij opslaan", description: error.message, variant: "destructive" });
     } else {
       toast({
-        title: "Concept opgeslagen — afwijking vervalt",
-        description: "De bevinding wordt op 'Goed' gezet zodra je de beoordelingen verstuurt.",
+        title: "Afwijking vervalt — vastgelegd",
+        description: "Het punt wordt 'Goed' zodra je de beoordelingen verstuurt.",
       });
-      loadFinding();
-      setModus("keuze");
       setVervallenToelichting("");
+      setAkkoordToelichting("");
+      navigate(`/project/${finding?.project_id}`);
     }
     setLoading(false);
   };
@@ -433,15 +432,23 @@ export default function FindingBeoordeling() {
             const isNietAkkoord = concept?.type === "niet_akkoord";
             const isVervallen = concept?.type === "vervallen";
             return (
+              <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium mb-1 block">Toelichting (optioneel)</label>
+                <Textarea
+                  value={akkoordToelichting}
+                  onChange={(e) => setAkkoordToelichting(e.target.value)}
+                  placeholder="Optionele toelichting bij goedkeuren of laten vervallen"
+                  rows={2}
+                  className="text-sm"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Goedkeuren: de afwijking blijft staan. Afwijking vervalt: het punt wordt "Goed"; de oorspronkelijke classificatie blijft in de historie.
+                </p>
+              </div>
               <div className="flex flex-wrap gap-2">
                 <Button
-                  onClick={() => {
-                    if (isAkkoord) {
-                      const t = (concept as any)?.toelichting ?? "";
-                      setAkkoordToelichting(t.startsWith("Automatisch akkoord") ? "" : t);
-                    }
-                    setModus("akkoord");
-                  }}
+                  onClick={() => akkoord()}
                   disabled={loading}
                   variant={isAkkoord ? "secondary" : "default"}
                   className="gap-1.5"
@@ -452,10 +459,7 @@ export default function FindingBeoordeling() {
                 <Button
                   variant={isVervallen ? "secondary" : "outline"}
                   className="gap-1.5"
-                  onClick={() => {
-                    if (isVervallen) setVervallenToelichting((concept as any)?.toelichting ?? "");
-                    setModus("vervallen");
-                  }}
+                  onClick={() => afwijkingVervalt()}
                   disabled={loading}
                 >
                   <XCircle className="h-4 w-4" />
@@ -475,6 +479,7 @@ export default function FindingBeoordeling() {
                 >
                   {isNietAkkoord ? "Wijzig: niet akkoord" : "Niet akkoord"}
                 </Button>
+              </div>
               </div>
             );
           })()}

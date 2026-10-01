@@ -141,10 +141,15 @@ export function useBatchVersturen(
           }
         } else if (c.type === "vervallen") {
           vervallenIds.push(f.id);
+          const bLabel: Record<string, string> = { goed: "Goed", niet_goed: "Niet goed", opmerking: "Opmerking", nvt: "N.v.t." };
+          const tLabel: Record<string, string> = { kritiek: "kritiek", niet_kritiek: "niet-kritiek" };
+          const orig = [bLabel[(f as any).beoordeling] ?? (f as any).beoordeling ?? "onbekend", tLabel[(f as any).type_afwijking]]
+            .filter(Boolean)
+            .join(" – ");
           messages.push({
             finding_id: f.id,
             afzender_id: user.id,
-            bericht: `[Goedgekeurd] Afwijking vervallen — ${c.toelichting ?? "auditor gaat akkoord met de weerlegging van de EP-adviseur."}`.trim(),
+            bericht: `[Goedgekeurd] Afwijking vervallen — oorspronkelijke classificatie: ${orig}. Toelichting: ${c.toelichting ?? "auditor gaat akkoord met de reactie van de EP-adviseur."}`.trim(),
           });
         } else {
           heropenenIds.push(f.id);
