@@ -815,7 +815,7 @@ export default function ProjectDetail() {
 
   // Na afronden mag de auditor de EP2-status nog corrigeren (met verplichte reden + audit-trail).
   const isProjectAfgerond = EP2_VASTGEZET_STATUSSEN.includes(project.status as string);
-  const canEditEp2Post = hasRole("auditor") && !isAdviseurVanProject && isProjectAfgerond;
+  const canEditEp2Post = (hasRole("auditor") || hasRole("beheer")) && !isAdviseurVanProject && isProjectAfgerond;
 
   const handleEp2Change = (newValue: string) => {
     if (canEditEp2Post) {
@@ -833,10 +833,7 @@ export default function ProjectDetail() {
 
   const bevestigEp2Wijziging = async () => {
     if (!id || !user || !ep2PendingStatus) return;
-    if (ep2Reden.trim().length < 5) {
-      toast({ title: "Toelichting vereist", description: "Geef minimaal 5 tekens toelichting.", variant: "destructive" });
-      return;
-    }
+    const redenTekst = ep2Reden.trim() || `Handmatige statuswijziging naar ${ep2PendingStatus.toUpperCase()}`;
     setEp2Bezig(true);
     const oldValue = ep2Beoordeling || project.ep2_beoordeling || null;
     const { error: updErr } = await supabase
@@ -855,7 +852,7 @@ export default function ProjectDetail() {
       changed_by_naam: prof?.naam ?? null,
       oude_status: oldValue,
       nieuwe_status: ep2PendingStatus,
-      reden: ep2Reden.trim(),
+      reden: redenTekst,
     } as any);
     if (histErr) {
       toast({ title: "Audit-trail opslaan mislukt", description: histErr.message, variant: "destructive" });
@@ -1060,8 +1057,14 @@ export default function ProjectDetail() {
     <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-5 w-5" />
+        <Button
+          variant="outline"
+          size="sm"
+          className="shrink-0 gap-1.5"
+          onClick={() => navigate("/inbox", { state: { view: "medewerker", tab: "findings" } })}
+          title="Terug naar Bevindingen"
+        >
+          <ArrowLeft className="h-4 w-4" /> Bevindingen
         </Button>
         <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center shrink-0">
           <ClipboardCheck className="h-5 w-5 text-primary-foreground" />
@@ -1811,9 +1814,9 @@ export default function ProjectDetail() {
           )}
 
           <div className="flex justify-between">
-            {currentIndex > 0 ? (
-              <Button variant="outline" size="sm" onClick={() => goTo(-1)} className="gap-1">
-                <ChevronLeft className="h-4 w-4" /> Vorige
+            {onderdelen.length > 0 ? (
+              <Button variant="outline" size="sm" onClick={() => setActiveTab(onderdelen[0])} className="gap-1">
+                <ChevronLeft className="h-4 w-4" /> Terug naar bevindingen
               </Button>
             ) : <div />}
           </div>
@@ -1825,7 +1828,7 @@ export default function ProjectDetail() {
           <AlertDialogHeader>
             <AlertDialogTitle>EP2-status wijzigen naar {ep2PendingStatus.toUpperCase()}</AlertDialogTitle>
             <AlertDialogDescription>
-              Deze audit is al afgerond. Leg hieronder vast waarom de status wordt gewijzigd (bijv. welke afwijkingen blijvend zijn en welke EP2-waarde dit oplevert). Deze toelichting is verplicht en wordt permanent bewaard.
+              Deze audit is al afgerond. Leg eventueel vast waarom de status wordt gewijzigd. De wijziging wordt permanent bewaard in de wijzigingsgeschiedenis.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <textarea
@@ -1839,7 +1842,7 @@ export default function ProjectDetail() {
             <AlertDialogCancel disabled={ep2Bezig}>Annuleren</AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => { e.preventDefault(); void bevestigEp2Wijziging(); }}
-              disabled={ep2Bezig || ep2Reden.trim().length < 5}
+              disabled={ep2Bezig}
             >
               {ep2Bezig ? "Bezig..." : "Bevestigen"}
             </AlertDialogAction>
