@@ -770,19 +770,48 @@ export default function ProjectDetail() {
     return "Automatisch: GOED — geen afwijkingen";
   }, [autoEp2, findings, afwijkingAbs, afwijkingPct, eindVal]);
 
-  // Auto-fill EP2 beoordeling tenzij handmatig overschreven
+  // Auto-fill EP2 beoordeling tenzij handmatig overschreven.
+  // Ook ná afronding wordt de beoordeling automatisch bijgewerkt zodra het
+  // foutenbeeld wijzigt (bijv. een vervallen afwijking); die wijziging wordt
+  // met reden vastgelegd in de audit-trail.
   useEffect(() => {
-    // Zodra de audit inhoudelijk vaststaat, nooit meer overschrijven met auto-berekening.
-    if (project && EP2_VASTGEZET_STATUSSEN.includes(project.status as string)) return;
-    if (!ep2ManualOverride) {
-      setEp2Beoordeling((prev) => {
-        if (prev !== autoEp2 && project) {
-          void saveEp2Field("ep2_beoordeling", autoEp2);
-        }
+    if (!project || ep2ManualOverride) return;
+    const vastgezet = EP2_VASTGEZET_STATUSSEN.includes(project.status as string);
+    setEp2Beoordeling((prev) => {
+      if (prev === autoEp2) return prev;
+      if (!vastgezet) {
+        void saveEp2Field("ep2_beoordeling", autoEp2);
         return autoEp2;
-      });
-    }
-  }, [autoEp2, ep2ManualOverride, project, saveEp2Field]);
+      }
+      // Vastgezette audit: automatisch bijwerken mét audit-trail.
+      const projectId = project.id;
+      const oudeStatus = prev || null;
+      void (async () => {
+        const { error } = await supabase
+          .from("projects")
+          .update({ ep2_beoordeling: autoEp2 })
+          .eq("id", projectId);
+        if (error) return;
+        const { data: { user: u } } = await supabase.auth.getUser();
+        let naam: string | null = null;
+        if (u) {
+          const { data: prof } = await supabase.from("profiles").select("naam").eq("id", u.id).maybeSingle();
+          naam = prof?.naam ?? null;
+        }
+        await supabase.from("ep2_status_history" as any).insert({
+          project_id: projectId,
+          changed_by: u?.id ?? null,
+          changed_by_naam: naam,
+          oude_status: oudeStatus,
+          nieuwe_status: autoEp2,
+          reden: `Automatisch bijgewerkt naar actuele fouten. ${autoEp2Reden}`,
+        } as any);
+        setProject((p: any) => (p ? { ...p, ep2_beoordeling: autoEp2 } : p));
+        void loadEp2History();
+      })();
+      return autoEp2;
+    });
+  }, [autoEp2, autoEp2Reden, ep2ManualOverride, project, saveEp2Field, loadEp2History]);
 
   if (loadError)
     return (
