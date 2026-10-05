@@ -770,19 +770,48 @@ export default function ProjectDetail() {
     return "Automatisch: GOED — geen afwijkingen";
   }, [autoEp2, findings, afwijkingAbs, afwijkingPct, eindVal]);
 
-  // Auto-fill EP2 beoordeling tenzij handmatig overschreven
+  // Auto-fill EP2 beoordeling tenzij handmatig overschreven.
+  // Ook ná afronding wordt de beoordeling automatisch bijgewerkt zodra het
+  // foutenbeeld wijzigt (bijv. een vervallen afwijking); die wijziging wordt
+  // met reden vastgelegd in de audit-trail.
   useEffect(() => {
-    // Zodra de audit inhoudelijk vaststaat, nooit meer overschrijven met auto-berekening.
-    if (project && EP2_VASTGEZET_STATUSSEN.includes(project.status as string)) return;
-    if (!ep2ManualOverride) {
-      setEp2Beoordeling((prev) => {
-        if (prev !== autoEp2 && project) {
-          void saveEp2Field("ep2_beoordeling", autoEp2);
-        }
+    if (!project || ep2ManualOverride) return;
+    const vastgezet = EP2_VASTGEZET_STATUSSEN.includes(project.status as string);
+    setEp2Beoordeling((prev) => {
+      if (prev === autoEp2) return prev;
+      if (!vastgezet) {
+        void saveEp2Field("ep2_beoordeling", autoEp2);
         return autoEp2;
-      });
-    }
-  }, [autoEp2, ep2ManualOverride, project, saveEp2Field]);
+      }
+      // Vastgezette audit: automatisch bijwerken mét audit-trail.
+      const projectId = project.id;
+      const oudeStatus = prev || null;
+      void (async () => {
+        const { error } = await supabase
+          .from("projects")
+          .update({ ep2_beoordeling: autoEp2 })
+          .eq("id", projectId);
+        if (error) return;
+        const { data: { user: u } } = await supabase.auth.getUser();
+        let naam: string | null = null;
+        if (u) {
+          const { data: prof } = await supabase.from("profiles").select("naam").eq("id", u.id).maybeSingle();
+          naam = prof?.naam ?? null;
+        }
+        await supabase.from("ep2_status_history" as any).insert({
+          project_id: projectId,
+          changed_by: u?.id ?? null,
+          changed_by_naam: naam,
+          oude_status: oudeStatus,
+          nieuwe_status: autoEp2,
+          reden: `Automatisch bijgewerkt naar actuele fouten. ${autoEp2Reden}`,
+        } as any);
+        setProject((p: any) => (p ? { ...p, ep2_beoordeling: autoEp2 } : p));
+        void loadEp2History();
+      })();
+      return autoEp2;
+    });
+  }, [autoEp2, autoEp2Reden, ep2ManualOverride, project, saveEp2Field, loadEp2History]);
 
   if (loadError)
     return (
@@ -966,34 +995,6 @@ export default function ProjectDetail() {
     }
     if (aan) setEp2Eind("");
     setProject((prev: any) => (prev ? { ...prev, ...upd } : prev));
-  };
-
-  // Na reacties van de EP-adviseur: beoordeling gelijk trekken met de actuele fouten.
-  const synchroniseerEp2 = async () => {
-    if (!id || !user) return;
-    setEp2Bezig(true);
-    const oud = ep2Beoordeling || null;
-    const { error } = await supabase.from("projects").update({ ep2_beoordeling: autoEp2 }).eq("id", id);
-    if (error) {
-      toast({ title: "Opslaan mislukt", description: error.message, variant: "destructive" });
-      setEp2Bezig(false);
-      return;
-    }
-    const { data: prof } = await supabase.from("profiles").select("naam").eq("id", user.id).maybeSingle();
-    await supabase.from("ep2_status_history" as any).insert({
-      project_id: id,
-      changed_by: user.id,
-      changed_by_naam: prof?.naam ?? null,
-      oude_status: oud,
-      nieuwe_status: autoEp2,
-      reden: `Bijgewerkt naar actuele fouten. ${autoEp2Reden}`,
-    } as any);
-    setEp2Beoordeling(autoEp2);
-    setEp2ManualOverride(false);
-    setProject((prev: any) => (prev ? { ...prev, ep2_beoordeling: autoEp2 } : prev));
-    setEp2Bezig(false);
-    await loadEp2History();
-    toast({ title: "Beoordeling bijgewerkt", description: `EP2-beoordeling staat nu op ${autoEp2.toUpperCase()}.` });
   };
 
   const annuleerEp2Waarde = () => {
@@ -1853,7 +1854,7 @@ export default function ProjectDetail() {
                 <option value="kt">KT</option>
               </select>
               <p className="text-xs text-muted-foreground">{autoEp2Reden}</p>
-              {ep2ManualOverride && !isProjectAfgerond && (
+              {ep2ManualOverride && (
                 <button
                   type="button"
                   className="text-xs text-primary underline"
@@ -1866,15 +1867,9 @@ export default function ProjectDetail() {
                 </button>
               )}
               {canEditEp2Post && autoEp2 !== ep2Beoordeling && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => void synchroniseerEp2()}
-                  disabled={ep2Bezig}
-                >
-                  Bijwerken naar actuele fouten ({autoEp2.toUpperCase()})
-                </Button>
+                <p className="text-xs text-muted-foreground">
+                  De beoordeling wordt automatisch bijgewerkt naar {autoEp2.toUpperCase()} zodra de wijziging is opgeslagen.
+                </p>
               )}
               {canEditEp2Post && (
                 <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
