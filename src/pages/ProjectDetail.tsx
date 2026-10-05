@@ -59,6 +59,14 @@ const EP2_VASTGEZET_STATUSSEN = [
   "wacht_op_herafmelding",
 ];
 
+function parseEp2(v: string | null | undefined): number | null {
+  if (v === null || v === undefined) return null;
+  const t = String(v).trim().replace(/\s/g, "").replace(",", ".");
+  if (t === "") return null;
+  const n = Number(t);
+  return isNaN(n) ? null : n;
+}
+
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -561,14 +569,26 @@ export default function ProjectDetail() {
 
 
   const auditAfronden = async () => {
-    if (!hasRole("auditor") || isAdviseurVanProject) {
+    if (!(hasRole("auditor") || hasRole("beheer")) || isAdviseurVanProject) {
       toast({ title: "Geen toegang", description: "Alleen een auditor kan de audit afronden.", variant: "destructive" });
       return;
     }
     const ontbrekend: string[] = [];
-    if (project?.ep2_startwaarde === null || project?.ep2_startwaarde === undefined) ontbrekend.push("startwaarde");
-    if (project?.ep2_eindwaarde === null || project?.ep2_eindwaarde === undefined) ontbrekend.push("eindwaarde");
-    if (!project?.ep2_beoordeling) ontbrekend.push("beoordeling");
+    const sNum = parseEp2(ep2Start);
+    const eNum = parseEp2(ep2Eind);
+    const beo = ep2Beoordeling || project?.ep2_beoordeling;
+    if (sNum === null) ontbrekend.push("startwaarde");
+    if (eNum === null) ontbrekend.push("eindwaarde");
+    if (!beo) ontbrekend.push("beoordeling");
+    if (ontbrekend.length === 0 && id && (sNum !== project?.ep2_startwaarde || eNum !== project?.ep2_eindwaarde || beo !== project?.ep2_beoordeling)) {
+      const upd = { ep2_startwaarde: sNum, ep2_eindwaarde: eNum, ep2_beoordeling: beo };
+      const { error: e2 } = await supabase.from("projects").update(upd as any).eq("id", id);
+      if (e2) {
+        toast({ title: "Opslaan mislukt", description: "De EP2-gegevens konden niet worden opgeslagen.", variant: "destructive" });
+        return;
+      }
+      setProject((prev: any) => (prev ? { ...prev, ...upd } : prev));
+    }
     if (ontbrekend.length > 0) {
       toast({
         title: "EP2 nog niet compleet",
@@ -670,7 +690,7 @@ export default function ProjectDetail() {
       if (field === "ep2_beoordeling") {
         update.ep2_beoordeling = value || null;
       } else {
-        update[field] = value ? parseFloat(value) : null;
+        update[field] = value ? parseEp2(value) : null;
       }
       const { error } = await supabase.from("projects").update(update).eq("id", id);
       if (error) {
@@ -689,8 +709,8 @@ export default function ProjectDetail() {
   );
 
   // EP2 berekeningen
-  const startVal = parseFloat(ep2Start);
-  const eindVal = parseFloat(ep2Eind);
+  const startVal = parseEp2(ep2Start) ?? NaN;
+  const eindVal = parseEp2(ep2Eind) ?? NaN;
   const afwijkingAbs = !isNaN(startVal) && !isNaN(eindVal) ? eindVal - startVal : null;
   const afwijkingPct = afwijkingAbs !== null && startVal !== 0 ? (afwijkingAbs / startVal) * 100 : null;
 
@@ -807,13 +827,12 @@ export default function ProjectDetail() {
 
   // EP2 moet compleet zijn voordat de audit afgerond kan worden.
   const ep2Compleet =
-    project.ep2_startwaarde !== null && project.ep2_startwaarde !== undefined &&
-    project.ep2_eindwaarde !== null && project.ep2_eindwaarde !== undefined &&
-    !!project.ep2_beoordeling;
+    parseEp2(ep2Start) !== null && parseEp2(ep2Eind) !== null &&
+    !!(ep2Beoordeling || project.ep2_beoordeling);
 
   // Functiescheiding: ben je EP-adviseur van dit project, dan kun je geen
   // tekenaar-/auditor-bewerkingen uitvoeren op dit project.
-  const canDeel2 = hasRole("auditor") && !isAdviseurVanProject && !isOppakbaar && (project.status === "deel1_afgerond" || project.status === "deel2_bezig");
+  const canDeel2 = (hasRole("auditor") || hasRole("beheer")) && !isAdviseurVanProject && !isOppakbaar && (project.status === "deel1_afgerond" || project.status === "deel2_bezig");
   const canDeel1 = (hasRole("tekenaar") || hasRole("auditor")) && !isAdviseurVanProject &&
     (project.status === "nog_niet_begonnen" || project.status === "deel1_bezig" || project.status === "deel1_afgerond");
 
@@ -918,8 +937,8 @@ export default function ProjectDetail() {
   const handleEp2WaardeBlur = (field: "ep2_startwaarde" | "ep2_eindwaarde", value: string) => {
     const huidig = field === "ep2_startwaarde" ? project.ep2_startwaarde : project.ep2_eindwaarde;
     const huidigStr = huidig === null || huidig === undefined ? "" : String(huidig);
-    const nieuwNum = value === "" ? null : parseFloat(value);
-    const huidigNum = huidigStr === "" ? null : parseFloat(huidigStr);
+    const nieuwNum = value === "" ? null : parseEp2(value);
+    const huidigNum = huidigStr === "" ? null : parseEp2(huidigStr);
     if (nieuwNum === huidigNum || (nieuwNum !== null && huidigNum !== null && nieuwNum === huidigNum)) return;
 
     if (canEditEp2Post && !canDeel2) {
@@ -950,7 +969,7 @@ export default function ProjectDetail() {
 
     const { error: updErr } = await supabase
       .from("projects")
-      .update({ [field]: nieuweWaarde ? parseFloat(nieuweWaarde) : null } as any)
+      .update({ [field]: nieuweWaarde ? parseEp2(nieuweWaarde) : null } as any)
       .eq("id", id);
     if (updErr) {
       toast({ title: "Opslaan mislukt", description: updErr.message, variant: "destructive" });
@@ -1715,26 +1734,26 @@ export default function ProjectDetail() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Startwaarde EP2 (kWh/m²)</label>
               <Input
-                type="number"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
                 value={ep2Start}
                 onChange={(e) => setEp2Start(e.target.value)}
                 onBlur={(e) => handleEp2WaardeBlur("ep2_startwaarde", e.target.value)}
                 disabled={!(canDeel1 || canDeel2 || canEditEp2Post)}
-                placeholder="bijv. 125.50"
+                placeholder="bijv. 125,50"
               />
             </div>
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Eindwaarde EP2 (kWh/m²)</label>
               <Input
-                type="number"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
                 value={ep2Eind}
                 onChange={(e) => setEp2Eind(e.target.value)}
                 onBlur={(e) => handleEp2WaardeBlur("ep2_eindwaarde", e.target.value)}
                 disabled={!(canDeel2 || canEditEp2Post)}
-                placeholder="bijv. 130.00"
+                placeholder="bijv. 130,00"
               />
             </div>
 
