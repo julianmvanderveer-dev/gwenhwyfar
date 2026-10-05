@@ -129,13 +129,17 @@ export default function ProjectDetail() {
     loadUitdraai();
   }, [id]);
 
+  // Alleen bij het (her)laden van een ander project de invoervelden vullen.
+  // Niet bij elke lokale bijwerking, anders wist een automatische opslag
+  // van de beoordeling de waarde die de auditor nog aan het typen is.
   useEffect(() => {
     if (project) {
       setEp2Start(project.ep2_startwaarde?.toString() ?? "");
       setEp2Eind(project.ep2_eindwaarde?.toString() ?? "");
       setEp2Beoordeling(project.ep2_beoordeling ?? "");
     }
-  }, [project]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project?.id]);
 
   const loadEp2History = useCallback(async () => {
     if (!id) return;
