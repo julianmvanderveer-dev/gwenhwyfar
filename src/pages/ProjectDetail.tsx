@@ -1854,7 +1854,7 @@ export default function ProjectDetail() {
                 <option value="kt">KT</option>
               </select>
               <p className="text-xs text-muted-foreground">{autoEp2Reden}</p>
-              {ep2ManualOverride && !isProjectAfgerond && (
+              {ep2ManualOverride && (
                 <button
                   type="button"
                   className="text-xs text-primary underline"
