@@ -140,10 +140,11 @@ export default function ProjectDetail() {
   // Alleen bij het (her)laden van een ander project de invoervelden vullen.
   // Niet bij elke lokale bijwerking, anders wist een automatische opslag
   // van de beoordeling de waarde die de auditor nog aan het typen is.
+  const ep2EindDirty = useRef(false);
   useEffect(() => {
     if (project) {
-      setEp2Start(project.ep2_startwaarde?.toString() ?? "");
-      setEp2Eind(project.ep2_eindwaarde?.toString() ?? "");
+      setEp2Start(project.ep2_startwaarde?.toString().replace(".", ",") ?? "");
+      if (!ep2EindDirty.current) setEp2Eind(project.ep2_eindwaarde?.toString().replace(".", ",") ?? "");
       setEp2Beoordeling(project.ep2_beoordeling ?? "");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -578,7 +579,7 @@ export default function ProjectDetail() {
     const eNum = parseEp2(ep2Eind);
     const beo = ep2Beoordeling || project?.ep2_beoordeling;
     if (sNum === null) ontbrekend.push("startwaarde");
-    if (eNum === null) ontbrekend.push("eindwaarde");
+    if (eNum === null && !(project as any)?.ep2_eind_ntb) ontbrekend.push("eindwaarde");
     if (!beo) ontbrekend.push("beoordeling");
     if (ontbrekend.length === 0 && id && (sNum !== project?.ep2_startwaarde || eNum !== project?.ep2_eindwaarde || beo !== project?.ep2_beoordeling)) {
       const upd = { ep2_startwaarde: sNum, ep2_eindwaarde: eNum, ep2_beoordeling: beo };
@@ -825,9 +826,10 @@ export default function ProjectDetail() {
   const toonOppakken = hasRole("auditor") && !isAdviseurVanProject && isOppakbaar &&
     (project.status === "deel1_afgerond" || project.status === "deel2_bezig" || project.status === "wacht_op_reactie");
 
-  // EP2 moet compleet zijn voordat de audit afgerond kan worden.
+  // EP2 moet compleet zijn voordat de audit afgerond kan worden (eindwaarde mag n.t.b.).
+  const ep2EindNtb = !!(project as any).ep2_eind_ntb;
   const ep2Compleet =
-    parseEp2(ep2Start) !== null && parseEp2(ep2Eind) !== null &&
+    parseEp2(ep2Start) !== null && (ep2EindNtb || parseEp2(ep2Eind) !== null) &&
     !!(ep2Beoordeling || project.ep2_beoordeling);
 
   // Functiescheiding: ben je EP-adviseur van dit project, dan kun je geen
@@ -937,9 +939,13 @@ export default function ProjectDetail() {
   const handleEp2WaardeBlur = (field: "ep2_startwaarde" | "ep2_eindwaarde", value: string) => {
     const huidig = field === "ep2_startwaarde" ? project.ep2_startwaarde : project.ep2_eindwaarde;
     const huidigStr = huidig === null || huidig === undefined ? "" : String(huidig);
-    const nieuwNum = value === "" ? null : parseEp2(value);
+    const nieuwNum = value.trim() === "" ? null : parseEp2(value);
     const huidigNum = huidigStr === "" ? null : parseEp2(huidigStr);
-    if (nieuwNum === huidigNum || (nieuwNum !== null && huidigNum !== null && nieuwNum === huidigNum)) return;
+    if (value.trim() !== "" && nieuwNum === null) {
+      toast({ title: "Ongeldige waarde", description: "Vul een getal in, bijv. 125,50.", variant: "destructive" });
+      return;
+    }
+    if (nieuwNum === huidigNum) return;
 
     if (canEditEp2Post && !canDeel2) {
       setEp2WaardeReden("");
@@ -947,6 +953,47 @@ export default function ProjectDetail() {
       return;
     }
     void saveEp2Field(field, value);
+  };
+
+  const toggleEp2Ntb = async (aan: boolean) => {
+    if (!id) return;
+    const upd: any = { ep2_eind_ntb: aan };
+    if (aan) upd.ep2_eindwaarde = null;
+    const { error } = await supabase.from("projects").update(upd).eq("id", id);
+    if (error) {
+      toast({ title: "Opslaan mislukt", description: error.message, variant: "destructive" });
+      return;
+    }
+    if (aan) setEp2Eind("");
+    setProject((prev: any) => (prev ? { ...prev, ...upd } : prev));
+  };
+
+  // Na reacties van de EP-adviseur: beoordeling gelijk trekken met de actuele fouten.
+  const synchroniseerEp2 = async () => {
+    if (!id || !user) return;
+    setEp2Bezig(true);
+    const oud = ep2Beoordeling || null;
+    const { error } = await supabase.from("projects").update({ ep2_beoordeling: autoEp2 }).eq("id", id);
+    if (error) {
+      toast({ title: "Opslaan mislukt", description: error.message, variant: "destructive" });
+      setEp2Bezig(false);
+      return;
+    }
+    const { data: prof } = await supabase.from("profiles").select("naam").eq("id", user.id).maybeSingle();
+    await supabase.from("ep2_status_history" as any).insert({
+      project_id: id,
+      changed_by: user.id,
+      changed_by_naam: prof?.naam ?? null,
+      oude_status: oud,
+      nieuwe_status: autoEp2,
+      reden: `Bijgewerkt naar actuele fouten. ${autoEp2Reden}`,
+    } as any);
+    setEp2Beoordeling(autoEp2);
+    setEp2ManualOverride(false);
+    setProject((prev: any) => (prev ? { ...prev, ep2_beoordeling: autoEp2 } : prev));
+    setEp2Bezig(false);
+    await loadEp2History();
+    toast({ title: "Beoordeling bijgewerkt", description: `EP2-beoordeling staat nu op ${autoEp2.toUpperCase()}.` });
   };
 
   const annuleerEp2Waarde = () => {
@@ -1746,15 +1793,32 @@ export default function ProjectDetail() {
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Eindwaarde EP2 (kWh/m²)</label>
-              <Input
-                type="text"
-                inputMode="decimal"
-                value={ep2Eind}
-                onChange={(e) => setEp2Eind(e.target.value)}
-                onBlur={(e) => handleEp2WaardeBlur("ep2_eindwaarde", e.target.value)}
-                disabled={!(canDeel2 || canEditEp2Post)}
-                placeholder="bijv. 130,00"
-              />
+              <div className="flex items-center gap-2">
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  value={ep2EindNtb ? "n.t.b." : ep2Eind}
+                  onChange={(e) => { ep2EindDirty.current = true; setEp2Eind(e.target.value); }}
+                  onBlur={(e) => { ep2EindDirty.current = false; if (!ep2EindNtb) handleEp2WaardeBlur("ep2_eindwaarde", e.target.value); }}
+                  disabled={ep2EindNtb || !(canDeel2 || canEditEp2Post)}
+                  placeholder="bijv. 130,00"
+                />
+                <label className="flex items-center gap-1.5 text-sm whitespace-nowrap">
+                  <input
+                    type="checkbox"
+                    checked={ep2EindNtb}
+                    disabled={!(canDeel2 || canEditEp2Post)}
+                    onChange={(e) => void toggleEp2Ntb(e.target.checked)}
+                  />
+                  n.t.b.
+                </label>
+              </div>
+              {ep2EindNtb && (
+                <p className="text-xs text-muted-foreground">
+                  Nader te bepalen: vul de eindwaarde in nadat de EP-adviseur heeft gereageerd en u de reacties heeft beoordeeld.
+                </p>
+              )}
             </div>
 
             {afwijkingAbs !== null && (
@@ -1800,6 +1864,17 @@ export default function ProjectDetail() {
                 >
                   Automatische waarde herstellen
                 </button>
+              )}
+              {canEditEp2Post && autoEp2 !== ep2Beoordeling && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void synchroniseerEp2()}
+                  disabled={ep2Bezig}
+                >
+                  Bijwerken naar actuele fouten ({autoEp2.toUpperCase()})
+                </Button>
               )}
               {canEditEp2Post && (
                 <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">

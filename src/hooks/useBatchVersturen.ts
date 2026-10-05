@@ -281,7 +281,7 @@ export function useBatchVersturen(
           if (ontbrekend.length > 0) {
             toast({
               title: "EP2 nog niet compleet",
-              description: `Vul eerst het tabblad EP2 Beoordeling in. Ontbreekt: ${ontbrekend.join(", ")}.`,
+              description: `Vul eerst het tabblad EP2 Beoordeling in (een eindwaarde 'n.t.b.' moet nu definitief worden ingevuld). Ontbreekt: ${ontbrekend.join(", ")}.`,
               variant: "destructive",
             });
             return;

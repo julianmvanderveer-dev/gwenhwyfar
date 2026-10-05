@@ -706,6 +706,7 @@ export type Database = {
           deel1_uitgevoerd_door: string | null
           dropbox_link: string | null
           ep2_beoordeling: string | null
+          ep2_eind_ntb: boolean
           ep2_eindwaarde: number | null
           ep2_startwaarde: number | null
           gearchiveerd_op: string | null
@@ -735,6 +736,7 @@ export type Database = {
           deel1_uitgevoerd_door?: string | null
           dropbox_link?: string | null
           ep2_beoordeling?: string | null
+          ep2_eind_ntb?: boolean
           ep2_eindwaarde?: number | null
           ep2_startwaarde?: number | null
           gearchiveerd_op?: string | null
@@ -764,6 +766,7 @@ export type Database = {
           deel1_uitgevoerd_door?: string | null
           dropbox_link?: string | null
           ep2_beoordeling?: string | null
+          ep2_eind_ntb?: boolean
           ep2_eindwaarde?: number | null
           ep2_startwaarde?: number | null
           gearchiveerd_op?: string | null

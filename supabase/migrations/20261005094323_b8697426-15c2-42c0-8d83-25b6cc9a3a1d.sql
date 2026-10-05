@@ -1,0 +1,1 @@
+ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS ep2_eind_ntb boolean NOT NULL DEFAULT false;
