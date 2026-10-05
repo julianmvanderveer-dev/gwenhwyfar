@@ -1867,15 +1867,9 @@ export default function ProjectDetail() {
                 </button>
               )}
               {canEditEp2Post && autoEp2 !== ep2Beoordeling && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => void synchroniseerEp2()}
-                  disabled={ep2Bezig}
-                >
-                  Bijwerken naar actuele fouten ({autoEp2.toUpperCase()})
-                </Button>
+                <p className="text-xs text-muted-foreground">
+                  De beoordeling wordt automatisch bijgewerkt naar {autoEp2.toUpperCase()} zodra de wijziging is opgeslagen.
+                </p>
               )}
               {canEditEp2Post && (
                 <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
