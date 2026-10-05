@@ -997,34 +997,6 @@ export default function ProjectDetail() {
     setProject((prev: any) => (prev ? { ...prev, ...upd } : prev));
   };
 
-  // Na reacties van de EP-adviseur: beoordeling gelijk trekken met de actuele fouten.
-  const synchroniseerEp2 = async () => {
-    if (!id || !user) return;
-    setEp2Bezig(true);
-    const oud = ep2Beoordeling || null;
-    const { error } = await supabase.from("projects").update({ ep2_beoordeling: autoEp2 }).eq("id", id);
-    if (error) {
-      toast({ title: "Opslaan mislukt", description: error.message, variant: "destructive" });
-      setEp2Bezig(false);
-      return;
-    }
-    const { data: prof } = await supabase.from("profiles").select("naam").eq("id", user.id).maybeSingle();
-    await supabase.from("ep2_status_history" as any).insert({
-      project_id: id,
-      changed_by: user.id,
-      changed_by_naam: prof?.naam ?? null,
-      oude_status: oud,
-      nieuwe_status: autoEp2,
-      reden: `Bijgewerkt naar actuele fouten. ${autoEp2Reden}`,
-    } as any);
-    setEp2Beoordeling(autoEp2);
-    setEp2ManualOverride(false);
-    setProject((prev: any) => (prev ? { ...prev, ep2_beoordeling: autoEp2 } : prev));
-    setEp2Bezig(false);
-    await loadEp2History();
-    toast({ title: "Beoordeling bijgewerkt", description: `EP2-beoordeling staat nu op ${autoEp2.toUpperCase()}.` });
-  };
-
   const annuleerEp2Waarde = () => {
     if (!ep2WaardeDialog) return;
     if (ep2WaardeDialog.field === "ep2_startwaarde") {
