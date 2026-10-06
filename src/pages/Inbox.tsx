@@ -22,6 +22,7 @@ import BulkPdfExport from "@/components/projecten/BulkPdfExport";
 import FoutenAnalyse from "@/components/beheer/FoutenAnalyse";
 import MedewerkerDashboard from "@/components/dashboard/MedewerkerDashboard";
 import { StatusPill } from "@/lib/badges";
+import { auditjaarVanDatum } from "@/lib/auditjaar";
 
 type Project = Tables<"projects"> & { adviseurs: { naam: string } | null; toegewezen_profiel?: { naam: string } | null; auditor_naam?: string | null };
 type Finding = Tables<"findings"> & { projectnaam?: string; laatste_reactie?: string; laatste_bijlage?: string | null };
@@ -299,6 +300,8 @@ export default function Inbox() {
   };
 
   const [substatusFilter, setSubstatusFilter] = useState<string>("alle");
+  const [afgerondZoek, setAfgerondZoek] = useState("");
+  const [afgerondJaar, setAfgerondJaar] = useState("alle");
 
   const projectenPerFase = useMemo(() => {
     const needle = zoekterm.trim().toLowerCase();

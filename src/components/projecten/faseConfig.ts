@@ -54,7 +54,7 @@ export const faseConfig: Record<FaseKey, {
   },
   afgerond: {
     titel: "Afgerond",
-    omschrijving: "Audit goedgekeurd. Nog 14 dagen zichtbaar.",
+    omschrijving: "Audit goedgekeurd en gearchiveerd.",
     icon: CheckCircle2,
     accentClass: "text-primary",
   },
