@@ -22,6 +22,7 @@ import BulkPdfExport from "@/components/projecten/BulkPdfExport";
 import FoutenAnalyse from "@/components/beheer/FoutenAnalyse";
 import MedewerkerDashboard from "@/components/dashboard/MedewerkerDashboard";
 import { StatusPill } from "@/lib/badges";
+import { auditjaarVanDatum } from "@/lib/auditjaar";
 
 type Project = Tables<"projects"> & { adviseurs: { naam: string } | null; toegewezen_profiel?: { naam: string } | null; auditor_naam?: string | null };
 type Finding = Tables<"findings"> & { projectnaam?: string; laatste_reactie?: string; laatste_bijlage?: string | null };
@@ -59,7 +60,6 @@ export default function Inbox() {
     const { data: projectData } = await supabase
       .from("projects")
       .select("*, adviseurs(naam)")
-      .neq("status", "gesloten")
       .order("datum_aangemaakt", { ascending: false });
     let loadedProjects = (projectData as Project[]) ?? [];
 
@@ -79,7 +79,7 @@ export default function Inbox() {
     // Bepaal voor afgeronde projecten de feitelijke auditor:
     // de beoordelaar van de meest recent goedgekeurde adviseur-zichtbare bevinding.
     if (hasRole("beheer") && loadedProjects.length > 0) {
-      const afgerondIds = loadedProjects.filter(p => p.status === "afgerond").map(p => p.id);
+      const afgerondIds = loadedProjects.filter(p => p.status === "afgerond" || p.status === "gesloten").map(p => p.id);
       if (afgerondIds.length > 0) {
         const { data: afgerondFindings } = await supabase
           .from("findings")
@@ -101,7 +101,7 @@ export default function Inbox() {
           const { data: auditorProfiles } = await supabase.from("profiles").select("id, naam").in("id", auditorIds);
           const naamMap = new Map((auditorProfiles ?? []).map(p => [p.id, p.naam]));
           loadedProjects = loadedProjects.map(p => {
-            if (p.status !== "afgerond") return p;
+            if (p.status !== "afgerond" && p.status !== "gesloten") return p;
             const auditorId = auditorPerProject.get(p.id);
             return { ...p, auditor_naam: auditorId ? naamMap.get(auditorId) ?? null : null };
           });
@@ -300,13 +300,13 @@ export default function Inbox() {
   };
 
   const [substatusFilter, setSubstatusFilter] = useState<string>("alle");
+  const [afgerondZoek, setAfgerondZoek] = useState("");
+  const [afgerondJaar, setAfgerondJaar] = useState("alle");
 
   const projectenPerFase = useMemo(() => {
-    const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
     const needle = zoekterm.trim().toLowerCase();
 
     const visible = projects.filter((p) => {
-      if (p.status === "afgerond" && p.gearchiveerd_op && new Date(p.gearchiveerd_op) < fourteenDaysAgo) return false;
       if (needle) {
         const searchable = [p.projectnaam, p.adviseurs?.naam].filter(Boolean).join(" ").toLowerCase();
         if (!searchable.includes(needle)) return false;
@@ -333,6 +333,29 @@ export default function Inbox() {
     const afgerond = projectenPerFase["afgerond"] ?? [];
     return { nieuw, bezig, afgerond };
   }, [projectenPerFase]);
+
+  const afgerondJaren = useMemo(() => {
+    const set = new Set<string>();
+    hoofdgroepen.afgerond.forEach((p) => {
+      set.add((p as any).auditjaar ?? auditjaarVanDatum(p.datum_aangemaakt));
+    });
+    return Array.from(set).sort().reverse();
+  }, [hoofdgroepen.afgerond]);
+
+  const filteredAfgerond = useMemo(() => {
+    const needle = afgerondZoek.trim().toLowerCase();
+    return hoofdgroepen.afgerond.filter((p) => {
+      if (afgerondJaar !== "alle") {
+        const aj = (p as any).auditjaar ?? auditjaarVanDatum(p.datum_aangemaakt);
+        if (aj !== afgerondJaar) return false;
+      }
+      if (needle) {
+        const hay = [p.projectnaam, p.adviseurs?.naam].filter(Boolean).join(" ").toLowerCase();
+        if (!hay.includes(needle)) return false;
+      }
+      return true;
+    });
+  }, [hoofdgroepen.afgerond, afgerondZoek, afgerondJaar]);
 
   const filteredBezig = useMemo(() => {
     if (substatusFilter === "alle") return hoofdgroepen.bezig;
@@ -464,22 +487,47 @@ export default function Inbox() {
           />
         </div>
 
-        <FaseTabel
-          fase="afgerond"
-          faseIndex={2}
-          projecten={hoofdgroepen.afgerond}
-          canDelete={true}
-          onDelete={deleteProject}
-          defaultOpen={hoofdgroepen.afgerond.length > 0}
-          showToewijzing={true}
-          toewijsbarePersonen={toewijsbarePersonen}
-          onReassign={hertoewijzen}
-          onReturnToPool={terugNaarPool}
-          titel="Afgerond"
-          icon={CheckCircle2}
-          accentClass="text-primary"
-          isAfgerondView
-        />
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-2 pl-1">
+            <div className="relative w-64">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                className="pl-8 h-8 text-xs bg-card"
+                placeholder="Zoek in afgeronde audits..."
+                value={afgerondZoek}
+                onChange={(e) => setAfgerondZoek(e.target.value)}
+              />
+            </div>
+            <Select value={afgerondJaar} onValueChange={setAfgerondJaar}>
+              <SelectTrigger className="w-[140px] h-8 text-xs">
+                <SelectValue placeholder="Jaar" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="alle">Alle jaren</SelectItem>
+                {afgerondJaren.map((j) => (
+                  <SelectItem key={j} value={j}>{j}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="text-xs text-muted-foreground">{filteredAfgerond.length} audits</span>
+          </div>
+          <FaseTabel
+            fase="afgerond"
+            faseIndex={2}
+            projecten={filteredAfgerond}
+            canDelete={true}
+            onDelete={deleteProject}
+            defaultOpen={hoofdgroepen.afgerond.length > 0}
+            showToewijzing={true}
+            toewijsbarePersonen={toewijsbarePersonen}
+            onReassign={hertoewijzen}
+            onReturnToPool={terugNaarPool}
+            titel="Afgerond"
+            icon={CheckCircle2}
+            accentClass="text-primary"
+            isAfgerondView
+          />
+        </div>
       </div>
     </>
   );

@@ -54,7 +54,7 @@ export const faseConfig: Record<FaseKey, {
   },
   afgerond: {
     titel: "Afgerond",
-    omschrijving: "Audit goedgekeurd. Nog 14 dagen zichtbaar.",
+    omschrijving: "Audit goedgekeurd en gearchiveerd.",
     icon: CheckCircle2,
     accentClass: "text-primary",
   },
@@ -112,7 +112,8 @@ export function getProjectFase(
     case "deel2_bezig": return "deel2_bezig";
     case "wacht_op_reactie": return hasReactieOntvangen ? "reactie_ontvangen" : "wacht_op_reactie_ep";
     case "wacht_op_herafmelding": return "wacht_op_herafmelding";
-    case "afgerond": return "afgerond";
+    case "afgerond":
+    case "gesloten": return "afgerond";
     default: return "nieuw";
   }
 }
