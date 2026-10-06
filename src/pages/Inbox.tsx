@@ -487,22 +487,47 @@ export default function Inbox() {
           />
         </div>
 
-        <FaseTabel
-          fase="afgerond"
-          faseIndex={2}
-          projecten={hoofdgroepen.afgerond}
-          canDelete={true}
-          onDelete={deleteProject}
-          defaultOpen={hoofdgroepen.afgerond.length > 0}
-          showToewijzing={true}
-          toewijsbarePersonen={toewijsbarePersonen}
-          onReassign={hertoewijzen}
-          onReturnToPool={terugNaarPool}
-          titel="Afgerond"
-          icon={CheckCircle2}
-          accentClass="text-primary"
-          isAfgerondView
-        />
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-2 pl-1">
+            <div className="relative w-64">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                className="pl-8 h-8 text-xs bg-card"
+                placeholder="Zoek in afgeronde audits..."
+                value={afgerondZoek}
+                onChange={(e) => setAfgerondZoek(e.target.value)}
+              />
+            </div>
+            <Select value={afgerondJaar} onValueChange={setAfgerondJaar}>
+              <SelectTrigger className="w-[140px] h-8 text-xs">
+                <SelectValue placeholder="Jaar" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="alle">Alle jaren</SelectItem>
+                {afgerondJaren.map((j) => (
+                  <SelectItem key={j} value={j}>{j}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="text-xs text-muted-foreground">{filteredAfgerond.length} audits</span>
+          </div>
+          <FaseTabel
+            fase="afgerond"
+            faseIndex={2}
+            projecten={filteredAfgerond}
+            canDelete={true}
+            onDelete={deleteProject}
+            defaultOpen={hoofdgroepen.afgerond.length > 0}
+            showToewijzing={true}
+            toewijsbarePersonen={toewijsbarePersonen}
+            onReassign={hertoewijzen}
+            onReturnToPool={terugNaarPool}
+            titel="Afgerond"
+            icon={CheckCircle2}
+            accentClass="text-primary"
+            isAfgerondView
+          />
+        </div>
       </div>
     </>
   );
