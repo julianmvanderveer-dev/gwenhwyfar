@@ -59,7 +59,6 @@ export default function Inbox() {
     const { data: projectData } = await supabase
       .from("projects")
       .select("*, adviseurs(naam)")
-      .neq("status", "gesloten")
       .order("datum_aangemaakt", { ascending: false });
     let loadedProjects = (projectData as Project[]) ?? [];
 
