@@ -334,6 +334,29 @@ export default function Inbox() {
     return { nieuw, bezig, afgerond };
   }, [projectenPerFase]);
 
+  const afgerondJaren = useMemo(() => {
+    const set = new Set<string>();
+    hoofdgroepen.afgerond.forEach((p) => {
+      set.add((p as any).auditjaar ?? auditjaarVanDatum(p.datum_aangemaakt));
+    });
+    return Array.from(set).sort().reverse();
+  }, [hoofdgroepen.afgerond]);
+
+  const filteredAfgerond = useMemo(() => {
+    const needle = afgerondZoek.trim().toLowerCase();
+    return hoofdgroepen.afgerond.filter((p) => {
+      if (afgerondJaar !== "alle") {
+        const aj = (p as any).auditjaar ?? auditjaarVanDatum(p.datum_aangemaakt);
+        if (aj !== afgerondJaar) return false;
+      }
+      if (needle) {
+        const hay = [p.projectnaam, p.adviseurs?.naam].filter(Boolean).join(" ").toLowerCase();
+        if (!hay.includes(needle)) return false;
+      }
+      return true;
+    });
+  }, [hoofdgroepen.afgerond, afgerondZoek, afgerondJaar]);
+
   const filteredBezig = useMemo(() => {
     if (substatusFilter === "alle") return hoofdgroepen.bezig;
     return hoofdgroepen.bezig.filter(p => p._fase === substatusFilter);
