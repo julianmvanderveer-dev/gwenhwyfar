@@ -78,7 +78,7 @@ export default function Inbox() {
     // Bepaal voor afgeronde projecten de feitelijke auditor:
     // de beoordelaar van de meest recent goedgekeurde adviseur-zichtbare bevinding.
     if (hasRole("beheer") && loadedProjects.length > 0) {
-      const afgerondIds = loadedProjects.filter(p => p.status === "afgerond").map(p => p.id);
+      const afgerondIds = loadedProjects.filter(p => p.status === "afgerond" || p.status === "gesloten").map(p => p.id);
       if (afgerondIds.length > 0) {
         const { data: afgerondFindings } = await supabase
           .from("findings")
@@ -100,7 +100,7 @@ export default function Inbox() {
           const { data: auditorProfiles } = await supabase.from("profiles").select("id, naam").in("id", auditorIds);
           const naamMap = new Map((auditorProfiles ?? []).map(p => [p.id, p.naam]));
           loadedProjects = loadedProjects.map(p => {
-            if (p.status !== "afgerond") return p;
+            if (p.status !== "afgerond" && p.status !== "gesloten") return p;
             const auditorId = auditorPerProject.get(p.id);
             return { ...p, auditor_naam: auditorId ? naamMap.get(auditorId) ?? null : null };
           });
@@ -301,11 +301,9 @@ export default function Inbox() {
   const [substatusFilter, setSubstatusFilter] = useState<string>("alle");
 
   const projectenPerFase = useMemo(() => {
-    const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
     const needle = zoekterm.trim().toLowerCase();
 
     const visible = projects.filter((p) => {
-      if (p.status === "afgerond" && p.gearchiveerd_op && new Date(p.gearchiveerd_op) < fourteenDaysAgo) return false;
       if (needle) {
         const searchable = [p.projectnaam, p.adviseurs?.naam].filter(Boolean).join(" ").toLowerCase();
         if (!searchable.includes(needle)) return false;
