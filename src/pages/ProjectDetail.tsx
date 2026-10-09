@@ -823,7 +823,7 @@ export default function ProjectDetail() {
       })();
       return autoEp2;
     });
-  }, [autoEp2, autoEp2Reden, ep2ManualOverride, project, saveEp2Field, loadEp2History]);
+  }, [autoEp2, autoEp2Reden, ep2ManualOverride, project, saveEp2Field, loadEp2History, findingsLoaded, hasRole, isAdviseurVanProject, ep2Start]);
 
   if (loadError)
     return (
