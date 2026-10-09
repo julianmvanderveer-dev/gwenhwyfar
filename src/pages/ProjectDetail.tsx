@@ -1926,7 +1926,7 @@ export default function ProjectDetail() {
               </Button>
             ) : <div />}
           </div>
-          <ExtraDocumenten projectId={project.id} projectnaam={project.projectnaam} />
+          <ExtraDocumenten projectId={project.id} projectnaam={project.projectnaam} status={project.status} />
         </TabsContent>
       </Tabs>
 
