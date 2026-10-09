@@ -71,6 +71,13 @@
       "when": 1791552896778,
       "tag": "0009_adviseur_altijd_eigen_projecten_zien",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791553050041,
+      "tag": "0010_project_documenten_insert_alleen_reactiefase",
+      "breakpoints": true
     }
   ]
 }

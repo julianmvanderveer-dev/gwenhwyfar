@@ -19,12 +19,13 @@ type Doc = {
 
 const ACCEPT = ".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.webp";
 
-export default function ExtraDocumenten({ projectId, projectnaam }: { projectId: string; projectnaam?: string }) {
+export default function ExtraDocumenten({ projectId, projectnaam, status }: { projectId: string; projectnaam?: string; status?: string }) {
   const { user, roles } = useAuth() as any;
   const { isAdviseurVanProject } = useProjectRole(projectId);
   const isIntern = (roles ?? []).some((r: string) => ["beheer", "auditor", "tekenaar"].includes(r));
   const isBeheer = (roles ?? []).includes("beheer");
-  const magUploaden = isAdviseurVanProject || isIntern;
+  // Uploaden mag alleen zolang de audit bij de EP-adviseur ligt voor reactie.
+  const magUploaden = (isAdviseurVanProject || isIntern) && status === "wacht_op_reactie";
   const [docs, setDocs] = useState<Doc[]>([]);
   const [omschrijving, setOmschrijving] = useState("");
   const [busy, setBusy] = useState(false);
@@ -113,7 +114,7 @@ export default function ExtraDocumenten({ projectId, projectnaam }: { projectId:
         <h2 className="text-lg font-semibold tracking-tight">Extra documenten</h2>
       </div>
       <p className="text-xs text-muted-foreground">
-        Aanvullende stukken bij deze audit, los van een auditpunt. Documenten blijven altijd zichtbaar voor de EP-adviseur en de auditor.
+        Aanvullende stukken bij deze audit, los van een auditpunt. Uploaden kan alleen zolang de audit bij de EP-adviseur ligt voor reactie; daarna blijven de documenten zichtbaar voor de EP-adviseur en de auditor.
       </p>
 
       {magUploaden && (
