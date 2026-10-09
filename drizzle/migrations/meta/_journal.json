@@ -50,6 +50,13 @@
       "when": 1790249935636,
       "tag": "0006_adviseur_berichten_storage",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791537596872,
+      "tag": "0007_notificaties_insert_ep_adviseur",
+      "breakpoints": true
     }
   ]
 }
