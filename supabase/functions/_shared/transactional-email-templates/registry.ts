@@ -24,6 +24,7 @@ import { template as herafmeldingBeoordeeld } from './herafmelding-beoordeeld.ts
 import { template as feedbackOntvangen } from './feedback-ontvangen.tsx'
 import { template as aanvullingOntvangenAuditor } from './aanvulling-ontvangen-auditor.tsx'
 import { template as herafmeldingIngediendAuditor } from './herafmelding-ingediend-auditor.tsx'
+import { template as extraDocumentAuditor } from './extra-document-auditor.tsx'
 import { template as berichtVanBengcert } from './bericht-van-bengcert.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
@@ -42,5 +43,6 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'feedback-ontvangen': feedbackOntvangen,
   'aanvulling-ontvangen-auditor': aanvullingOntvangenAuditor,
   'herafmelding-ingediend-auditor': herafmeldingIngediendAuditor,
+  'extra-document-auditor': extraDocumentAuditor,
   'bericht-van-bengcert': berichtVanBengcert,
 }

@@ -646,6 +646,51 @@ export type Database = {
         }
         Relationships: []
       }
+      project_documenten: {
+        Row: {
+          bestand_pad: string
+          bestandsnaam: string
+          created_at: string
+          geupload_door: string | null
+          id: string
+          omschrijving: string | null
+          project_id: string
+        }
+        Insert: {
+          bestand_pad: string
+          bestandsnaam: string
+          created_at?: string
+          geupload_door?: string | null
+          id?: string
+          omschrijving?: string | null
+          project_id: string
+        }
+        Update: {
+          bestand_pad?: string
+          bestandsnaam?: string
+          created_at?: string
+          geupload_door?: string | null
+          id?: string
+          omschrijving?: string | null
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_documenten_geupload_door_fkey"
+            columns: ["geupload_door"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_documenten_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_uitdraai: {
         Row: {
           bestand_pad: string | null

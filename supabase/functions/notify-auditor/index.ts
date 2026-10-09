@@ -80,6 +80,10 @@ Deno.serve(async (req) => {
       templateName = "herafmelding-ingediend-auditor";
       await laadAdviseurNaam();
       if (bestandsnaam) templateData.bestandsnaam = bestandsnaam;
+    } else if (type === "extra_document") {
+      templateName = "extra-document-auditor";
+      await laadAdviseurNaam();
+      if (bestandsnaam) templateData.bestandsnaam = bestandsnaam;
     } else if (type === "audit_afgerond") {
       templateName = "audit-afgerond-auditor";
     } else {
