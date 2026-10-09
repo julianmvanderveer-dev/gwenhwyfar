@@ -64,6 +64,13 @@
       "when": 1791552609373,
       "tag": "0008_project_documenten",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791552896778,
+      "tag": "0009_adviseur_altijd_eigen_projecten_zien",
+      "breakpoints": true
     }
   ]
 }
