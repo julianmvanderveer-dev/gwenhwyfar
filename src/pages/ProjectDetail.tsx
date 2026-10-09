@@ -77,6 +77,8 @@ export default function ProjectDetail() {
 
   const { isAdviseurVanProject } = useProjectRole(id);
   const [findings, setFindings] = useState<Finding[]>([]);
+  const [findingsLoaded, setFindingsLoaded] = useState(false);
+  const findingsGewijzigdRef = useRef(false);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [ep2Start, setEp2Start] = useState<string>("");
   const [ep2Eind, setEp2Eind] = useState<string>("");
@@ -282,6 +284,7 @@ export default function ProjectDetail() {
       .eq("project_id", id!)
       .order("created_at");
     setFindings((data as Finding[]) ?? []);
+    setFindingsLoaded(true);
   };
 
   const loadUitdraai = async () => {
@@ -441,6 +444,7 @@ export default function ProjectDetail() {
         update.status = "open";
       }
     }
+    findingsGewijzigdRef.current = true;
     setFindings((prev) => prev.map((f) => (f.id === findingId ? { ...f, ...update } : f)));
     const { error } = await supabase.from("findings").update(update).eq("id", findingId);
     if (error) {
@@ -497,6 +501,7 @@ export default function ProjectDetail() {
     const huidig = findings.find((f) => f.id === findingId);
     const wasCorrectie = !!huidig && huidig.zichtbaar_voor_adviseur && huidig.status === "open";
     const oud = huidig?.type_afwijking ?? null;
+    findingsGewijzigdRef.current = true;
     setFindings((prev) => prev.map((f) => (f.id === findingId ? { ...f, type_afwijking: type } : f)));
     const { error } = await supabase.from("findings").update({ type_afwijking: type }).eq("id", findingId);
     if (error) {
@@ -775,8 +780,15 @@ export default function ProjectDetail() {
   // foutenbeeld wijzigt (bijv. een vervallen afwijking); die wijziging wordt
   // met reden vastgelegd in de audit-trail.
   useEffect(() => {
-    if (!project || ep2ManualOverride) return;
+    if (!project || ep2ManualOverride || !findingsLoaded) return;
+    // Alleen auditor/beheer (niet de adviseur van dit project) mag automatisch laten bijwerken.
+    if (!(hasRole("auditor") || hasRole("beheer")) || isAdviseurVanProject) return;
+    // Wacht tot de EP2-velden met de opgeslagen waarden zijn gevuld.
+    if (project.ep2_startwaarde != null && ep2Start === "") return;
     const vastgezet = EP2_VASTGEZET_STATUSSEN.includes(project.status as string);
+    // Bij een afgeronde audit alleen bijwerken na een echte wijziging in deze sessie,
+    // nooit puur door het openen van het project (handmatige keuzes blijven behouden).
+    if (vastgezet && !findingsGewijzigdRef.current) return;
     setEp2Beoordeling((prev) => {
       if (prev === autoEp2) return prev;
       if (!vastgezet) {
