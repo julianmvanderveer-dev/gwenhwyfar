@@ -595,6 +595,7 @@ export default function Inbox() {
         adviseurStatusBadge={adviseurStatusBadge}
         handleDownload={handleDownload}
         adviseurProjecten={adviseurProjecten}
+          alleFindings={adviseurFindings}
           onAdviseurDataChanged={loadAdviseurData}
         />
       </TabsContent>

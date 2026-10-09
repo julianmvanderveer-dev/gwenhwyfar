@@ -6,6 +6,8 @@ import { Download, ExternalLink, ChevronDown, ChevronRight } from "lucide-react"
 import { afwijkingBadge } from "@/lib/badges";
 import type { Tables } from "@/integrations/supabase/types";
 import BatchVersturenCompact from "@/components/projecten/BatchVersturenCompact";
+import { Input } from "@/components/ui/input";
+import { auditjaarVanDatum } from "@/lib/auditjaar";
 
 type Finding = Tables<"findings"> & { projectnaam?: string; laatste_reactie?: string; laatste_bijlage?: string | null };
 
@@ -18,8 +20,81 @@ interface AdviseurSectieProps {
   adviseurProjectNames: (string | undefined)[];
   adviseurStatusBadge: (status: string, hasConcept?: boolean) => React.ReactNode;
   handleDownload: (path: string) => void;
-  adviseurProjecten?: { id: string; projectnaam: string }[];
+  adviseurProjecten?: AdviseurProject[];
   onAdviseurDataChanged?: () => void;
+  alleFindings?: Finding[];
+}
+
+type AdviseurProject = { id: string; projectnaam: string; status?: string; auditjaar?: string | null; datum_aangemaakt?: string };
+
+const statusLabel: Record<string, string> = {
+  nog_niet_begonnen: "Nog niet begonnen",
+  geselecteerd: "Geselecteerd",
+  deel1_bezig: "Deel 1 bezig",
+  deel1_afgerond: "Deel 1 afgerond",
+  wacht_op_deel2: "Wacht op deel 2",
+  deel2_bezig: "Deel 2 bezig",
+  wacht_op_reactie: "Wacht op reactie",
+  reactie_open: "Reactie open",
+  wacht_op_herafmelding: "Wacht op herafmelding",
+  afgerond: "Afgerond",
+  gesloten: "Afgerond (archief)",
+};
+
+function MijnAudits({ projecten, findings }: { projecten: AdviseurProject[]; findings: Finding[] }) {
+  const [zoek, setZoek] = useState("");
+  const [jaar, setJaar] = useState("alle");
+  const jaarVan = (p: AdviseurProject) => p.auditjaar || (p.datum_aangemaakt ? auditjaarVanDatum(p.datum_aangemaakt) : "");
+  const jaren = Array.from(new Set(projecten.map(jaarVan).filter(Boolean))).sort().reverse();
+  const telling = new Map<string, number>();
+  findings.forEach((f) => telling.set(f.project_id, (telling.get(f.project_id) ?? 0) + 1));
+  const lijst = projecten.filter(
+    (p) => p.projectnaam.toLowerCase().includes(zoek.toLowerCase()) && (jaar === "alle" || jaarVan(p) === jaar),
+  );
+  return (
+    <div className="mt-6 bg-card rounded-lg border shadow-sm p-4">
+      <h2 className="font-semibold mb-1 text-sm">Mijn audits</h2>
+      <p className="text-xs text-muted-foreground mb-3">Al uw audits, ook afgeronde. Klik op een audit om de opmerkingen terug te lezen.</p>
+      <div className="flex flex-wrap gap-3 mb-3">
+        <Input placeholder="Zoek op projectnaam" value={zoek} onChange={(e) => setZoek(e.target.value)} className="w-[240px] h-9 text-sm" />
+        <Select value={jaar} onValueChange={setJaar}>
+          <SelectTrigger className="w-[180px] h-9 text-sm"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="alle">Alle auditjaren</SelectItem>
+            {jaren.map((j) => <SelectItem key={j} value={j}>{j}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+      {lijst.length === 0 ? (
+        <p className="text-muted-foreground text-sm">Geen audits gevonden.</p>
+      ) : (
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-secondary/40 border-b">
+              {["Project", "Auditjaar", "Status", "Afwijkingen", ""].map((h) => (
+                <th key={h} className="text-left px-3 py-2 font-semibold text-xs uppercase tracking-wider text-muted-foreground">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {lijst.map((p) => (
+              <tr key={p.id} className="border-b last:border-0">
+                <td className="px-3 py-2 font-medium">{p.projectnaam}</td>
+                <td className="px-3 py-2">{jaarVan(p) || "—"}</td>
+                <td className="px-3 py-2">{statusLabel[p.status ?? ""] ?? p.status ?? "—"}</td>
+                <td className="px-3 py-2">{telling.get(p.id) ?? 0}</td>
+                <td className="px-3 py-2">
+                  <Link to={`/project/${p.id}`} className="text-xs text-accent hover:underline flex items-center gap-1">
+                    <ExternalLink className="h-3 w-3" /> Audit inzien
+                  </Link>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
 }
 
 export default function AdviseurSectie({
@@ -33,7 +108,9 @@ export default function AdviseurSectie({
   handleDownload,
   adviseurProjecten = [],
   onAdviseurDataChanged,
+  alleFindings,
 }: AdviseurSectieProps) {
+  const filteredAlleFindings = alleFindings ?? filteredAdviseurFindings;
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const toggle = (id: string) => setExpanded((e) => ({ ...e, [id]: !e[id] }));
 
@@ -72,10 +149,11 @@ export default function AdviseurSectie({
             <SelectValue placeholder="Alle statussen" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="alle">Alle statussen</SelectItem>
+            <SelectItem value="openstaand">Openstaand</SelectItem>
             <SelectItem value="open">Open</SelectItem>
             <SelectItem value="reactie_ontvangen">Reactie ingediend</SelectItem>
-            <SelectItem value="reactie_goedgekeurd">Reactie goedgekeurd</SelectItem>
+            <SelectItem value="afgehandeld">Afgehandeld</SelectItem>
+            <SelectItem value="alle">Alles</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -175,23 +253,8 @@ export default function AdviseurSectie({
           })}
         </div>
       )}
-      {/* Projectenlijst */}
       {adviseurProjecten.length > 0 && (
-        <div className="mt-6 bg-card rounded-lg border shadow-sm p-4">
-          <h2 className="font-semibold mb-3 text-sm">Mijn projecten</h2>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {adviseurProjecten.map((p) => (
-              <Link
-                key={p.id}
-                to={`/project/${p.id}`}
-                className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-accent/10 transition-colors"
-              >
-                <ExternalLink className="h-3.5 w-3.5 text-accent shrink-0" />
-                <span className="truncate font-medium">{p.projectnaam}</span>
-              </Link>
-            ))}
-          </div>
-        </div>
+        <MijnAudits projecten={adviseurProjecten} findings={filteredAlleFindings} />
       )}
     </div>
   );
