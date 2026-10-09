@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import ExtraDocumenten from "@/components/projecten/ExtraDocumenten";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -1925,6 +1926,7 @@ export default function ProjectDetail() {
               </Button>
             ) : <div />}
           </div>
+          <ExtraDocumenten projectId={project.id} projectnaam={project.projectnaam} />
         </TabsContent>
       </Tabs>
 
