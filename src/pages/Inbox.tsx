@@ -38,8 +38,8 @@ export default function Inbox() {
   const [findings, setFindings] = useState<Finding[]>([]);
   const [adviseurFindings, setAdviseurFindings] = useState<Finding[]>([]);
   const [adviseurFilterProject, setAdviseurFilterProject] = useState<string>("alle");
-  const [adviseurFilterStatus, setAdviseurFilterStatus] = useState<string>("alle");
-  const [adviseurProjecten, setAdviseurProjecten] = useState<{ id: string; projectnaam: string }[]>([]);
+  const [adviseurFilterStatus, setAdviseurFilterStatus] = useState<string>("openstaand");
+  const [adviseurProjecten, setAdviseurProjecten] = useState<{ id: string; projectnaam: string; status?: string; auditjaar?: string | null; datum_aangemaakt?: string }[]>([]);
   const [zoekterm, setZoekterm] = useState("");
   const [toewijsbarePersonen, setToewijsbarePersonen] = useState<ToewijsbarePersoon[]>([]);
   const [isAdviseur, setIsAdviseur] = useState(false);
@@ -167,10 +167,11 @@ export default function Inbox() {
 
     const { data: projectData } = await supabase
       .from("projects")
-      .select("id, projectnaam")
-      .eq("adviseur_id", adviseurRecord.id);
+      .select("id, projectnaam, status, auditjaar, datum_aangemaakt")
+      .eq("adviseur_id", adviseurRecord.id)
+      .order("datum_aangemaakt", { ascending: false });
 
-    setAdviseurProjecten(projectData ?? []);
+    setAdviseurProjecten((projectData as any) ?? []);
 
     if (!projectData || projectData.length === 0) {
       setAdviseurFindings([]);
@@ -180,24 +181,15 @@ export default function Inbox() {
     const projectIds = projectData.map((p) => p.id);
     const projectMap = new Map(projectData.map((p) => [p.id, p.projectnaam]));
 
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-
     const { data: findingData } = await supabase
       .from("findings")
       .select("*")
       .in("project_id", projectIds)
-      .in("status", ["open", "reactie_ontvangen", "reactie_goedgekeurd"] as any)
+      .in("status", ["open", "reactie_ontvangen", "reactie_goedgekeurd", "gesloten"] as any)
       .eq("zichtbaar_voor_adviseur", true)
       .order("created_at");
 
-    // Filter out reactie_goedgekeurd older than 7 days
-    const filtered = (findingData ?? []).filter((f) => {
-      if (f.status === "reactie_goedgekeurd") {
-        const goedOp = (f as any).goedgekeurd_op;
-        if (goedOp && new Date(goedOp) < new Date(sevenDaysAgo)) return false;
-      }
-      return true;
-    });
+    const filtered = findingData ?? [];
 
     // Load latest message per finding for reactie column
     const findingIds = filtered.map((f) => f.id);
@@ -395,7 +387,10 @@ export default function Inbox() {
   const filteredAdviseurFindings = useMemo(() => {
     return adviseurFindings.filter((f) => {
       if (adviseurFilterProject !== "alle" && f.projectnaam !== adviseurFilterProject) return false;
-      if (adviseurFilterStatus !== "alle" && f.status !== adviseurFilterStatus) return false;
+      const afgehandeld = f.status === "reactie_goedgekeurd" || f.status === "gesloten";
+      if (adviseurFilterStatus === "openstaand" && afgehandeld) return false;
+      if (adviseurFilterStatus === "afgehandeld" && !afgehandeld) return false;
+      if (!["alle", "openstaand", "afgehandeld"].includes(adviseurFilterStatus) && f.status !== adviseurFilterStatus) return false;
       return true;
     });
   }, [adviseurFindings, adviseurFilterProject, adviseurFilterStatus]);
