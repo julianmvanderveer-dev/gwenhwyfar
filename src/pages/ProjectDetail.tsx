@@ -88,6 +88,14 @@ export default function ProjectDetail() {
   const [ep2ManualOverride, setEp2ManualOverride] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("");
   const [dossierIncompleet, setDossierIncompleet] = useState(false);
+  const dossierGeladenRef = useRef(false);
+  const handleDossierOpenChange = useCallback((open: boolean) => {
+    // Na de eerste lading telt een wijziging als echte bevindingwijziging,
+    // zodat ook vastgezette audits de EP2-beoordeling bijwerken.
+    if (dossierGeladenRef.current) findingsGewijzigdRef.current = true;
+    dossierGeladenRef.current = true;
+    setDossierIncompleet(open);
+  }, []);
 
   // EP2 statuswijziging na afronden
   type Ep2HistoryEntry = {
@@ -1547,7 +1555,7 @@ export default function ProjectDetail() {
         findings={findings}
         canRequest={canEditAny}
         isAdviseur={hasRole("ep_adviseur") && isAdviseurVanProject}
-        onOpenChange={setDossierIncompleet}
+        onOpenChange={handleDossierOpenChange}
         onFindingsChanged={() => { findingsGewijzigdRef.current = true; loadFindings(); }}
       />
 
