@@ -104,7 +104,7 @@ export default function DossierIncompleet({ project, templates, findings, canReq
 
       supabase.functions
         .invoke("notify-adviseur", {
-          body: { type: "dossier_incompleet", project_id: project.id, extra: { dropboxLink: project.dropbox_link ?? null, opmerking: opmerking.trim() || null } },
+          body: { type: "dossier_incompleet", project_id: project.id, extra: { opmerking: opmerking.trim() || null } },
         })
         .then(({ error }) => error && console.error("Mail dossierverzoek fout:", error));
 
@@ -234,7 +234,7 @@ export default function DossierIncompleet({ project, templates, findings, canReq
           <DialogHeader>
             <DialogTitle>Dossier onvoldoende voor audit</DialogTitle>
             <DialogDescription>
-              De EP-adviseur krijgt een mail met het verzoek het dossier via Dropbox te completeren. Controlepunten 1a en 1b
+              De EP-adviseur krijgt een mail met het verzoek de ontbrekende bestanden zelf in Dropbox te uploaden. Controlepunten 1a en 1b
               worden op Niet goed (NKT) gezet en het eindresultaat wordt KT totdat het dossier weer compleet is.
               Je kunt daarna gewoon verder met de audit.
             </DialogDescription>
