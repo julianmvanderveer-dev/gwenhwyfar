@@ -26,6 +26,8 @@ import { template as aanvullingOntvangenAuditor } from './aanvulling-ontvangen-a
 import { template as herafmeldingIngediendAuditor } from './herafmelding-ingediend-auditor.tsx'
 import { template as extraDocumentAuditor } from './extra-document-auditor.tsx'
 import { template as berichtVanBengcert } from './bericht-van-bengcert.tsx'
+import { template as dossierIncompleet } from './dossier-incompleet.tsx'
+import { template as dossierCompleetAuditor } from './dossier-compleet-auditor.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'audit-afgerond': auditAfgerond,
@@ -45,4 +47,6 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'herafmelding-ingediend-auditor': herafmeldingIngediendAuditor,
   'extra-document-auditor': extraDocumentAuditor,
   'bericht-van-bengcert': berichtVanBengcert,
+  'dossier-incompleet': dossierIncompleet,
+  'dossier-compleet-auditor': dossierCompleetAuditor,
 }
