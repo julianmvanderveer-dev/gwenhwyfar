@@ -156,6 +156,8 @@ Deno.serve(async (req) => {
       templateName = "herafmelding-vereist";
     } else if (effectiveType === "herafmelding_beoordeeld") {
       templateName = "herafmelding-beoordeeld";
+    } else if (effectiveType === "dossier_incompleet") {
+      templateName = "dossier-incompleet";
     } else {
       return new Response(JSON.stringify({ error: "Ongeldig type" }), {
         status: 400,
