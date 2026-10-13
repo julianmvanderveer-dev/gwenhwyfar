@@ -234,7 +234,7 @@ export default function DossierIncompleet({ project, templates, findings, canReq
           <DialogHeader>
             <DialogTitle>Dossier onvoldoende voor audit</DialogTitle>
             <DialogDescription>
-              De EP-adviseur krijgt een mail met het verzoek het dossier via Dropbox te completeren. Controlepunten 1a en 1b
+              De EP-adviseur krijgt een mail met het verzoek de ontbrekende bestanden zelf in Dropbox te uploaden. Controlepunten 1a en 1b
               worden op Niet goed (NKT) gezet en het eindresultaat wordt KT totdat het dossier weer compleet is.
               Je kunt daarna gewoon verder met de audit.
             </DialogDescription>
