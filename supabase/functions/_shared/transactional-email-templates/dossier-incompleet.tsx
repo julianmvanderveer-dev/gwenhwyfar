@@ -27,14 +27,13 @@ const DossierIncompleetEmail = ({ adviseurNaam, projectnaam, dropboxLink, opmerk
         </Text>
         {opmerking ? <Text style={text}><strong>Toelichting:</strong> {opmerking}</Text> : null}
         <Text style={text}>
-          Wij verzoeken u het dossier via Dropbox te completeren. Zorg dat alle stukken erin zitten en overzichtelijk
-          geordend zijn. Meld daarna op het platform dat het dossier is aangevuld.
+          Wij verzoeken u de ontbrekende bestanden zelf te uploaden in Dropbox. Zorg dat alle stukken erin zitten en
+          overzichtelijk geordend zijn. Meld daarna op het platform dat het dossier is aangevuld.
         </Text>
         <Text style={text}>
           Zolang het dossier niet compleet is, wordt de audit als kritiek (KT) beoordeeld. Dit vervalt pas wanneer de
           audit op basis van de aangevulde stukken opnieuw is uitgevoerd.
         </Text>
-        {dropboxLink ? <Button href={dropboxLink} style={button}>Open dossier op Dropbox</Button> : null}
         <Text style={footer}>Met vriendelijke groet,<br />Het {SITE_NAME} Team</Text>
       </Container>
     </Body>

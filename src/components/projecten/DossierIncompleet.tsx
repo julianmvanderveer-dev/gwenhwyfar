@@ -104,7 +104,7 @@ export default function DossierIncompleet({ project, templates, findings, canReq
 
       supabase.functions
         .invoke("notify-adviseur", {
-          body: { type: "dossier_incompleet", project_id: project.id, extra: { dropboxLink: project.dropbox_link ?? null, opmerking: opmerking.trim() || null } },
+          body: { type: "dossier_incompleet", project_id: project.id, extra: { opmerking: opmerking.trim() || null } },
         })
         .then(({ error }) => error && console.error("Mail dossierverzoek fout:", error));
 
