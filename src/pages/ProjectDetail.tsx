@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import ExtraDocumenten from "@/components/projecten/ExtraDocumenten";
+import DossierIncompleet from "@/components/projecten/DossierIncompleet";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -86,6 +87,7 @@ export default function ProjectDetail() {
   const [ep2Beoordeling, setEp2Beoordeling] = useState<string>("");
   const [ep2ManualOverride, setEp2ManualOverride] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("");
+  const [dossierIncompleet, setDossierIncompleet] = useState(false);
 
   // EP2 statuswijziging na afronden
   type Ep2HistoryEntry = {
@@ -748,9 +750,10 @@ export default function ProjectDetail() {
     } else if (!alleGoed && result !== "kt") {
       result = "nkt";
     }
+    if (dossierIncompleet) result = "kt";
 
     return result;
-  }, [findings, afwijkingAbs, afwijkingPct, eindVal]);
+  }, [findings, afwijkingAbs, afwijkingPct, eindVal, dossierIncompleet]);
 
   const autoEp2Reden = useMemo(() => {
     const nietGoedCount = findings.filter((f) => f.beoordeling === "niet_goed").length;
@@ -759,6 +762,7 @@ export default function ProjectDetail() {
     ).length;
     if (autoEp2 === "kt") {
       const reasons: string[] = [];
+      if (dossierIncompleet) reasons.push("dossier niet compleet");
       if (afwijkingAbs !== null && eindVal > 125 && afwijkingPct !== null && Math.abs(afwijkingPct) > 8) {
         reasons.push(`afwijking ${Math.abs(afwijkingPct).toFixed(1)}% bij EP2 > 125`);
       }
@@ -774,7 +778,7 @@ export default function ProjectDetail() {
       return `Automatisch: NKT — ${nietGoedCount} fout(en)`;
     }
     return "Automatisch: GOED — geen afwijkingen";
-  }, [autoEp2, findings, afwijkingAbs, afwijkingPct, eindVal]);
+  }, [autoEp2, findings, afwijkingAbs, afwijkingPct, eindVal, dossierIncompleet]);
 
   // Auto-fill EP2 beoordeling tenzij handmatig overschreven.
   // Ook ná afronding wordt de beoordeling automatisch bijgewerkt zodra het
@@ -1536,6 +1540,16 @@ export default function ProjectDetail() {
           </div>
         </div>
       )}
+
+      <DossierIncompleet
+        project={project as any}
+        templates={templates}
+        findings={findings}
+        canRequest={canEditAny}
+        isAdviseur={hasRole("ep_adviseur") && isAdviseurVanProject}
+        onOpenChange={setDossierIncompleet}
+        onFindingsChanged={() => { findingsGewijzigdRef.current = true; loadFindings(); }}
+      />
 
       {/* Tabs */}
       <Tabs
