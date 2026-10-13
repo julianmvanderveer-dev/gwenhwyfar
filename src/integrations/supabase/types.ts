@@ -179,6 +179,59 @@ export type Database = {
           },
         ]
       }
+      dossier_verzoeken: {
+        Row: {
+          aangevraagd_door: string | null
+          aangevraagd_door_naam: string | null
+          afgehandeld_door: string | null
+          afgehandeld_door_naam: string | null
+          afgehandeld_op: string | null
+          created_at: string
+          gemeld_compleet_door: string | null
+          gemeld_compleet_op: string | null
+          id: string
+          opmerking: string | null
+          project_id: string
+          rol: string | null
+        }
+        Insert: {
+          aangevraagd_door?: string | null
+          aangevraagd_door_naam?: string | null
+          afgehandeld_door?: string | null
+          afgehandeld_door_naam?: string | null
+          afgehandeld_op?: string | null
+          created_at?: string
+          gemeld_compleet_door?: string | null
+          gemeld_compleet_op?: string | null
+          id?: string
+          opmerking?: string | null
+          project_id: string
+          rol?: string | null
+        }
+        Update: {
+          aangevraagd_door?: string | null
+          aangevraagd_door_naam?: string | null
+          afgehandeld_door?: string | null
+          afgehandeld_door_naam?: string | null
+          afgehandeld_op?: string | null
+          created_at?: string
+          gemeld_compleet_door?: string | null
+          gemeld_compleet_op?: string | null
+          id?: string
+          opmerking?: string | null
+          project_id?: string
+          rol?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dossier_verzoeken_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_send_log: {
         Row: {
           created_at: string
