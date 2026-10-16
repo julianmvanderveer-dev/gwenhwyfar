@@ -1,3 +1,4 @@
+import { telFouten } from "@/lib/ep2Telling";
 import type { Tables } from "@/integrations/supabase/types";
 import { reportLogoHtml } from "@/lib/reportLogo";
 
@@ -105,7 +106,7 @@ export function buildAuditReportHtml({ project, findings, adviseurNaam, adviseur
     (f) => isAfgesloten(f) && isAcceptedByAdviseur(f.id),
   ).length;
   const openCount = nietGoedAll.length - weerlegdCount - geaccepteerdCount;
-  const afwijkingCount = openCount + geaccepteerdCount;
+  const afwijkingCount = telFouten(findings as any);
 
   // EP2
   const ep2Start = project.ep2_startwaarde;
