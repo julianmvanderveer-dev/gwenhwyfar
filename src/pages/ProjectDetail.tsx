@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import { berekenEp2, telFouten } from "@/lib/ep2Telling";
 import FindingHistorie from "@/components/FindingHistorie";
 import ExtraDocumenten from "@/components/projecten/ExtraDocumenten";
 import DossierIncompleet from "@/components/projecten/DossierIncompleet";

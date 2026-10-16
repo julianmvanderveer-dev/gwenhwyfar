@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { berekenEp2, telFouten } from "@/lib/ep2Telling";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
