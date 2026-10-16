@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import FindingHistorie from "@/components/FindingHistorie";
 import ExtraDocumenten from "@/components/projecten/ExtraDocumenten";
 import DossierIncompleet from "@/components/projecten/DossierIncompleet";
 import { useParams, useNavigate, Link } from "react-router-dom";
@@ -1672,6 +1673,19 @@ export default function ProjectDetail() {
                                     >
                                       {(f as any).concept_reactie ? "Wijzigen" : "Reageren"}
                                     </Link>
+                                  )}
+                                  {f && f.beoordeling === "goed" && (f.status === "reactie_goedgekeurd" || f.status === "gesloten") && f.goedgekeurd_op && (
+                                    <span className="inline-flex items-center rounded-full bg-accent/15 text-accent px-1.5 py-0.5 text-[10px] font-semibold" title="Afwijking is vervallen na reactie van de EP-adviseur.">
+                                      Vervallen
+                                    </span>
+                                  )}
+                                  {f && f.beoordeling === "niet_goed" && (f.status === "reactie_goedgekeurd" || f.status === "gesloten") && (
+                                    <span className="inline-flex items-center rounded-full bg-muted text-foreground px-1.5 py-0.5 text-[10px] font-semibold">
+                                      Afgehandeld
+                                    </span>
+                                  )}
+                                  {f && f.zichtbaar_voor_adviseur !== undefined && (f.goedgekeurd_op || f.status !== "open" || f.zichtbaar_voor_adviseur) && f.beoordeling !== null && (
+                                    <FindingHistorie findingId={f.id} titel={f.controlepunt} />
                                   )}
                                   {f && (f as any).concept_reactie && (
                                     <span className="inline-flex items-center rounded-full bg-blue-100 text-blue-800 px-1.5 py-0.5 text-[10px] font-semibold" title="Concept-reactie EP-adviseur opgeslagen, nog niet verstuurd.">
