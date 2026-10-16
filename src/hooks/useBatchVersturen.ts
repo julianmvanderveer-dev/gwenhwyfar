@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { berekenEp2, telFouten } from "@/lib/ep2Telling";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
@@ -296,13 +297,14 @@ export function useBatchVersturen(
             .select("beoordeling, afwijking_kleiner_1pct")
             .eq("project_id", project.id);
           const fs = alleFindings ?? [];
-          const relevant = fs.filter((f: any) => f.beoordeling === "niet_goed" && !f.afwijking_kleiner_1pct).length;
-          const nietGoed = fs.filter((f: any) => f.beoordeling === "niet_goed").length;
+          const nietGoed = telFouten(fs as any);
           const abs = eind - start;
-          const pct = start !== 0 ? (abs / start) * 100 : 0;
-          let nieuw = "goed";
-          if ((eind > 125 && Math.abs(pct) > 8) || (eind <= 125 && Math.abs(abs) > 10) || relevant > 4) nieuw = "kt";
-          else if (nietGoed > 0) nieuw = "nkt";
+          const { count: openDossier } = await supabase
+            .from("dossier_verzoeken")
+            .select("id", { count: "exact", head: true })
+            .eq("project_id", project.id)
+            .is("afgehandeld_op", null);
+          const nieuw: string = berekenEp2(start, eind, fs as any, (openDossier ?? 0) > 0);
 
           const oud = String((projMeta as any)?.ep2_beoordeling ?? "").toLowerCase() || null;
           if (oud !== nieuw) {
