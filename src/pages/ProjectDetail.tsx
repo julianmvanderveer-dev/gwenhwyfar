@@ -732,42 +732,13 @@ export default function ProjectDetail() {
   const afwijkingPct = afwijkingAbs !== null && startVal !== 0 ? (afwijkingAbs / startVal) * 100 : null;
 
   // Auto EP2-beoordeling berekening
-  const autoEp2 = useMemo(() => {
-    const nietGoedCount = findings.filter((f) => f.beoordeling === "niet_goed").length;
-    const nietGoedRelevantCount = findings.filter(
-      (f) => f.beoordeling === "niet_goed" && !(f as any).afwijking_kleiner_1pct
-    ).length;
-    const alleGoed = findings.length === 0 || findings.every(
-      (f) =>
-        f.beoordeling === "goed" ||
-        f.beoordeling === "opmerking" ||
-        f.beoordeling === "nvt" ||
-        !f.beoordeling
-    );
-
-    let result = "goed";
-
-    // KT-criteria
-    if (afwijkingAbs !== null && eindVal > 125 && afwijkingPct !== null && Math.abs(afwijkingPct) > 8) {
-      result = "kt";
-    } else if (afwijkingAbs !== null && eindVal <= 125 && Math.abs(afwijkingAbs) > 10) {
-      result = "kt";
-    }
-    if (nietGoedRelevantCount > 4) {
-      result = "kt";
-    } else if (!alleGoed && result !== "kt") {
-      result = "nkt";
-    }
-    if (dossierIncompleet) result = "kt";
-
-    return result;
-  }, [findings, afwijkingAbs, afwijkingPct, eindVal, dossierIncompleet]);
+  const autoEp2 = useMemo(
+    () => berekenEp2(isNaN(startVal) ? null : startVal, isNaN(eindVal) ? null : eindVal, findings as any, dossierIncompleet),
+    [findings, startVal, eindVal, dossierIncompleet],
+  );
 
   const autoEp2Reden = useMemo(() => {
-    const nietGoedCount = findings.filter((f) => f.beoordeling === "niet_goed").length;
-    const nietGoedRelevantCount = findings.filter(
-      (f) => f.beoordeling === "niet_goed" && !(f as any).afwijking_kleiner_1pct
-    ).length;
+    const nietGoedRelevantCount = telFouten(findings as any);
     if (autoEp2 === "kt") {
       const reasons: string[] = [];
       if (dossierIncompleet) reasons.push("dossier niet compleet");
@@ -783,7 +754,7 @@ export default function ProjectDetail() {
       return `Automatisch: KT — ${reasons.join("; ")}`;
     }
     if (autoEp2 === "nkt") {
-      return `Automatisch: NKT — ${nietGoedCount} fout(en)`;
+      return `Automatisch: NKT — ${nietGoedRelevantCount} fout(en)`;
     }
     return "Automatisch: GOED — geen afwijkingen";
   }, [autoEp2, findings, afwijkingAbs, afwijkingPct, eindVal, dossierIncompleet]);
