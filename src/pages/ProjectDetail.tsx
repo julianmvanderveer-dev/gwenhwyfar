@@ -1527,6 +1527,7 @@ export default function ProjectDetail() {
         templates={templates}
         findings={findings}
         canRequest={canEditAny}
+        canResolve={(hasRole("auditor") || hasRole("beheer") || hasRole("tekenaar")) && !isAdviseurVanProject}
         isAdviseur={hasRole("ep_adviseur") && isAdviseurVanProject}
         onOpenChange={handleDossierOpenChange}
         onFindingsChanged={() => { findingsGewijzigdRef.current = true; loadFindings(); }}

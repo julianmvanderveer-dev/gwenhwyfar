@@ -30,6 +30,7 @@ interface Props {
   templates: Tpl[];
   findings: F[];
   canRequest: boolean;
+  canResolve?: boolean;
   isAdviseur: boolean;
   onOpenChange: (open: boolean) => void;
   onFindingsChanged: () => void;
@@ -37,7 +38,7 @@ interface Props {
 
 const fmt = (d: string) => new Date(d).toLocaleString("nl-NL", { dateStyle: "short", timeStyle: "short" });
 
-export default function DossierIncompleet({ project, templates, findings, canRequest, isAdviseur, onOpenChange, onFindingsChanged }: Props) {
+export default function DossierIncompleet({ project, templates, findings, canRequest, canResolve, isAdviseur, onOpenChange, onFindingsChanged }: Props) {
   const { user, actsAs: hasRole } = useAuth();
   const [verzoeken, setVerzoeken] = useState<DossierVerzoek[]>([]);
   const [dialog, setDialog] = useState(false);
@@ -198,7 +199,7 @@ export default function DossierIncompleet({ project, templates, findings, canReq
                   Dossier aangevuld op Dropbox
                 </Button>
               )}
-              {canRequest && (
+              {(canRequest || canResolve) && (
                 <Button size="sm" variant="outline" onClick={afhandelen} disabled={bezig} className="gap-1.5">
                   <CheckCircle2 className="h-3.5 w-3.5" /> Dossier is weer compleet
                 </Button>
