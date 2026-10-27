@@ -291,6 +291,13 @@ export default function Inbox() {
     loadData();
   };
 
+  const wijzigAuditjaar = async (projectId: string, auditjaar: string) => {
+    const { error } = await supabase.from("projects").update({ auditjaar } as any).eq("id", projectId);
+    if (error) { toast.error("Opslaan mislukt: " + error.message); return; }
+    setProjects((prev) => prev.map((p) => (p.id === projectId ? ({ ...p, auditjaar } as any) : p)));
+    toast.success(`Auditjaar gewijzigd naar ${auditjaar}`);
+  };
+
   const [substatusFilter, setSubstatusFilter] = useState<string>("alle");
   const [afgerondZoek, setAfgerondZoek] = useState("");
   const [afgerondJaar, setAfgerondJaar] = useState("alle");
@@ -507,6 +514,7 @@ export default function Inbox() {
           toewijsbarePersonen={toewijsbarePersonen}
           onReassign={hertoewijzen}
           onReturnToPool={terugNaarPool}
+          onAuditjaarChange={wijzigAuditjaar}
           titel="Nieuw"
           icon={FolderKanban}
           accentClass="text-muted-foreground"
@@ -539,6 +547,8 @@ export default function Inbox() {
             toewijsbarePersonen={toewijsbarePersonen}
             onReassign={hertoewijzen}
             onReturnToPool={terugNaarPool}
+            onAuditjaarChange={wijzigAuditjaar}
+          onAuditjaarChange={wijzigAuditjaar}
             titel="Bezig"
             icon={Clock3}
             accentClass="text-accent"
@@ -581,6 +591,8 @@ export default function Inbox() {
             toewijsbarePersonen={toewijsbarePersonen}
             onReassign={hertoewijzen}
             onReturnToPool={terugNaarPool}
+            onAuditjaarChange={wijzigAuditjaar}
+          onAuditjaarChange={wijzigAuditjaar}
             titel="Afgerond"
             icon={CheckCircle2}
             accentClass="text-primary"
