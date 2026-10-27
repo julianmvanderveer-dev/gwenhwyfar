@@ -294,15 +294,39 @@ export default function Inbox() {
   const [substatusFilter, setSubstatusFilter] = useState<string>("alle");
   const [afgerondZoek, setAfgerondZoek] = useState("");
   const [afgerondJaar, setAfgerondJaar] = useState("alle");
+  const [filterCategorie, setFilterCategorie] = useState("alle");
+  const [filterSoort, setFilterSoort] = useState("alle");
+  const [filterAdviseur, setFilterAdviseur] = useState("alle");
+  const [filterBehandelaar, setFilterBehandelaar] = useState("alle");
+
+  const behandelaarVan = (p: any): string | null =>
+    ((p.status === "afgerond" || p.status === "gesloten") ? (p.auditor_naam ?? p.toegewezen_profiel?.naam) : p.toegewezen_profiel?.naam) ?? null;
+
+  const filterOpties = useMemo(() => {
+    const uniek = (arr: (string | null | undefined)[]) =>
+      Array.from(new Set(arr.filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b, "nl"));
+    return {
+      categorieen: uniek(projects.map((p: any) => p.audit_categorie)),
+      soorten: uniek(projects.map((p: any) => p.audit_soort)),
+      adviseurs: uniek(projects.map((p: any) => p.adviseurs?.naam)),
+      behandelaars: uniek(projects.map((p: any) => behandelaarVan(p))),
+    };
+  }, [projects]);
+
+  const filtersActief = [filterCategorie, filterSoort, filterAdviseur, filterBehandelaar].some((v) => v !== "alle") || zoekterm.trim() !== "";
 
   const projectenPerFase = useMemo(() => {
     const needle = zoekterm.trim().toLowerCase();
 
-    const visible = projects.filter((p) => {
+    const visible = projects.filter((p: any) => {
       if (needle) {
         const searchable = [p.projectnaam, p.adviseurs?.naam].filter(Boolean).join(" ").toLowerCase();
         if (!searchable.includes(needle)) return false;
       }
+      if (filterCategorie !== "alle" && p.audit_categorie !== filterCategorie) return false;
+      if (filterSoort !== "alle" && p.audit_soort !== filterSoort) return false;
+      if (filterAdviseur !== "alle" && p.adviseurs?.naam !== filterAdviseur) return false;
+      if (filterBehandelaar !== "alle" && behandelaarVan(p) !== filterBehandelaar) return false;
       return true;
     });
 
@@ -317,7 +341,7 @@ export default function Inbox() {
     });
 
     return grouped;
-  }, [projects, projectFindings, zoekterm]);
+  }, [projects, projectFindings, zoekterm, filterCategorie, filterSoort, filterAdviseur, filterBehandelaar]);
 
   const hoofdgroepen = useMemo(() => {
     const nieuw = projectenPerFase["nieuw"] ?? [];
@@ -404,14 +428,41 @@ export default function Inbox() {
   const beheerOverzicht = (
     <>
       {/* Search */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Zoek op projectnaam of adviseur..."
-          value={zoekterm}
-          onChange={(e) => setZoekterm(e.target.value)}
-          className="pl-10 h-9 bg-card shadow-sm"
-        />
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative w-80">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Zoek op projectnaam of adviseur..."
+            value={zoekterm}
+            onChange={(e) => setZoekterm(e.target.value)}
+            className="pl-10 h-9 bg-card shadow-sm"
+          />
+        </div>
+        {([
+          { label: "Alle categorieën", value: filterCategorie, set: setFilterCategorie, opts: filterOpties.categorieen, w: "w-[160px]" },
+          { label: "Alle soorten", value: filterSoort, set: setFilterSoort, opts: filterOpties.soorten, w: "w-[170px]" },
+          { label: "Alle adviseurs", value: filterAdviseur, set: setFilterAdviseur, opts: filterOpties.adviseurs, w: "w-[200px]" },
+          { label: "Alle behandelaars", value: filterBehandelaar, set: setFilterBehandelaar, opts: filterOpties.behandelaars, w: "w-[200px]" },
+        ]).map((f) => (
+          <Select key={f.label} value={f.value} onValueChange={f.set}>
+            <SelectTrigger className={`${f.w} h-9 text-xs bg-card`}>
+              <SelectValue placeholder={f.label} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="alle">{f.label}</SelectItem>
+              {f.opts.map((o) => (
+                <SelectItem key={o} value={o}>{o}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ))}
+        {filtersActief && (
+          <Button variant="ghost" size="sm" className="h-9 text-xs" onClick={() => {
+            setFilterCategorie("alle"); setFilterSoort("alle"); setFilterAdviseur("alle"); setFilterBehandelaar("alle"); setZoekterm("");
+          }}>
+            Filters wissen
+          </Button>
+        )}
       </div>
 
       {/* Tellers strip */}
