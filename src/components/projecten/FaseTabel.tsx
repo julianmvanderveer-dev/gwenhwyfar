@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { faseConfig, type FaseKey } from "./faseConfig";
 import { StatusPill } from "@/lib/badges";
+import { auditjaarVanDatum, auditjaarOptiesMet } from "@/lib/auditjaar";
 
 export interface ToewijsbarePersoon {
   id: string;
@@ -35,6 +36,7 @@ export interface ProjectRow {
   gearchiveerd_op?: string | null;
   auditor_naam?: string | null;
   dropbox_link?: string | null;
+  auditjaar?: string | null;
   _fase?: FaseKey;
 }
 
@@ -56,6 +58,7 @@ interface FaseTabelProps {
   accentClass?: string;
   badge?: number;
   isAfgerondView?: boolean;
+  onAuditjaarChange?: (projectId: string, auditjaar: string) => void;
 }
 
 const substatusTone: Record<string, "blue" | "amber" | "indigo" | "orange" | "purple" | "gray"> = {
@@ -85,7 +88,7 @@ export default function FaseTabel({
   fase, faseIndex, projecten, canDelete, onDelete, defaultOpen = true,
   showToewijzing = false, showSubstatus = false, inlineToewijzing = false,
   toewijsbarePersonen, onReassign, onReturnToPool,
-  titel, icon, accentClass, badge, isAfgerondView = false,
+  titel, icon, accentClass, badge, isAfgerondView = false, onAuditjaarChange,
 }: FaseTabelProps) {
   const [open, setOpen] = useState(defaultOpen);
   const [hertoewijzingId, setHertoewijzingId] = useState<string | null>(null);
@@ -152,6 +155,7 @@ export default function FaseTabel({
                   {showToewijzing && (
                     <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">{isAfgerondView ? "Auditor" : "Toegewezen aan"}</th>
                   )}
+                   <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Auditjaar</th>
                    <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Aangemaakt</th>
                    {isAfgerondView && (
                      <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Afgerond</th>
@@ -247,6 +251,24 @@ export default function FaseTabel({
                           )}
                         </td>
                       )}
+                      <td className="px-4 py-2.5">
+                        {(() => {
+                          const aj = p.auditjaar ?? auditjaarVanDatum(p.datum_aangemaakt);
+                          return onAuditjaarChange ? (
+                            <select
+                              className="h-7 rounded-md border border-input bg-background px-1.5 text-xs"
+                              value={aj}
+                              onChange={(e) => onAuditjaarChange(p.id, e.target.value)}
+                            >
+                              {auditjaarOptiesMet([p.auditjaar, auditjaarVanDatum(p.datum_aangemaakt)]).map((j) => (
+                                <option key={j} value={j}>{j}</option>
+                              ))}
+                            </select>
+                          ) : (
+                            <span className="text-muted-foreground">{aj}</span>
+                          );
+                        })()}
+                      </td>
                       <td className="px-4 py-2.5 text-muted-foreground">{formatDate(p.datum_aangemaakt)}</td>
                       {isAfgerondView && (
                         <td className="px-4 py-2.5 text-muted-foreground">{p.gearchiveerd_op ? formatDate(p.gearchiveerd_op) : "—"}</td>
