@@ -298,6 +298,7 @@ export default function Inbox() {
   const [filterSoort, setFilterSoort] = useState("alle");
   const [filterAdviseur, setFilterAdviseur] = useState("alle");
   const [filterBehandelaar, setFilterBehandelaar] = useState("alle");
+  const [filterStatus, setFilterStatus] = useState<"alle" | "nieuw" | "bezig" | "afgerond">("alle");
 
   const behandelaarVan = (p: any): string | null =>
     ((p.status === "afgerond" || p.status === "gesloten") ? (p.auditor_naam ?? p.toegewezen_profiel?.naam) : p.toegewezen_profiel?.naam) ?? null;
@@ -313,7 +314,7 @@ export default function Inbox() {
     };
   }, [projects]);
 
-  const filtersActief = [filterCategorie, filterSoort, filterAdviseur, filterBehandelaar].some((v) => v !== "alle") || zoekterm.trim() !== "";
+  const filtersActief = [filterCategorie, filterSoort, filterAdviseur, filterBehandelaar, filterStatus].some((v) => v !== "alle") || zoekterm.trim() !== "";
 
   const projectenPerFase = useMemo(() => {
     const needle = zoekterm.trim().toLowerCase();
@@ -438,6 +439,17 @@ export default function Inbox() {
             className="pl-10 h-9 bg-card shadow-sm"
           />
         </div>
+        <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as any)}>
+          <SelectTrigger className="w-[150px] h-9 text-xs bg-card">
+            <SelectValue placeholder="Alle statussen" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="alle">Alle statussen</SelectItem>
+            <SelectItem value="nieuw">Nieuw</SelectItem>
+            <SelectItem value="bezig">Bezig</SelectItem>
+            <SelectItem value="afgerond">Afgerond</SelectItem>
+          </SelectContent>
+        </Select>
         {([
           { label: "Alle categorieën", value: filterCategorie, set: setFilterCategorie, opts: filterOpties.categorieen, w: "w-[160px]" },
           { label: "Alle soorten", value: filterSoort, set: setFilterSoort, opts: filterOpties.soorten, w: "w-[170px]" },
@@ -458,7 +470,7 @@ export default function Inbox() {
         ))}
         {filtersActief && (
           <Button variant="ghost" size="sm" className="h-9 text-xs" onClick={() => {
-            setFilterCategorie("alle"); setFilterSoort("alle"); setFilterAdviseur("alle"); setFilterBehandelaar("alle"); setZoekterm("");
+            setFilterCategorie("alle"); setFilterSoort("alle"); setFilterAdviseur("alle"); setFilterBehandelaar("alle"); setFilterStatus("alle"); setZoekterm("");
           }}>
             Filters wissen
           </Button>
@@ -472,18 +484,19 @@ export default function Inbox() {
           { key: "bezig", label: "Bezig", count: hoofdgroepen.bezig.length, icon: Clock3, accent: "text-accent" },
           { key: "afgerond", label: "Afgerond", count: hoofdgroepen.afgerond.length, icon: CheckCircle2, accent: "text-primary" },
         ] as const).map((g, i) => (
-          <div key={g.key} className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md bg-card border shadow-sm">
+          <button type="button" key={g.key} onClick={() => setFilterStatus(filterStatus === g.key ? "alle" : g.key)}
+            className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md border shadow-sm transition-colors ${filterStatus === g.key ? "bg-primary/10 border-primary" : "bg-card hover:bg-muted"}`}>
             <g.icon className={`h-3.5 w-3.5 ${g.accent}`} />
             <span className="text-muted-foreground">{i + 1}.</span>
             <span className="font-medium">{g.label}</span>
             <Badge variant={g.count > 0 ? "default" : "secondary"} className="text-[10px] px-1.5 py-0 ml-1">{g.count}</Badge>
-          </div>
+          </button>
         ))}
       </div>
 
       {/* 3 collapsible groepen */}
       <div className="space-y-2">
-        <FaseTabel
+        {(filterStatus === "alle" || filterStatus === "nieuw") && <FaseTabel
           fase="nieuw"
           faseIndex={0}
           projecten={hoofdgroepen.nieuw}
@@ -497,9 +510,9 @@ export default function Inbox() {
           titel="Nieuw"
           icon={FolderKanban}
           accentClass="text-muted-foreground"
-        />
+        />}
 
-        <div className="space-y-1">
+        {(filterStatus === "alle" || filterStatus === "bezig") && <div className="space-y-1">
           <div className="flex items-center gap-2 pl-1">
             <Select value={substatusFilter} onValueChange={setSubstatusFilter}>
               <SelectTrigger className="w-[220px] h-8 text-xs">
@@ -531,9 +544,9 @@ export default function Inbox() {
             accentClass="text-accent"
             badge={hoofdgroepen.bezig.length}
           />
-        </div>
+        </div>}
 
-        <div className="space-y-1">
+        {(filterStatus === "alle" || filterStatus === "afgerond") && <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2 pl-1">
             <div className="relative w-64">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -573,7 +586,7 @@ export default function Inbox() {
             accentClass="text-primary"
             isAfgerondView
           />
-        </div>
+        </div>}
       </div>
     </>
   );
