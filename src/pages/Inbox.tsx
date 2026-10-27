@@ -548,7 +548,6 @@ export default function Inbox() {
             onReassign={hertoewijzen}
             onReturnToPool={terugNaarPool}
             onAuditjaarChange={wijzigAuditjaar}
-          onAuditjaarChange={wijzigAuditjaar}
             titel="Bezig"
             icon={Clock3}
             accentClass="text-accent"
@@ -592,7 +591,6 @@ export default function Inbox() {
             onReassign={hertoewijzen}
             onReturnToPool={terugNaarPool}
             onAuditjaarChange={wijzigAuditjaar}
-          onAuditjaarChange={wijzigAuditjaar}
             titel="Afgerond"
             icon={CheckCircle2}
             accentClass="text-primary"
