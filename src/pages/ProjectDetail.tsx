@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useRef, useMemo } from "react"
 import { berekenEp2, telFouten } from "@/lib/ep2Telling";
 import FindingHistorie from "@/components/FindingHistorie";
 import ExtraDocumenten from "@/components/projecten/ExtraDocumenten";
+import AuditBijlagen from "@/components/projecten/AuditBijlagen";
 import DossierIncompleet from "@/components/projecten/DossierIncompleet";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -1462,6 +1463,8 @@ export default function ProjectDetail() {
           loadFindings();
         }}
       />
+
+      <AuditBijlagen projectId={project.id} />
 
       {/* Uitdraai upload */}
       {canEditAny && (
