@@ -80,6 +80,28 @@ export default function BatchVersturen({ project, findings, onSent }: Props) {
             Alle beoordelingen versturen
           </Button>
         </div>
+        {auditorConcepten.length > 0 && (
+          <details className="mt-3 text-sm">
+            <summary className="cursor-pointer text-primary">Toon beoordeelde afwijkingen</summary>
+            <ul className="mt-2 divide-y">
+              {auditorConcepten.map((f) => {
+                const t = (f as any).concept_beoordeling?.type;
+                const label = t === "akkoord" ? "Goedgekeurd (telt mee)" : t === "vervallen" ? "Vervallen" : "Niet akkoord";
+                return (
+                  <li key={f.id} className="flex justify-between gap-3 py-1.5">
+                    <span>
+                      {f.controlepunt} <span className="text-muted-foreground text-xs">· {f.onderdeel}</span>
+                    </span>
+                    <span className="text-xs whitespace-nowrap">
+                      {label}
+                      {t === "akkoord" && (f.afwijking_kleiner_1pct ? " · < 1%" : " · ≥ 1%")}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </details>
+        )}
       </div>
     );
   }

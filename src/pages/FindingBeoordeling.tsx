@@ -155,6 +155,10 @@ export default function FindingBeoordeling() {
     }
 
     setFinding(data);
+    const c = (data as any).concept_beoordeling as { type?: string; toelichting?: string | null } | null;
+    const draft = localStorage.getItem(`beoordeling-toelichting-${data.id}`);
+    if (draft !== null) setAkkoordToelichting(draft);
+    else if (c?.toelichting && !c.toelichting.startsWith("Automatisch akkoord")) setAkkoordToelichting(c.toelichting);
     const { data: project } = await supabase
       .from("projects")
       .select("adviseurs(naam, user_id)")
@@ -206,6 +210,7 @@ export default function FindingBeoordeling() {
         title: "Reactie goedgekeurd — vastgelegd",
         description: "De afwijking blijft staan. Verstuur al je beoordelingen via het projectoverzicht.",
       });
+      localStorage.removeItem(`beoordeling-toelichting-${id}`);
       setAkkoordToelichting("");
       navigate(`/project/${finding?.project_id}`);
     }
@@ -437,7 +442,22 @@ export default function FindingBeoordeling() {
                 <label className="text-sm font-medium mb-1 block">Toelichting (optioneel)</label>
                 <Textarea
                   value={akkoordToelichting}
-                  onChange={(e) => setAkkoordToelichting(e.target.value)}
+                  onChange={(e) => {
+                    setAkkoordToelichting(e.target.value);
+                    localStorage.setItem(`beoordeling-toelichting-${id}`, e.target.value);
+                  }}
+                  onBlur={async () => {
+                    const c = (finding as any).concept_beoordeling;
+                    if (!c || (c.toelichting ?? "") === akkoordToelichting.trim()) return;
+                    const { error } = await supabase
+                      .from("findings")
+                      .update({ concept_beoordeling: { ...c, toelichting: akkoordToelichting.trim() || null } as any })
+                      .eq("id", id!);
+                    if (!error) {
+                      localStorage.removeItem(`beoordeling-toelichting-${id}`);
+                      setFinding((f) => (f ? ({ ...f, concept_beoordeling: { ...c, toelichting: akkoordToelichting.trim() || null } } as any) : f));
+                    }
+                  }}
                   placeholder="Optionele toelichting bij goedkeuren of laten vervallen"
                   rows={2}
                   className="text-sm"
