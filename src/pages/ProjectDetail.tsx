@@ -733,14 +733,23 @@ export default function ProjectDetail() {
   const afwijkingAbs = !isNaN(startVal) && !isNaN(eindVal) ? eindVal - startVal : null;
   const afwijkingPct = afwijkingAbs !== null && startVal !== 0 ? (afwijkingAbs / startVal) * 100 : null;
 
+  // Concept "afwijking vervalt" telt direct als Goed in de live EP2-berekening.
+  const findingsVoorEp2 = useMemo(
+    () =>
+      findings.map((f: any) =>
+        f.concept_beoordeling?.type === "vervallen" ? { ...f, beoordeling: "goed" } : f,
+      ),
+    [findings],
+  );
+
   // Auto EP2-beoordeling berekening
   const autoEp2 = useMemo(
-    () => berekenEp2(isNaN(startVal) ? null : startVal, isNaN(eindVal) ? null : eindVal, findings as any, dossierIncompleet),
-    [findings, startVal, eindVal, dossierIncompleet],
+    () => berekenEp2(isNaN(startVal) ? null : startVal, isNaN(eindVal) ? null : eindVal, findingsVoorEp2 as any, dossierIncompleet),
+    [findingsVoorEp2, startVal, eindVal, dossierIncompleet],
   );
 
   const autoEp2Reden = useMemo(() => {
-    const nietGoedRelevantCount = telFouten(findings as any);
+    const nietGoedRelevantCount = telFouten(findingsVoorEp2 as any);
     if (autoEp2 === "kt") {
       const reasons: string[] = [];
       if (dossierIncompleet) reasons.push("dossier niet compleet");
