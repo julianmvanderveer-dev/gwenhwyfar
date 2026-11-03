@@ -158,7 +158,8 @@ export default function FindingBeoordeling() {
     const c = (data as any).concept_beoordeling as { type?: string; toelichting?: string | null } | null;
     const draft = localStorage.getItem(`beoordeling-toelichting-${data.id}`);
     if (draft !== null) setAkkoordToelichting(draft);
-    else if (c?.toelichting && !c.toelichting.startsWith("Automatisch akkoord")) setAkkoordToelichting(c.toelichting);
+    else if ((c?.type === "akkoord" || c?.type === "vervallen") && c.toelichting && !c.toelichting.startsWith("Automatisch akkoord")) setAkkoordToelichting(c.toelichting);
+    else setAkkoordToelichting("");
     const { data: project } = await supabase
       .from("projects")
       .select("adviseurs(naam, user_id)")
@@ -448,7 +449,9 @@ export default function FindingBeoordeling() {
                   }}
                   onBlur={async () => {
                     const c = (finding as any).concept_beoordeling;
-                    if (!c || (c.toelichting ?? "") === akkoordToelichting.trim()) return;
+                    if (!c || (c.type !== "akkoord" && c.type !== "vervallen")) return;
+                    if ((c.toelichting ?? "").startsWith("Automatisch akkoord") && !akkoordToelichting.trim()) return;
+                    if ((c.toelichting ?? "") === akkoordToelichting.trim()) return;
                     const { error } = await supabase
                       .from("findings")
                       .update({ concept_beoordeling: { ...c, toelichting: akkoordToelichting.trim() || null } as any })
