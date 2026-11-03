@@ -50,6 +50,7 @@ interface MijnProject {
   toewijzing: string;
   toegewezen_aan: string | null;
   hasReactieOntvangen?: boolean;
+  adviseurs?: { naam: string } | null;
 }
 
 export default function MedewerkerDashboard() {
@@ -143,7 +144,7 @@ export default function MedewerkerDashboard() {
   const loadProjecten = async () => {
     const { data } = await supabase
       .from("projects")
-      .select("id, projectnaam, audit_categorie, status, toewijzing, toegewezen_aan")
+      .select("id, projectnaam, audit_categorie, status, toewijzing, toegewezen_aan, adviseurs(naam)")
       .neq("status", "gesloten")
       .neq("status", "afgerond")
       .order("datum_aangemaakt", { ascending: false });
@@ -413,6 +414,7 @@ export default function MedewerkerDashboard() {
                   <tr className="bg-secondary/60 border-b">
                     <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Projectnaam</th>
                     <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Type</th>
+                    <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">EP-adviseur</th>
                     <th className="text-left px-4 py-2.5 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Status</th>
                   </tr>
                 </thead>
@@ -429,6 +431,7 @@ export default function MedewerkerDashboard() {
                         <td className="px-4 py-2.5">
                           <Badge variant="secondary" className="text-xs">{p.audit_categorie}</Badge>
                         </td>
+                        <td className="px-4 py-2.5 text-muted-foreground">{p.adviseurs?.naam ?? "—"}</td>
                         <td className="px-4 py-2.5">
                           {statusInfo.clickable ? (
                             <Link to={`/project/${p.id}`}>
