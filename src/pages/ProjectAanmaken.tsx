@@ -264,13 +264,16 @@ export default function ProjectAanmaken() {
           <Checkbox id="prioriteit" checked={prioriteit} onCheckedChange={(v) => setPrioriteit(v === true)} />
           <Label htmlFor="prioriteit">Prioriteit</Label>
         </div>
-        <div className="flex items-center gap-2">
-          <Checkbox
-            id="omgevingsvergunning"
-            checked={isOmgevingsvergunning}
-            onCheckedChange={(v) => setIsOmgevingsvergunning(v === true)}
-          />
-          <Label htmlFor="omgevingsvergunning">Omgevingsvergunning</Label>
+        <div>
+          <Label>Fase</Label>
+          <select
+            className="border rounded px-2 py-1 w-full text-sm"
+            value={isOmgevingsvergunning ? "omgevingsvergunning" : "oplevering"}
+            onChange={(e) => setIsOmgevingsvergunning(e.target.value === "omgevingsvergunning")}
+          >
+            <option value="oplevering">Oplevering</option>
+            <option value="omgevingsvergunning">Omgevingsvergunning</option>
+          </select>
         </div>
         <div>
           <Label htmlFor="dropbox-link">Dropbox-link dossier <span className="italic font-normal text-sm text-muted-foreground">(optioneel)</span></Label>

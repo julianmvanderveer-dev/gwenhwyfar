@@ -1168,14 +1168,10 @@ export default function ProjectDetail() {
             {project.audit_categorie} · {project.audit_soort}
             {project.toelatingsaudit && " · Toelatingsaudit"}
             {project.prioriteit && " · Prioriteit"}
-            {(project as any).is_omgevingsvergunning && (
-              <>
-                {" · "}
-                <span className="inline-flex items-center rounded-full bg-accent/15 text-accent px-1.5 py-0.5 text-[10px] font-semibold align-middle">
-                  Omgevingsvergunning
-                </span>
-              </>
-            )}
+            {" · "}
+            <span className="inline-flex items-center rounded-full bg-accent/15 text-accent px-1.5 py-0.5 text-[10px] font-semibold align-middle">
+              {(project as any).is_omgevingsvergunning ? "Omgevingsvergunning" : "Oplevering"}
+            </span>
             {isAdviseurVanProject && (
               <>
                 {" · "}
