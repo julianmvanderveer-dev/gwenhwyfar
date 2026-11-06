@@ -141,6 +141,14 @@ export default function ProjectDetail() {
   const uitdraaiDataRef = useRef<Record<string, string>>({});
   const pendingUitdraaiSaves = useRef<Record<string, string>>({});
 
+  const [deel1TekenaarNaam, setDeel1TekenaarNaam] = useState<string | null>(null);
+  const toegewezenAanId = (project as any)?.toegewezen_aan as string | null | undefined;
+  useEffect(() => {
+    if (!toegewezenAanId) { setDeel1TekenaarNaam(null); return; }
+    supabase.from("profiles").select("naam").eq("id", toegewezenAanId).maybeSingle()
+      .then(({ data }) => setDeel1TekenaarNaam(data?.naam ?? null));
+  }, [toegewezenAanId]);
+
   useEffect(() => {
     if (!id) return;
     loadProject().then((p) => {
@@ -236,6 +244,8 @@ export default function ProjectDetail() {
   const autoSetStatus = async (currentStatus: string) => {
     if ((hasRole("tekenaar") || hasRole("auditor")) && currentStatus === "nog_niet_begonnen") {
       const { data: proj } = await supabase.from("projects").select("toewijzing, toegewezen_aan").eq("id", id!).single();
+      // Toegewezen aan iemand anders: alleen-lezen, niets wijzigen.
+      if (proj?.toegewezen_aan && proj.toegewezen_aan !== user!.id) return;
       if (proj?.toewijzing === "pool" && !proj.toegewezen_aan) {
         if (isAdviseurVanProject) {
           toast({ title: "Je kunt dit project niet oppakken", description: "Je bent zelf EP-adviseur van dit project. Een andere auditor moet het oppakken.", variant: "destructive" });
@@ -872,7 +882,11 @@ export default function ProjectDetail() {
   // Functiescheiding: ben je EP-adviseur van dit project, dan kun je geen
   // tekenaar-/auditor-bewerkingen uitvoeren op dit project.
   const canDeel2 = (hasRole("auditor") || hasRole("beheer")) && !isAdviseurVanProject && !isOppakbaar && (project.status === "deel1_afgerond" || project.status === "deel2_bezig");
-  const canDeel1 = (hasRole("tekenaar") || hasRole("auditor")) && !isAdviseurVanProject &&
+  // Deel 1 is vergrendeld voor iedereen behalve de toegewezen tekenaar.
+  const deel1Vergrendeld =
+    (project.status === "nog_niet_begonnen" || project.status === "deel1_bezig") &&
+    !!project.toegewezen_aan && project.toegewezen_aan !== user?.id;
+  const canDeel1 = (hasRole("tekenaar") || hasRole("auditor")) && !isAdviseurVanProject && !deel1Vergrendeld &&
     (project.status === "nog_niet_begonnen" || project.status === "deel1_bezig" || project.status === "deel1_afgerond");
 
   // Na afronden mag de auditor de EP2-status nog corrigeren (met verplichte reden + audit-trail).
@@ -1422,6 +1436,13 @@ export default function ProjectDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {deel1Vergrendeld && (
+        <div className="border rounded-lg bg-amber-50 border-amber-200 p-4 text-sm text-amber-900">
+          <strong>In behandeling bij {deel1TekenaarNaam ?? "de tekenaar"} (Deel 1).</strong>{" "}
+          Je bekijkt dit project in alleen-lezen modus. Zodra Deel 1 is afgerond, komt het project beschikbaar voor de auditor.
+        </div>
+      )}
 
       {toonOppakken && (
         <div className="border rounded-lg bg-amber-50 border-amber-200 p-4 flex items-center gap-3">
