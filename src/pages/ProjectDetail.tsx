@@ -1211,6 +1211,28 @@ export default function ProjectDetail() {
                 {(project as any).auditjaar ?? auditjaarVanDatum(project.datum_aangemaakt)}
               </span>
             )}
+            {(hasRole("beheer") || hasRole("auditor") || hasRole("tekenaar")) && (
+              <>
+                <span className="text-muted-foreground ml-2">Fase:</span>
+                <select
+                  className="h-7 rounded-md border border-input bg-background px-2 text-xs"
+                  value={(project as any).is_omgevingsvergunning ? "omgevingsvergunning" : "oplevering"}
+                  onChange={async (e) => {
+                    const value = e.target.value === "omgevingsvergunning";
+                    const { error } = await supabase.from("projects").update({ is_omgevingsvergunning: value } as any).eq("id", id!);
+                    if (error) {
+                      toast({ title: "Opslaan mislukt", description: error.message, variant: "destructive" });
+                      return;
+                    }
+                    setProject({ ...(project as any), is_omgevingsvergunning: value } as any);
+                    toast({ title: `Fase gewijzigd naar ${value ? "Omgevingsvergunning" : "Oplevering"}` });
+                  }}
+                >
+                  <option value="oplevering">Oplevering</option>
+                  <option value="omgevingsvergunning">Omgevingsvergunning</option>
+                </select>
+              </>
+            )}
           </div>
           {/* Dropbox-link dossier */}
           <div className="mt-1 flex items-center gap-2 text-xs">
