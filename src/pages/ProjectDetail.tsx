@@ -1168,10 +1168,14 @@ export default function ProjectDetail() {
             {project.audit_categorie} · {project.audit_soort}
             {project.toelatingsaudit && " · Toelatingsaudit"}
             {project.prioriteit && " · Prioriteit"}
-            {" · "}
-            <span className="inline-flex items-center rounded-full bg-accent/15 text-accent px-1.5 py-0.5 text-[10px] font-semibold align-middle">
-              {(project as any).is_omgevingsvergunning ? "Omgevingsvergunning" : "Oplevering"}
-            </span>
+            {(project as any).is_omgevingsvergunning && (
+              <>
+                {" · "}
+                <span className="inline-flex items-center rounded-full bg-accent/15 text-accent px-1.5 py-0.5 text-[10px] font-semibold align-middle">
+                  Omgevingsvergunning
+                </span>
+              </>
+            )}
             {isAdviseurVanProject && (
               <>
                 {" · "}
@@ -1210,28 +1214,6 @@ export default function ProjectDetail() {
               <span className="font-medium">
                 {(project as any).auditjaar ?? auditjaarVanDatum(project.datum_aangemaakt)}
               </span>
-            )}
-            {(hasRole("beheer") || hasRole("auditor") || hasRole("tekenaar")) && (
-              <>
-                <span className="text-muted-foreground ml-2">Fase:</span>
-                <select
-                  className="h-7 rounded-md border border-input bg-background px-2 text-xs"
-                  value={(project as any).is_omgevingsvergunning ? "omgevingsvergunning" : "oplevering"}
-                  onChange={async (e) => {
-                    const value = e.target.value === "omgevingsvergunning";
-                    const { error } = await supabase.from("projects").update({ is_omgevingsvergunning: value } as any).eq("id", id!);
-                    if (error) {
-                      toast({ title: "Opslaan mislukt", description: error.message, variant: "destructive" });
-                      return;
-                    }
-                    setProject({ ...(project as any), is_omgevingsvergunning: value } as any);
-                    toast({ title: `Fase gewijzigd naar ${value ? "Omgevingsvergunning" : "Oplevering"}` });
-                  }}
-                >
-                  <option value="oplevering">Oplevering</option>
-                  <option value="omgevingsvergunning">Omgevingsvergunning</option>
-                </select>
-              </>
             )}
           </div>
           {/* Dropbox-link dossier */}
