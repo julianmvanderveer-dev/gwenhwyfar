@@ -36,6 +36,7 @@ import BatchVersturen from "@/components/projecten/BatchVersturen";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { useProjectRole } from "@/hooks/useProjectRole";
 import { auditjaarVanDatum, auditjaarOptiesMet } from "@/lib/auditjaar";
+import { berekeningssoortLabel } from "@/lib/berekeningssoort";
 
 type Project = Tables<"projects">;
 type Finding = Tables<"findings">;
@@ -1185,6 +1186,11 @@ export default function ProjectDetail() {
               </>
             )}
           </p>
+          {berekeningssoortLabel(project.audit_categorie, (project as any).is_omgevingsvergunning) && (
+            <p className="text-xs text-muted-foreground">
+              Soort berekening: {berekeningssoortLabel(project.audit_categorie, (project as any).is_omgevingsvergunning)}
+            </p>
+          )}
           {/* Auditjaar (1 juli t/m 30 juni) */}
           <div className="mt-1 flex items-center gap-2 text-xs">
             <span className="text-muted-foreground">Auditjaar:</span>
